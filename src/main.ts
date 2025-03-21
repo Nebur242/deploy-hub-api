@@ -1,3 +1,4 @@
+import { TransformInterceptor } from '@core/interceptors/transform.interceptor';
 import {
   BadRequestException,
   INestApplication,
@@ -8,39 +9,35 @@ import {
 import { NestFactory } from '@nestjs/core';
 
 import { AppModule } from './app.module';
-import { TransformInterceptor } from './core/interceptors/transform.interceptor';
 
 const defaultVersion = 1;
 const globalPrefix = 'api';
 
 function setupGlobalMiddlewares(app: INestApplication) {
-  return (
-    app
-      .useGlobalPipes(
-        new ValidationPipe({
-          whitelist: true,
-          transform: true,
-          exceptionFactory(errors) {
-            return new BadRequestException({
-              statusCode: 400,
-              message: 'Bad Request',
-              errors: errors.reduce(
-                (acc, e) => [...acc, ...(e.constraints ? Object.values(e.constraints) : [])],
-                [],
-              ),
-            });
-          },
-        }),
-      )
-      .useGlobalInterceptors(new TransformInterceptor())
-      // .useGlobalFilters(new BaseRpcExceptionFilter())
-      .setGlobalPrefix(globalPrefix)
-      .enableVersioning({
-        type: VersioningType.URI,
-        defaultVersion: `${defaultVersion}`,
-      })
-      .enableCors()
-  );
+  return app
+    .useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        transform: true,
+        exceptionFactory(errors) {
+          return new BadRequestException({
+            statusCode: 400,
+            message: 'Bad Request',
+            errors: errors.reduce(
+              (acc, e) => [...acc, ...(e.constraints ? Object.values(e.constraints) : [])],
+              [],
+            ),
+          });
+        },
+      }),
+    )
+    .useGlobalInterceptors(new TransformInterceptor())
+    .setGlobalPrefix(globalPrefix)
+    .enableVersioning({
+      type: VersioningType.URI,
+      defaultVersion: `${defaultVersion}`,
+    })
+    .enableCors();
 }
 
 async function bootstrap() {
