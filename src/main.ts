@@ -7,11 +7,27 @@ import {
   VersioningType,
 } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 import { AppModule } from './app.module';
+import * as packages from '../package.json';
 
-const defaultVersion = 1;
+const defaultVersion = '1';
 const globalPrefix = 'api';
+
+function setupSwagger(app: INestApplication): INestApplication {
+  const config = new DocumentBuilder()
+    .setTitle('DeployHub API')
+    .setDescription('The DeployHub API documentation')
+    .setVersion(packages.version)
+    .addBearerAuth({ type: 'http' })
+    .addTag('DeployHub')
+    .build();
+
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api/docs', app, document);
+  return app;
+}
 
 function setupGlobalMiddlewares(app: INestApplication) {
   return app
@@ -35,15 +51,15 @@ function setupGlobalMiddlewares(app: INestApplication) {
     .setGlobalPrefix(globalPrefix)
     .enableVersioning({
       type: VersioningType.URI,
-      defaultVersion: `${defaultVersion}`,
+      defaultVersion,
     })
     .enableCors();
 }
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  const globalPrefix = 'api';
   app.setGlobalPrefix(globalPrefix);
+  setupSwagger(app);
   app.enableVersioning({
     type: VersioningType.URI,
   });
@@ -59,4 +75,5 @@ async function bootstrap() {
 
 bootstrap().catch(error => {
   Logger.error('Error during bootstrap', error);
+  process.exit(1);
 });
