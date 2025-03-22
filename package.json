@@ -91,7 +91,7 @@
     "*.{js,jsx,ts,tsx}": [
       "eslint --fix",
       "prettier --write",
-      "jest --findRelatedTests --passWithNoTests"
+      "jest"
     ],
     "*.{json,md,yml,yaml}": [
       "prettier --write"
