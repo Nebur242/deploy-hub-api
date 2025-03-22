@@ -13,7 +13,7 @@ export class SentryInterceptor implements NestInterceptor {
     return next.handle().pipe(
       tap({
         error: exception => {
-          if (this.configService?.get('NODE_ENV') !== 'local') {
+          if (this.configService?.get('NODE_ENV') === 'local') {
             return console.error('Sentry error:', exception);
           }
           Sentry.captureException(exception);
