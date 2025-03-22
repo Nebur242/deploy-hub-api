@@ -47,10 +47,9 @@ export class EnvironmentVariables {
   @Expose()
   FIREBASE_REST_API_KEY: string;
 
-  @IsOptional()
   @IsEnum(Environment)
   @Expose()
-  NODE_ENV?: Environment;
+  NODE_ENV: `${Environment}`;
 
   @IsString()
   @Expose()
@@ -74,6 +73,14 @@ export class EnvironmentVariables {
   @IsString()
   @Expose()
   DB_NAME: string;
+
+  @IsString()
+  @Expose()
+  SENTRY_DSN: string;
+
+  @IsString()
+  @Expose()
+  PORT: string;
 
   @ValidateIf((env: EnvironmentVariables) => env.DB_TYPE !== 'sqlite')
   @IsString()

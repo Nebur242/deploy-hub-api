@@ -8,9 +8,11 @@ import {
 } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import * as Sentry from '@sentry/node';
 
 import { AppModule } from './app.module';
 import * as packages from '../package.json';
+import { SentryInterceptor } from './core/interceptors/sentry.interceptor';
 
 const defaultVersion = '1';
 const globalPrefix = 'api';
@@ -47,7 +49,7 @@ function setupGlobalMiddlewares(app: INestApplication) {
         },
       }),
     )
-    .useGlobalInterceptors(new TransformInterceptor())
+    .useGlobalInterceptors(new TransformInterceptor(), new SentryInterceptor())
     .setGlobalPrefix(globalPrefix)
     .enableVersioning({
       type: VersioningType.URI,
@@ -65,7 +67,14 @@ async function bootstrap() {
   });
 
   const port = process.env.PORT || 3000;
+
   setupGlobalMiddlewares(app);
+
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    profileSessionSampleRate: 1.0,
+  });
+
   await app.listen(port);
 
   Logger.log(

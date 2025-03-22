@@ -26,7 +26,7 @@ import { EnvironmentVariables, validate } from './config/env.validation';
         type: 'postgres',
         cache: true,
         autoLoadEntities: true,
-        entities: ['*.entity.ts'],
+        entities: ['dist/**/*.entity.js'],
       }),
     }),
   ],
