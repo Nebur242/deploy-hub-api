@@ -1,7 +1,7 @@
 name: CD
 
 on:
-  push:
+  pull_request:
     branches:
       - main
 
@@ -27,6 +27,6 @@ jobs:
       - name: Deploy to Fly.io
         uses: superfly/flyctl-actions/setup-flyctl@master
 
-      - run: flyctl deploy --remote-only
+      - run: flyctl deploy --app dev-${{secrets.APP_NAME}}  --remote-only
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_ORG_TOKEN }}

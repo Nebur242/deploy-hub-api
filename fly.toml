@@ -1,20 +1,12 @@
-# fly.toml app configuration file generated for maketou-deploy-hub-api on 2025-03-22T09:22:04-04:00
+# fly.toml app configuration file generated for maketou-deploy-hub-api on 2025-03-22T10:58:43-04:00
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
 app = 'maketou-deploy-hub-api'
-primary_region = 'iad'
+primary_region = 'mad'
 
 [build]
-
-[env]
-NODE_ENV = 'local'
-PORT = '3000'
-DB_LOGGING = 'false'
-DB_SSL = "true"
-DB_SYNC = "true"
-
 
 [http_service]
 internal_port = 3000
