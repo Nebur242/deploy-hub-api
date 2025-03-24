@@ -6,12 +6,15 @@ import {
   ValidationPipe,
   VersioningType,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as Sentry from '@sentry/node';
+import { cert, getApps, initializeApp } from 'firebase-admin/app';
 
 import { AppModule } from './app.module';
 import * as packages from '../package.json';
+import { EnvironmentVariables } from './config/env.validation';
 import { SentryInterceptor } from './core/interceptors/sentry.interceptor';
 
 const defaultVersion = '1';
@@ -32,6 +35,8 @@ function setupSwagger(app: INestApplication): INestApplication {
 }
 
 function setupGlobalMiddlewares(app: INestApplication) {
+  const configService: ConfigService<EnvironmentVariables, true> = app.get(ConfigService);
+
   return app
     .useGlobalPipes(
       new ValidationPipe({
@@ -49,7 +54,10 @@ function setupGlobalMiddlewares(app: INestApplication) {
         },
       }),
     )
-    .useGlobalInterceptors(new TransformInterceptor(), new SentryInterceptor())
+    .useGlobalInterceptors(
+      new TransformInterceptor(),
+      new SentryInterceptor(configService.get('NODE_ENV')),
+    )
     .setGlobalPrefix(globalPrefix)
     .enableVersioning({
       type: VersioningType.URI,
@@ -58,22 +66,40 @@ function setupGlobalMiddlewares(app: INestApplication) {
     .enableCors();
 }
 
+const initializeServices = (app: INestApplication) => {
+  const configService: ConfigService<EnvironmentVariables, true> = app.get(ConfigService);
+
+  if (getApps().length === 0) {
+    initializeApp({
+      credential: cert({
+        projectId: configService.get<string>('FIREBASE_PROJECT_ID'),
+        privateKey: configService.get<string>('FIREBASE_PRIVATE_KEY').replace(/\\n/g, '\n'),
+        clientEmail: configService.get<string>('FIREBASE_CLIENT_EMAIL'),
+      }),
+    });
+  }
+
+  Sentry.init({
+    dsn: configService.get<string>('SENTRY_DSN'),
+    profileSessionSampleRate: 1.0,
+  });
+};
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const configService: ConfigService<EnvironmentVariables, true> = app.get(ConfigService);
+
   app.setGlobalPrefix(globalPrefix);
   setupSwagger(app);
   app.enableVersioning({
     type: VersioningType.URI,
   });
 
-  const port = process.env.PORT || 3000;
-
   setupGlobalMiddlewares(app);
 
-  Sentry.init({
-    dsn: process.env.SENTRY_DSN,
-    profileSessionSampleRate: 1.0,
-  });
+  const port = configService.get<string>('PORT') || 3000;
+
+  initializeServices(app);
 
   await app.listen(port);
 
