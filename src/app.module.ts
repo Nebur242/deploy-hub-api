@@ -5,6 +5,9 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { EnvironmentVariables, validate } from './config/env.validation';
+import { AuthModule } from './modules/auth/auth.module';
+import { FirebaseModule } from './modules/firebase/firebase.module';
+import { TestHelpersModule } from './modules/test-helpers/test-helpers.module';
 
 @Module({
   imports: [
@@ -29,6 +32,9 @@ import { EnvironmentVariables, validate } from './config/env.validation';
         entities: ['dist/**/*.entity.js'],
       }),
     }),
+    AuthModule,
+    FirebaseModule,
+    TestHelpersModule,
   ],
   controllers: [AppController],
   providers: [AppService],
