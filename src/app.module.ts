@@ -8,6 +8,7 @@ import { EnvironmentVariables, validate } from './config/env.validation';
 import { AuthModule } from './modules/auth/auth.module';
 import { FirebaseModule } from './modules/firebase/firebase.module';
 import { TestHelpersModule } from './modules/test-helpers/test-helpers.module';
+import { UserModule } from './modules/users/users.module';
 
 @Module({
   imports: [
@@ -25,7 +26,7 @@ import { TestHelpersModule } from './modules/test-helpers/test-helpers.module';
         logging: configService.get<string>('DB_LOGGING') === 'true',
         username: configService.get<string>('DB_USERNAME'),
         password: configService.get<string>('DB_PASSWORD'),
-        synchronize: configService.get('DB_SYNC') === 'true',
+        synchronize: configService.get<string>('DB_SYNC') === 'true',
         type: 'postgres',
         cache: true,
         autoLoadEntities: true,
@@ -35,6 +36,7 @@ import { TestHelpersModule } from './modules/test-helpers/test-helpers.module';
     AuthModule,
     FirebaseModule,
     TestHelpersModule,
+    UserModule,
   ],
   controllers: [AppController],
   providers: [AppService],
