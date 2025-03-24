@@ -1,6 +1,11 @@
-import { createParamDecorator, ExecutionContext } from '@nestjs/common';
+// trycatch function to handle async errors and response
 
-export const Claims = createParamDecorator((field: string, ctx: ExecutionContext) => {
-  const req = ctx.switchToHttp().getRequest<{ user: Record<string, string> }>();
-  return field ? req.user[field] : req.user;
-});
+export const tryCatch = async <T, E = Error>(fn: () => Promise<T>) => {
+  try {
+    const data = await fn();
+    return { data, error: null };
+  } catch (err) {
+    const error = err as E;
+    return { data: null, error };
+  }
+};

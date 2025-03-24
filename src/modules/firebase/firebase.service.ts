@@ -39,6 +39,10 @@ export class FirebaseService {
     await getAuth().deleteUser(uid);
   }
 
+  verifyUser(uid: string) {
+    return getAuth().getUser(uid);
+  }
+
   @CatchFirebaseException()
   login(email: string, password: string) {
     return lastValueFrom(

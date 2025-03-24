@@ -1,6 +1,6 @@
 import { Body, Controller, Post } from '@nestjs/common';
 
-import { CreateTestUserDto, LoginTestUserDto } from './test-helpers.dto';
+import { CreateTestUserDto, LoginTestUserDto } from './dto/test-helpers.dto';
 import { FirebaseService } from '../firebase/firebase.service';
 
 @Controller('test-helpers')
