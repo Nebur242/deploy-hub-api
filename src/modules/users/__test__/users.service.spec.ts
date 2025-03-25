@@ -58,6 +58,7 @@ describe('UsersService', () => {
         firebaseUid: 'test-uid',
         firstName: 'John',
         lastName: 'Doe',
+        roles: ['user'],
       };
 
       const preferences = new UserPreferences();
@@ -87,6 +88,7 @@ describe('UsersService', () => {
         firebaseUid: 'existing-uid',
         firstName: 'John',
         lastName: 'Doe',
+        roles: ['user'],
       };
 
       const existingUser = new User();

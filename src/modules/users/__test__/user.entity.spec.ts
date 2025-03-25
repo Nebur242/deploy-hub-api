@@ -15,6 +15,7 @@ describe('User Entity', () => {
     user.lastName = 'Doe';
     user.company = 'Test Co';
     user.profilePicture = 'profile.jpg';
+    user.roles = ['user'];
 
     expect(user.id).toEqual('test-id');
     expect(user.firebaseUid).toEqual('firebase-uid');
@@ -22,6 +23,7 @@ describe('User Entity', () => {
     expect(user.lastName).toEqual('Doe');
     expect(user.company).toEqual('Test Co');
     expect(user.profilePicture).toEqual('profile.jpg');
+    expect(user.roles).toEqual(['user']);
   });
 
   it('should associate with preferences', () => {
