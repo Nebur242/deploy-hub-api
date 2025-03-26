@@ -47,7 +47,7 @@ describe('UserController', () => {
       const createUserDto: CreateUserDto = {
         firstName: 'John',
         lastName: 'Doe',
-        firebaseUid: 'some-uid', // This would be overridden by the controller
+        uid: 'some-uid', // This would be overridden by the controller
         company: 'Test Co',
         roles: ['user'],
       };
@@ -65,12 +65,12 @@ describe('UserController', () => {
 
       const createdUser = new User();
       createdUser.id = 'test-id';
-      createdUser.firebaseUid = currentUser.uid;
+      createdUser.uid = currentUser.uid;
       Object.assign(createdUser, createUserDto);
 
       const responseDto: UserResponseDto = {
         id: 'test-id',
-        firebaseUid: currentUser.uid,
+        uid: currentUser.uid,
         firstName: 'John',
         lastName: 'Doe',
         company: 'Test Co',
@@ -86,7 +86,7 @@ describe('UserController', () => {
 
       expect(usersService.createUser).toHaveBeenCalledWith({
         ...createUserDto,
-        firebaseUid: currentUser.uid,
+        uid: currentUser.uid,
       });
       expect(usersService.mapToResponseDto).toHaveBeenCalledWith(createdUser);
       expect(result).toEqual(responseDto);
@@ -98,13 +98,15 @@ describe('UserController', () => {
       const userId = 'test-id';
       const currentUser = new User();
       currentUser.id = userId;
+      currentUser.uid = 'firebase-uid';
 
       const foundUser = new User();
       foundUser.id = userId;
+      foundUser.uid = 'firebase-uid';
 
       const responseDto: UserResponseDto = {
         id: userId,
-        firebaseUid: 'firebase-uid',
+        uid: 'firebase-uid',
         firstName: 'John',
         lastName: 'Doe',
         roles: ['user'],
@@ -115,7 +117,7 @@ describe('UserController', () => {
       jest.spyOn(usersService, 'findOne').mockResolvedValue(foundUser);
       jest.spyOn(usersService, 'mapToResponseDto').mockReturnValue(responseDto);
 
-      const result = await controller.findOne(userId, currentUser);
+      const result = await controller.findOne(currentUser.uid, currentUser);
 
       expect(usersService.findOne).toHaveBeenCalledWith(userId);
       expect(usersService.mapToResponseDto).toHaveBeenCalledWith(foundUser);
@@ -146,7 +148,7 @@ describe('UserController', () => {
 
       const responseDto: UserResponseDto = {
         id: userId,
-        firebaseUid: 'firebase-uid',
+        uid: 'firebase-uid',
         firstName: 'Updated',
         lastName: 'Name',
         roles: ['user'],
@@ -177,7 +179,7 @@ describe('UserController', () => {
 
       const responseDto: UserResponseDto = {
         id: userId,
-        firebaseUid: 'firebase-uid',
+        uid: 'firebase-uid',
         firstName: 'John',
         lastName: 'Doe',
         roles: ['user'],

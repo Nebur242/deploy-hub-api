@@ -10,7 +10,7 @@ describe('User Entity', () => {
   it('should set and get properties correctly', () => {
     const user = new User();
     user.id = 'test-id';
-    user.firebaseUid = 'firebase-uid';
+    user.uid = 'firebase-uid';
     user.firstName = 'John';
     user.lastName = 'Doe';
     user.company = 'Test Co';
@@ -18,7 +18,7 @@ describe('User Entity', () => {
     user.roles = ['user'];
 
     expect(user.id).toEqual('test-id');
-    expect(user.firebaseUid).toEqual('firebase-uid');
+    expect(user.uid).toEqual('firebase-uid');
     expect(user.firstName).toEqual('John');
     expect(user.lastName).toEqual('Doe');
     expect(user.company).toEqual('Test Co');
