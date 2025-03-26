@@ -49,6 +49,7 @@ describe('UserController', () => {
         lastName: 'Doe',
         firebaseUid: 'some-uid', // This would be overridden by the controller
         company: 'Test Co',
+        roles: ['user'],
       };
 
       const currentUser: DecodedIdToken = {
@@ -73,6 +74,7 @@ describe('UserController', () => {
         firstName: 'John',
         lastName: 'Doe',
         company: 'Test Co',
+        roles: ['user'],
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -105,6 +107,7 @@ describe('UserController', () => {
         firebaseUid: 'firebase-uid',
         firstName: 'John',
         lastName: 'Doe',
+        roles: ['user'],
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -146,6 +149,7 @@ describe('UserController', () => {
         firebaseUid: 'firebase-uid',
         firstName: 'Updated',
         lastName: 'Name',
+        roles: ['user'],
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -176,6 +180,7 @@ describe('UserController', () => {
         firebaseUid: 'firebase-uid',
         firstName: 'John',
         lastName: 'Doe',
+        roles: ['user'],
         createdAt: new Date(),
         updatedAt: new Date(),
       };

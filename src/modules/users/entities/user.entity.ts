@@ -1,3 +1,4 @@
+import { Role } from '@app/shared/enums';
 import {
   Column,
   CreateDateColumn,
@@ -33,6 +34,9 @@ export class User {
   @OneToOne(() => UserPreferences, { cascade: true })
   @JoinColumn()
   preferences: UserPreferences;
+
+  @Column({ nullable: false, type: 'enum', enum: Role, default: ['user'] })
+  roles: `${Role}`[];
 
   @CreateDateColumn()
   createdAt: Date;

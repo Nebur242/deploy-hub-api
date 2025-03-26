@@ -1,4 +1,5 @@
-import { IsNotEmpty, IsOptional, IsString, Length } from 'class-validator';
+import { Role } from '@app/shared/enums';
+import { IsEnum, IsNotEmpty, IsOptional, IsString, Length } from 'class-validator';
 
 export class CreateUserDto {
   @IsOptional()
@@ -16,6 +17,9 @@ export class CreateUserDto {
   @IsNotEmpty()
   @IsString()
   firebaseUid: string;
+
+  @IsEnum(Role, { each: true })
+  roles: `${Role}`[];
 
   @IsOptional()
   @IsString()
@@ -45,6 +49,7 @@ export class UserResponseDto {
   lastName?: string;
   company?: string;
   profilePicture?: string;
+  roles: `${Role}`[];
   createdAt: Date;
   updatedAt: Date;
 }

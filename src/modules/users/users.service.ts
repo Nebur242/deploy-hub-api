@@ -96,6 +96,7 @@ export class UsersService {
       firstName: user?.firstName,
       lastName: user?.lastName,
       company: user.company,
+      roles: user.roles,
       profilePicture: user.profilePicture,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
