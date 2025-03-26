@@ -55,7 +55,7 @@ describe('UsersService', () => {
   describe('createUser', () => {
     it('should create a user with default preferences', async () => {
       const createUserDto: CreateUserDto = {
-        firebaseUid: 'test-uid',
+        uid: 'test-uid',
         firstName: 'John',
         lastName: 'Doe',
         roles: ['user'],
@@ -85,14 +85,14 @@ describe('UsersService', () => {
 
     it('should throw ConflictException if user already exists', async () => {
       const createUserDto: CreateUserDto = {
-        firebaseUid: 'existing-uid',
+        uid: 'existing-uid',
         firstName: 'John',
         lastName: 'Doe',
         roles: ['user'],
       };
 
       const existingUser = new User();
-      existingUser.firebaseUid = createUserDto.firebaseUid;
+      existingUser.uid = createUserDto.uid;
 
       jest.spyOn(userRepository, 'findOne').mockResolvedValue(existingUser);
 
@@ -139,13 +139,13 @@ describe('UsersService', () => {
   describe('findByFirebaseUid', () => {
     it('should return a user if found', async () => {
       const user = new User();
-      user.firebaseUid = 'test-uid';
+      user.uid = 'test-uid';
 
       jest.spyOn(userRepository, 'findOne').mockResolvedValue(user);
 
       expect(await service.findByFirebaseUid('test-uid')).toBe(user);
       expect(userRepository.findOne).toHaveBeenCalledWith({
-        where: { firebaseUid: 'test-uid' },
+        where: { uid: 'test-uid' },
         relations: ['preferences'],
       });
     });
@@ -237,7 +237,7 @@ describe('UsersService', () => {
     it('should map user entity to response DTO', () => {
       const user = new User();
       user.id = 'test-id';
-      user.firebaseUid = 'test-uid';
+      user.uid = 'test-uid';
       user.firstName = 'John';
       user.lastName = 'Doe';
       user.company = 'Test Co';
@@ -249,7 +249,7 @@ describe('UsersService', () => {
 
       expect(result).toEqual({
         id: user.id,
-        firebaseUid: user.firebaseUid,
+        uid: user.uid,
         firstName: user.firstName,
         lastName: user.lastName,
         company: user.company,

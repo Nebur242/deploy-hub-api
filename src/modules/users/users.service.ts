@@ -19,7 +19,7 @@ export class UsersService {
   async createUser(createUserDto: CreateUserDto): Promise<User> {
     // Check if user with firebase UID already exists
     const existingUser = await this.userRepository.findOne({
-      where: { firebaseUid: createUserDto.firebaseUid },
+      where: { uid: createUserDto.uid },
     });
 
     if (existingUser) {
@@ -56,14 +56,14 @@ export class UsersService {
     return user;
   }
 
-  async findByFirebaseUid(firebaseUid: string): Promise<User> {
+  async findByFirebaseUid(uid: string): Promise<User> {
     const user = await this.userRepository.findOne({
-      where: { firebaseUid },
+      where: { uid },
       relations: ['preferences'],
     });
 
     if (!user) {
-      throw new NotFoundException(`User with Firebase UID "${firebaseUid}" not found`);
+      throw new NotFoundException(`User with Firebase UID "${uid}" not found`);
     }
 
     return user;
@@ -92,7 +92,7 @@ export class UsersService {
   mapToResponseDto(user: User): UserResponseDto {
     return {
       id: user.id,
-      firebaseUid: user.firebaseUid,
+      uid: user.uid,
       firstName: user?.firstName,
       lastName: user?.lastName,
       company: user.company,

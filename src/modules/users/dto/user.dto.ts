@@ -16,7 +16,7 @@ export class CreateUserDto {
 
   @IsNotEmpty()
   @IsString()
-  firebaseUid: string;
+  uid: string;
 
   @IsEnum(Role, { each: true })
   roles: `${Role}`[];
@@ -44,7 +44,7 @@ export class UpdateUserDto {
 
 export class UserResponseDto {
   id: string;
-  firebaseUid: string;
+  uid: string;
   firstName?: string;
   lastName?: string;
   company?: string;

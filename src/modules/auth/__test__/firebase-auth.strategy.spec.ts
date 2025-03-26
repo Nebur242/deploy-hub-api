@@ -69,7 +69,7 @@ describe('FirebaseAuthStrategy', function (this: void) {
 
     it('should return the user when token is valid and user is found', async function (this: void) {
       const mockFirebaseUser = { uid: 'user123', email: 'test@example.com' };
-      const mockUser = { id: 1, firebaseUid: 'user123', email: 'test@example.com' };
+      const mockUser = { id: 1, uid: 'user123', email: 'test@example.com' };
       mockAuth.verifyIdToken.mockResolvedValueOnce(mockFirebaseUser);
       mockUsersService.findByFirebaseUid.mockResolvedValueOnce(mockUser);
 

@@ -17,7 +17,7 @@ export class User {
   id: string;
 
   @Column({ unique: true })
-  firebaseUid: string;
+  uid: string;
 
   @Column({ length: 50, nullable: true })
   firstName?: string;
@@ -35,7 +35,7 @@ export class User {
   @JoinColumn()
   preferences: UserPreferences;
 
-  @Column({ nullable: false, type: 'enum', enum: Role, default: ['user'] })
+  @Column({ nullable: false, type: 'enum', enum: Role, default: ['user'], array: true })
   roles: `${Role}`[];
 
   @CreateDateColumn()

@@ -30,21 +30,21 @@ export class UserController {
   ): Promise<UserResponseDto> {
     const user = await this.userService.createUser({
       ...createUserDto,
-      firebaseUid: currentUser.uid,
+      uid: currentUser.uid,
     });
     return this.userService.mapToResponseDto(user);
   }
 
-  @Get(':id')
+  @Get(':uid')
   async findOne(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('uid') uid: string,
     @CurrentUser() currentUser: User,
   ): Promise<UserResponseDto> {
-    if (currentUser.id !== id) {
+    if (currentUser.uid !== uid) {
       throw new ForbiddenException('Access denied');
     }
 
-    const requestedUser = await this.userService.findOne(id);
+    const requestedUser = await this.userService.findOne(currentUser.id);
     return this.userService.mapToResponseDto(requestedUser);
   }
 
