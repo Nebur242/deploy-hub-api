@@ -21,9 +21,6 @@ export class CreateUserDto {
   @IsEnum(Role, { each: true })
   roles: `${Role}`[];
 
-  @IsEnum(Role, { each: true })
-  roles: `${Role}`[];
-
   @IsOptional()
   @IsString()
   company?: string;
