@@ -41,6 +41,7 @@ function setupGlobalMiddlewares(app: INestApplication) {
     .useGlobalPipes(
       new ValidationPipe({
         whitelist: true,
+        forbidNonWhitelisted: true,
         transform: true,
         exceptionFactory(errors) {
           return new BadRequestException({

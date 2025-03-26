@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import { UsersService } from '@app/modules/users/users.service';
 import { UnauthorizedException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import * as firebaseAdmin from 'firebase-admin';
@@ -10,11 +12,17 @@ jest.mock('firebase-admin', () => ({
   auth: jest.fn(),
 }));
 
+// Mock UsersService
+const mockUsersService = {
+  findByFirebaseUid: jest.fn(),
+};
+
 describe('FirebaseAuthStrategy', function (this: void) {
   let strategy: FirebaseAuthStrategy;
   let mockAuth: {
     verifyIdToken: jest.Mock;
   };
+  let usersService: UsersService;
 
   beforeEach(async function (this: void) {
     // Setup mock for firebase-admin/auth
@@ -25,10 +33,17 @@ describe('FirebaseAuthStrategy', function (this: void) {
     (firebaseAdmin.auth as jest.Mock).mockReturnValue(mockAuth);
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [FirebaseAuthStrategy],
+      providers: [
+        FirebaseAuthStrategy,
+        {
+          provide: UsersService,
+          useValue: mockUsersService,
+        },
+      ],
     }).compile();
 
     strategy = module.get<FirebaseAuthStrategy>(FirebaseAuthStrategy);
+    usersService = module.get<UsersService>(UsersService);
   });
 
   afterEach(function (this: void) {
@@ -40,14 +55,41 @@ describe('FirebaseAuthStrategy', function (this: void) {
   });
 
   describe('validate', function (this: void) {
-    it('should return the firebase user when token is valid', async function (this: void) {
-      const mockUser = { uid: 'user123', email: 'test@example.com' };
-      mockAuth.verifyIdToken.mockResolvedValueOnce(mockUser);
+    it('should return the firebase user when token is valid and user not found', async function (this: void) {
+      const mockFirebaseUser = { uid: 'user123', email: 'test@example.com' };
+      mockAuth.verifyIdToken.mockResolvedValueOnce(mockFirebaseUser);
+      mockUsersService.findByFirebaseUid.mockResolvedValueOnce(null);
 
       const result = await strategy.validate('valid-token');
 
       expect(mockAuth.verifyIdToken).toHaveBeenCalledWith('valid-token', true);
+      expect(mockUsersService.findByFirebaseUid).toHaveBeenCalledWith('user123');
+      expect(result).toEqual(mockFirebaseUser);
+    });
+
+    it('should return the user when token is valid and user is found', async function (this: void) {
+      const mockFirebaseUser = { uid: 'user123', email: 'test@example.com' };
+      const mockUser = { id: 1, uid: 'user123', email: 'test@example.com' };
+      mockAuth.verifyIdToken.mockResolvedValueOnce(mockFirebaseUser);
+      mockUsersService.findByFirebaseUid.mockResolvedValueOnce(mockUser);
+
+      const result = await strategy.validate('valid-token');
+
+      expect(mockAuth.verifyIdToken).toHaveBeenCalledWith('valid-token', true);
+      expect(mockUsersService.findByFirebaseUid).toHaveBeenCalledWith('user123');
       expect(result).toEqual(mockUser);
+    });
+
+    it('should return firebase user when user service throws an error', async function (this: void) {
+      const mockFirebaseUser = { uid: 'user123', email: 'test@example.com' };
+      mockAuth.verifyIdToken.mockResolvedValueOnce(mockFirebaseUser);
+      mockUsersService.findByFirebaseUid.mockRejectedValueOnce(new Error('Database error'));
+
+      const result = await strategy.validate('valid-token');
+
+      expect(mockAuth.verifyIdToken).toHaveBeenCalledWith('valid-token', true);
+      expect(mockUsersService.findByFirebaseUid).toHaveBeenCalledWith('user123');
+      expect(result).toEqual(mockFirebaseUser);
     });
 
     it('should throw UnauthorizedException when token verification fails with error message', async function (this: void) {
@@ -57,6 +99,7 @@ describe('FirebaseAuthStrategy', function (this: void) {
       await expect(strategy.validate('invalid-token')).rejects.toThrow(
         new UnauthorizedException('Token expired'),
       );
+      expect(mockUsersService.findByFirebaseUid).not.toHaveBeenCalled();
     });
 
     it('should throw UnauthorizedException with default message when error has no message', async function (this: void) {
@@ -81,21 +124,7 @@ describe('FirebaseAuthStrategy', function (this: void) {
 
   describe('constructor', function (this: void) {
     it('should set up the strategy with bearer token extractor', function (this: void) {
-      // We can test this by checking if the super constructor was called with the right options
-      // This requires accessing private properties, which is tricky in TypeScript
-      // For this test, we'll verify indirectly by ensuring the strategy instance exists
       expect(strategy).toBeInstanceOf(FirebaseAuthStrategy);
-
-      // If you want to test the specific options, you could recreate the class and spy on super
-      class TestStrategy extends FirebaseAuthStrategy {
-        constructor() {
-          super();
-          // This constructor will call the parent constructor with the right options
-        }
-      }
-
-      const testStrategy = new TestStrategy();
-      expect(testStrategy).toBeDefined();
     });
   });
 });

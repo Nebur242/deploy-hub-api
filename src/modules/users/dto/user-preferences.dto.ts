@@ -1,0 +1,30 @@
+import { IsBoolean, IsEnum, IsOptional } from 'class-validator';
+
+export enum DeploymentProvider {
+  VERCEL = 'vercel',
+  NETLIFY = 'netlify',
+  AWS = 'aws',
+  DIGITAL_OCEAN = 'digital_ocean',
+  HEROKU = 'heroku',
+  GITHUB_PAGES = 'github_pages',
+}
+
+export enum Theme {
+  LIGHT = 'light',
+  DARK = 'dark',
+  SYSTEM = 'system',
+}
+
+export class UserPreferencesDto {
+  @IsOptional()
+  @IsEnum(Theme)
+  theme?: Theme;
+
+  @IsOptional()
+  @IsBoolean()
+  emailNotifications?: boolean;
+
+  @IsOptional()
+  @IsEnum(DeploymentProvider, { each: true })
+  preferredDeploymentProviders?: DeploymentProvider[];
+}
