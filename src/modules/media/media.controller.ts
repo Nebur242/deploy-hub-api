@@ -12,11 +12,13 @@ import {
   HttpStatus,
   HttpCode,
   ParseUUIDPipe,
+  Query,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 
 import { CreateMediaDto } from './dto/create-media.dto';
 import { MediaResponseDto } from './dto/media-response.dto';
+import { PaginationOptionsDto } from './dto/pagination-options.dto';
 import { UpdateMediaDto } from './dto/update-media.dto';
 import { MediaService } from './media.service';
 
@@ -48,8 +50,8 @@ export class MediaController {
     description: 'Return all media records based on query.',
     type: [MediaResponseDto],
   })
-  findAll() {
-    return this.mediaService.findAll();
+  findAll(@Query() paginationOptionsDto: PaginationOptionsDto) {
+    return this.mediaService.findAll(paginationOptionsDto);
   }
 
   @Get(':id')

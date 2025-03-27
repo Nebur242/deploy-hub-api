@@ -1,3 +1,5 @@
+import { Media } from '@app/modules/media/entities/media.entity';
+import { User } from '@app/modules/users/entities/user.entity';
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -29,6 +31,24 @@ export class Category {
   @Column({ length: 50, default: 'default-category-icon' })
   icon: string;
 
+  @ManyToOne(() => Media, { nullable: true })
+  @JoinColumn({ name: 'mediaId' })
+  media: Media;
+
+  @Column({
+    nullable: true,
+    type: 'uuid',
+  })
+  mediaId: string;
+
+  @Column({ nullable: true })
+  @Index()
+  ownerId: string;
+
+  @ManyToOne(() => User, { onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'ownerId' })
+  owner: User;
+
   @Column({ nullable: true })
   parentId: string;
 
@@ -45,9 +65,9 @@ export class Category {
   @Column({ default: 0 })
   sortOrder: number;
 
-  @CreateDateColumn({ type: 'timestamp' })
+  @CreateDateColumn()
   createdAt: Date;
 
-  @UpdateDateColumn({ type: 'timestamp' })
+  @UpdateDateColumn()
   updatedAt: Date;
 }

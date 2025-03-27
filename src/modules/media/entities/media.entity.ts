@@ -50,7 +50,7 @@ export class Media {
   @Column({ nullable: true })
   height: number;
 
-  @Column({ nullable: true })
+  @Column({ nullable: false, default: 0 })
   duration: number;
 
   @Column({ nullable: true })

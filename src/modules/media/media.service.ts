@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { paginate, IPaginationMeta } from 'nestjs-typeorm-paginate';
+import { paginate, IPaginationMeta, IPaginationOptions, Pagination } from 'nestjs-typeorm-paginate';
 import { Repository } from 'typeorm';
 
 import { CreateMediaDto } from './dto/create-media.dto';
@@ -20,22 +20,14 @@ export class MediaService {
     return this.mediaRepository.save(media);
   }
 
-  findAll(options?: PaginationOptionsDto) {
-    const queryBuilder = this.mediaRepository
-      .createQueryBuilder('media')
-      .leftJoinAndSelect('media.owner', 'owner');
-
-    if (options?.sortBy) {
-      queryBuilder.orderBy(`media.${options.sortBy}`, options.order);
-    } else {
-      queryBuilder.orderBy('media.createdAt', 'DESC');
-    }
-
-    return paginate<Media, IPaginationMeta>(queryBuilder, {
+  findAll(options?: PaginationOptionsDto): Promise<Pagination<Media, IPaginationMeta>> {
+    const paginationOptions: IPaginationOptions = {
       page: options?.page || 1,
       limit: options?.limit || 10,
       route: '/media',
-    });
+    };
+
+    return paginate<Media, IPaginationMeta>(this.mediaRepository, paginationOptions);
   }
 
   async findOne(id: string): Promise<Media> {

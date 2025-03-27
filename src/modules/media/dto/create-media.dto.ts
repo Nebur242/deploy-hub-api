@@ -13,6 +13,13 @@ import {
 import { MediaType } from '../entities/media.entity';
 
 export class CreateMediaDto {
+  @ApiProperty({
+    description: 'filename that can be edited by the user',
+    example: 'my profile photo',
+  })
+  @IsString()
+  readonly filename: string;
+
   @ApiProperty({ description: 'Original filename', example: 'profile-photo.jpg' })
   @IsString()
   readonly originalFilename: string;
@@ -72,19 +79,9 @@ export class CreateMediaDto {
   @Transform(({ value }) => value === 'true' || value === true)
   readonly isPublic?: boolean = true;
 
-  //   @ApiPropertyOptional({ description: 'Owner ID', example: '550e8400-e29b-41d4-a716-446655440000' })
-  //   @IsUUID()
-  //   @IsOptional()
-  //   readonly ownerId?: string;
-
   @ApiPropertyOptional({ description: 'Tags', example: ['profile', 'avatar'] })
   @IsArray()
   @IsString({ each: true })
   @IsOptional()
   readonly tags?: string[] = [];
-
-  @ApiPropertyOptional({ description: 'Folder name', example: 'profile-images' })
-  @IsString()
-  @IsOptional()
-  readonly folder?: string;
 }
