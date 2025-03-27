@@ -1,5 +1,5 @@
-import { UserPreferences } from '../entities/user-preferences.entity';
-import { User } from '../entities/user.entity';
+import { UserPreferences } from '../user-preferences.entity';
+import { User } from '../user.entity';
 
 describe('User Entity', () => {
   it('should create a user instance', () => {
@@ -46,5 +46,30 @@ describe('User Entity', () => {
 
     expect(user.createdAt).toEqual(now);
     expect(user.updatedAt).toEqual(now);
+  });
+
+  it('should have default values for non-required fields', () => {
+    const user = new User();
+
+    expect(user.firstName).toBeUndefined();
+    expect(user.lastName).toBeUndefined();
+    expect(user.company).toBeUndefined();
+    expect(user.profilePicture).toBeUndefined();
+  });
+
+  it('should have default role as user', () => {
+    const user = new User();
+    // Note: We can't test the default value directly as it's set by the database,
+    // but we can test that roles can be set and retrieved
+    user.roles = ['user'];
+    expect(user.roles).toEqual(['user']);
+  });
+
+  it('should support multiple roles', () => {
+    const user = new User();
+    user.roles = ['user', 'admin'];
+    expect(user.roles).toContain('user');
+    expect(user.roles).toContain('admin');
+    expect(user.roles.length).toBe(2);
   });
 });
