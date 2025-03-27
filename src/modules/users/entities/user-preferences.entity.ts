@@ -14,5 +14,5 @@ export class UserPreferences {
   emailNotifications: boolean;
 
   @Column({ type: 'simple-array', nullable: true })
-  preferredDeploymentProviders: DeploymentProvider[];
+  preferredDeploymentProviders: DeploymentProvider[] | null;
 }

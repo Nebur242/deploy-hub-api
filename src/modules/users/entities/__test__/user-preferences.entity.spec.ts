@@ -1,5 +1,5 @@
-import { DeploymentProvider, Theme } from '../dto/user-preferences.dto';
-import { UserPreferences } from '../entities/user-preferences.entity';
+import { DeploymentProvider, Theme } from '../../dto/user-preferences.dto';
+import { UserPreferences } from '../user-preferences.entity';
 
 describe('UserPreferences Entity', () => {
   // Helper function to create a UserPreferences with default values
@@ -39,5 +39,24 @@ describe('UserPreferences Entity', () => {
     const providers = [DeploymentProvider.VERCEL, DeploymentProvider.NETLIFY];
     userPreferences.preferredDeploymentProviders = providers;
     expect(userPreferences.preferredDeploymentProviders).toEqual(providers);
+  });
+
+  it('should have an id property of type string', () => {
+    const userPreferences = new UserPreferences();
+    // The actual value will be assigned by the database
+    expect(userPreferences).toHaveProperty('id');
+  });
+
+  it('should allow preferredDeploymentProviders to be nullable', () => {
+    const userPreferences = createUserPreferencesWithDefaults();
+    userPreferences.preferredDeploymentProviders = null;
+    expect(userPreferences.preferredDeploymentProviders).toBeNull();
+  });
+
+  it('should allow empty array for preferredDeploymentProviders', () => {
+    const userPreferences = createUserPreferencesWithDefaults();
+    userPreferences.preferredDeploymentProviders = [];
+    expect(userPreferences.preferredDeploymentProviders).toEqual([]);
+    expect(userPreferences.preferredDeploymentProviders.length).toBe(0);
   });
 });
