@@ -99,14 +99,12 @@ export class EnvironmentVariables {
   DB_SSL?: string;
 
   @IsOptional()
-  @IsString()
   @Expose()
-  DB_LOGGING?: string;
+  DB_LOGGING?: boolean;
 
   @IsOptional()
-  @IsString()
   @Expose()
-  DB_SYNC?: string;
+  DB_SYNC?: boolean;
 
   @IsOptional()
   @IsString()

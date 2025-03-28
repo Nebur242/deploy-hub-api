@@ -280,8 +280,8 @@ describe('EnvironmentVariables', function (this: void) {
 
       // Assert
       expect(validatedConfig.DB_SSL).toBe('true');
-      expect(validatedConfig.DB_LOGGING).toBe('true');
-      expect(validatedConfig.DB_SYNC).toBe('true');
+      expect(validatedConfig.DB_LOGGING).toBe(true);
+      expect(validatedConfig.DB_SYNC).toBe(true);
       expect(validatedConfig.STAGE).toBe('production');
     });
 
