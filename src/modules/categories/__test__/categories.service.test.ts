@@ -154,7 +154,7 @@ describe('CategoryService', () => {
 
       expect(categoryRepository.findOne).toHaveBeenCalledWith({
         where: { id: 'test-id' },
-        relations: ['media', 'parent', 'children'],
+        relations: ['parent', 'children'],
       });
       expect(result).toEqual(mockCategory);
     });

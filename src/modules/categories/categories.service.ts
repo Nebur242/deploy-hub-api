@@ -163,7 +163,7 @@ export class CategoryService {
   async findOne(id: string): Promise<Category> {
     const category = await this.categoryRepository.findOne({
       where: { id },
-      relations: ['media', 'parent', 'children'],
+      relations: ['parent', 'children'],
     });
 
     if (!category) {
@@ -179,7 +179,7 @@ export class CategoryService {
   async findBySlug(slug: string): Promise<Category> {
     const category = await this.categoryRepository.findOne({
       where: { slug, status: 'active' },
-      relations: ['media', 'parent'],
+      relations: ['parent'],
     });
 
     if (!category) {
