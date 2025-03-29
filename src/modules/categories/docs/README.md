@@ -1,4 +1,4 @@
-GitHub Copilot: # Category API Documentation
+# Category API Documentation
 
 ## Overview
 

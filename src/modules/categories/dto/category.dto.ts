@@ -2,6 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsBoolean,
+  IsEnum,
   IsNumber,
   IsOptional,
   IsString,
@@ -11,6 +12,13 @@ import {
   Min,
   ValidateIf,
 } from 'class-validator';
+
+export enum CategoryStatus {
+  PENDING = 'pending',
+  ACTIVE = 'active',
+  INACTIVE = 'inactive',
+  DELETED = 'deleted',
+}
 
 export class CreateCategoryDto {
   @ApiProperty({ description: 'Category name', maxLength: 100 })
@@ -38,20 +46,24 @@ export class CreateCategoryDto {
   @Length(1, 50)
   icon?: string;
 
-  @ApiPropertyOptional({ description: 'Media ID for category image' })
-  @IsUUID()
+  @ApiPropertyOptional({ description: 'Category image URL' })
+  @IsString()
   @IsOptional()
-  mediaId?: string;
+  image?: string;
 
   @ApiPropertyOptional({ description: 'Parent category ID' })
   @IsUUID()
   @IsOptional()
   parentId?: string;
 
-  @ApiPropertyOptional({ description: 'Is category active', default: true })
-  @IsBoolean()
+  @ApiProperty({
+    description: 'Status of the category',
+    enum: ['pending', 'active', 'inactive', 'deleted'],
+    default: 'pending',
+  })
+  @IsEnum(CategoryStatus)
   @IsOptional()
-  isActive?: boolean;
+  status: 'pending' | 'active' | 'inactive' | 'deleted';
 
   @ApiPropertyOptional({ description: 'Sorting order', default: 0 })
   @IsNumber()
@@ -80,16 +92,25 @@ export class UpdateCategoryDto {
   @MaxLength(500)
   description?: string;
 
+  @ApiPropertyOptional({ description: 'Category image URL' })
+  @IsString()
+  @IsOptional()
+  image?: string;
+
   @ApiPropertyOptional({ description: 'Category icon identifier' })
   @IsString()
   @IsOptional()
   @Length(1, 50)
   icon?: string;
 
-  @ApiPropertyOptional({ description: 'Media ID for category image' })
-  @IsUUID()
+  @ApiProperty({
+    description: 'Status of the category',
+    enum: ['pending', 'active', 'inactive', 'deleted'],
+    default: 'pending',
+  })
+  @IsEnum(CategoryStatus)
   @IsOptional()
-  mediaId?: string;
+  status?: 'pending' | 'active' | 'inactive' | 'deleted';
 
   @ApiPropertyOptional({ description: 'Parent category ID' })
   @IsUUID()
@@ -122,11 +143,11 @@ export class CategoryResponseDto {
   @ApiPropertyOptional()
   description?: string;
 
+  @ApiPropertyOptional()
+  image?: string;
+
   @ApiProperty()
   icon: string;
-
-  @ApiPropertyOptional()
-  mediaId?: string;
 
   @ApiPropertyOptional()
   ownerId?: string;
@@ -135,10 +156,13 @@ export class CategoryResponseDto {
   parentId?: string;
 
   @ApiProperty()
-  isActive: boolean;
-
-  @ApiProperty()
   sortOrder: number;
+
+  @ApiProperty({
+    enum: ['pending', 'active', 'inactive', 'deleted'],
+    default: 'active',
+  })
+  status: `${CategoryStatus}`;
 
   @ApiProperty()
   createdAt: Date;
@@ -159,22 +183,15 @@ export class CategoryFilterDto {
   @IsUUID()
   parentId?: string;
 
-  @ApiPropertyOptional({ description: 'Filter by active status' })
-  @IsBoolean()
-  @IsOptional()
-  @Type(() => Boolean)
-  isActive?: boolean;
-
   @ApiPropertyOptional({ description: 'Search by name' })
   @IsString()
   @IsOptional()
   search?: string;
 
-  @ApiPropertyOptional({ description: 'Include disabled categories', default: false })
-  @IsBoolean()
+  @ApiPropertyOptional({ description: 'Filter by active status' })
+  @IsEnum(CategoryStatus)
   @IsOptional()
-  @Type(() => Boolean)
-  includeInactive?: boolean;
+  status?: `${CategoryStatus}`;
 
   @ApiPropertyOptional({ description: 'Page number', default: 1 })
   @IsNumber()

@@ -1,4 +1,3 @@
-import { Media } from '@app/modules/media/entities/media.entity';
 import { User } from '@app/modules/users/entities/user.entity';
 
 import { Category } from '../category.entity';
@@ -8,6 +7,24 @@ describe('Category Entity', () => {
 
   beforeEach(() => {
     category = new Category();
+  });
+
+  // src/modules/categories/entities/__test__/category.entity.spec.ts - Add to existing file
+
+  it('should have status property', () => {
+    expect(category).toHaveProperty('status');
+  });
+
+  it('should handle status property', () => {
+    const testStatus = 'active';
+    category.status = testStatus;
+    expect(category.status).toEqual(testStatus);
+  });
+
+  it('should handle image property', () => {
+    const testImage = 'https://example.com/test.jpg';
+    category.image = testImage;
+    expect(category.image).toEqual(testImage);
   });
 
   it('should create a category instance', () => {
@@ -25,14 +42,11 @@ describe('Category Entity', () => {
       'slug',
       'description',
       'icon',
-      'media',
-      'mediaId',
       'ownerId',
       'owner',
       'parentId',
       'parent',
       'children',
-      'isActive',
       'sortOrder',
       'createdAt',
       'updatedAt',
@@ -45,7 +59,6 @@ describe('Category Entity', () => {
 
   it('should have default values', () => {
     expect(category.icon).toBeUndefined(); // Will be set to 'default-category-icon' by DB
-    expect(category.isActive).toBeUndefined(); // Will be set to true by DB
     expect(category.sortOrder).toBeUndefined(); // Will be set to 0 by DB
   });
 
@@ -54,33 +67,27 @@ describe('Category Entity', () => {
     const testName = 'Test Category';
     const testSlug = 'test-category';
     const testDescription = 'Test description';
-    const testIsActive = false;
 
     category.id = testId;
     category.name = testName;
     category.slug = testSlug;
     category.description = testDescription;
-    category.isActive = testIsActive;
 
     expect(category.id).toEqual(testId);
     expect(category.name).toEqual(testName);
     expect(category.slug).toEqual(testSlug);
     expect(category.description).toEqual(testDescription);
-    expect(category.isActive).toEqual(testIsActive);
   });
 
   it('should allow setting related entities', () => {
-    const media = new Media();
     const user = new User();
     const parentCategory = new Category();
     const childCategory = new Category();
 
-    category.media = media;
     category.owner = user;
     category.parent = parentCategory;
     category.children = [childCategory];
 
-    expect(category.media).toEqual(media);
     expect(category.owner).toEqual(user);
     expect(category.parent).toEqual(parentCategory);
     expect(category.children).toContain(childCategory);

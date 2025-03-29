@@ -1,4 +1,3 @@
-import { MediaService } from '@app/modules/media/media.service';
 import { User } from '@app/modules/users/entities/user.entity';
 import { Role } from '@app/shared/enums';
 import {
@@ -19,7 +18,6 @@ export class CategoryService {
   constructor(
     @InjectRepository(Category)
     private categoryRepository: Repository<Category>,
-    private readonly mediaService: MediaService,
   ) {}
 
   /**
@@ -50,14 +48,6 @@ export class CategoryService {
       }
     }
 
-    // Validate media if provided
-    if (createCategoryDto.mediaId) {
-      const media = await this.mediaService.findOne(createCategoryDto.mediaId);
-      if (!media) {
-        throw new NotFoundException('Media not found');
-      }
-    }
-
     // Create and save the new category
     const category = this.categoryRepository.create({
       ...createCategoryDto,
@@ -71,7 +61,7 @@ export class CategoryService {
    * Find all categories with optional filtering
    */
   findAll(filters: CategoryFilterDto = {}): Promise<Pagination<Category>> {
-    const { parentId, isActive, search, includeInactive, page = 1, limit = 10 } = filters;
+    const { parentId, search, status, page = 1, limit = 10 } = filters;
 
     // Build where conditions
     const where: FindManyOptions<Category>['where'] = {};
@@ -82,16 +72,14 @@ export class CategoryService {
       where.parentId = parentId;
     }
 
-    if (isActive !== undefined) {
-      where.isActive = isActive;
-    } else if (!includeInactive) {
-      where.isActive = true;
+    if (status) {
+      where.status = status;
     }
 
     // For the search functionality, we'll need to use a custom option
     const options: FindManyOptions<Category> = {
       where,
-      relations: ['media'],
+      relations: ['parent'],
       order: {
         sortOrder: 'ASC',
         name: 'ASC',
@@ -112,10 +100,8 @@ export class CategoryService {
     options: IPaginationOptions,
     filters: CategoryFilterDto = {},
   ): Promise<Pagination<Category>> {
-    const { parentId, isActive, search, includeInactive } = filters;
-    const queryBuilder = this.categoryRepository
-      .createQueryBuilder('category')
-      .leftJoinAndSelect('category.media', 'media');
+    const { parentId, status, search } = filters;
+    const queryBuilder = this.categoryRepository.createQueryBuilder('category');
 
     // Apply filters
     if (parentId === 'root') {
@@ -124,10 +110,8 @@ export class CategoryService {
       queryBuilder.andWhere('category.parentId = :parentId', { parentId });
     }
 
-    if (isActive !== undefined) {
-      queryBuilder.andWhere('category.isActive = :isActive', { isActive });
-    } else if (!includeInactive) {
-      queryBuilder.andWhere('category.isActive = :isActive', { isActive: true });
+    if (status) {
+      queryBuilder.andWhere('category.status = :status', { status });
     }
 
     if (search) {
@@ -177,7 +161,7 @@ export class CategoryService {
   async findOne(id: string): Promise<Category> {
     const category = await this.categoryRepository.findOne({
       where: { id },
-      relations: ['media', 'parent', 'children'],
+      relations: ['parent', 'children'],
     });
 
     if (!category) {
@@ -192,8 +176,8 @@ export class CategoryService {
    */
   async findBySlug(slug: string): Promise<Category> {
     const category = await this.categoryRepository.findOne({
-      where: { slug, isActive: true },
-      relations: ['media', 'parent'],
+      where: { slug, status: 'active' },
+      relations: ['parent'],
     });
 
     if (!category) {
@@ -267,14 +251,6 @@ export class CategoryService {
         }
 
         currentParent = parent;
-      }
-    }
-
-    // Validate media if changing
-    if (updateCategoryDto.mediaId && updateCategoryDto.mediaId !== category.mediaId) {
-      const media = await this.mediaService.findOne(updateCategoryDto.mediaId);
-      if (!media) {
-        throw new NotFoundException('Media not found');
       }
     }
 

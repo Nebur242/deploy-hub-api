@@ -5,6 +5,70 @@ import { CreateCategoryDto, UpdateCategoryDto, CategoryFilterDto } from '../dto/
 
 describe('Category DTOs', () => {
   describe('CreateCategoryDto', () => {
+    // src/modules/categories/__test__/category.dto.test.ts - Add to existing file
+
+    // Add these tests to the CreateCategoryDto describe block
+    it('should validate with valid status enum value', async () => {
+      const dto = plainToInstance(CreateCategoryDto, {
+        name: 'Test Category',
+        slug: 'test-category',
+        status: 'active',
+      });
+
+      const errors = await validate(dto);
+      expect(errors.length).toBe(0);
+    });
+
+    it('should fail with invalid status value', async () => {
+      const dto = plainToInstance(CreateCategoryDto, {
+        name: 'Test Category',
+        slug: 'test-category',
+        status: 'invalid-status',
+      });
+
+      const errors = await validate(dto);
+      expect(errors.length).toBeGreaterThan(0);
+      expect(errors[0].property).toBe('status');
+    });
+
+    it('should validate with image property', async () => {
+      const dto = plainToInstance(CreateCategoryDto, {
+        name: 'Test Category',
+        slug: 'test-category',
+        image: 'https://example.com/image.jpg',
+      });
+
+      const errors = await validate(dto);
+      expect(errors.length).toBe(0);
+    });
+
+    // Add these tests to the CategoryFilterDto describe block
+    it('should validate with valid status value', async () => {
+      const dto = plainToInstance(CategoryFilterDto, {
+        status: 'active',
+      });
+
+      const errors = await validate(dto);
+      expect(errors.length).toBe(0);
+    });
+
+    it('should fail with invalid status value in filter', async () => {
+      const dto = plainToInstance(CategoryFilterDto, {
+        status: 'invalid-status',
+      });
+
+      const errors = await validate(dto);
+      expect(errors.length).toBeGreaterThan(0);
+      expect(errors[0].property).toBe('status');
+    });
+
+    it('should validate with all status values from enum', async () => {
+      for (const status of ['pending', 'active', 'inactive', 'deleted']) {
+        const dto = plainToInstance(CategoryFilterDto, { status });
+        const errors = await validate(dto);
+        expect(errors.length).toBe(0);
+      }
+    });
     it('should validate a valid DTO', async () => {
       const dto = plainToInstance(CreateCategoryDto, {
         name: 'Test Category',
@@ -21,7 +85,6 @@ describe('Category DTOs', () => {
         slug: 'test-category',
         description: 'A test category description',
         icon: 'test-icon',
-        mediaId: '123e4567-e89b-12d3-a456-426614174000',
         parentId: '123e4567-e89b-12d3-a456-426614174001',
         isActive: true,
         sortOrder: 5,
@@ -60,18 +123,6 @@ describe('Category DTOs', () => {
       const errors = await validate(dto);
       expect(errors.length).toBeGreaterThan(0);
       expect(errors[0].property).toBe('name');
-    });
-
-    it('should fail if mediaId is not a valid UUID', async () => {
-      const dto = plainToInstance(CreateCategoryDto, {
-        name: 'Test Category',
-        slug: 'test-category',
-        mediaId: 'not-a-uuid',
-      });
-
-      const errors = await validate(dto);
-      expect(errors.length).toBeGreaterThan(0);
-      expect(errors[0].property).toBe('mediaId');
     });
   });
 
