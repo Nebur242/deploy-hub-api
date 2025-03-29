@@ -1,4 +1,3 @@
-import { Media } from '@app/modules/media/entities/media.entity';
 import { User } from '@app/modules/users/entities/user.entity';
 import {
   Entity,
@@ -11,6 +10,8 @@ import {
   JoinColumn,
   Index,
 } from 'typeorm';
+
+import { CategoryStatus } from '../dto/category.dto';
 
 @Entity('categories')
 export class Category {
@@ -31,15 +32,8 @@ export class Category {
   @Column({ length: 50, default: 'default-category-icon' })
   icon: string;
 
-  @ManyToOne(() => Media, { nullable: true })
-  @JoinColumn({ name: 'mediaId' })
-  media?: Media;
-
-  @Column({
-    nullable: true,
-    type: 'uuid',
-  })
-  mediaId?: string;
+  @Column({ nullable: true })
+  image?: string;
 
   @Column({ nullable: true })
   @Index()
@@ -59,14 +53,11 @@ export class Category {
   @OneToMany(() => Category, category => category.parent)
   children: Category[];
 
-  @Column({ default: true })
-  isActive: boolean;
-
   @Column({ default: 0 })
   sortOrder: number;
 
   @Column({ default: 'active' })
-  status: 'pending' | 'active' | 'inactive' | 'deleted';
+  status: `${CategoryStatus}`;
 
   @CreateDateColumn()
   createdAt: Date;

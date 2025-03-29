@@ -2,6 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsBoolean,
+  IsEnum,
   IsNumber,
   IsOptional,
   IsString,
@@ -11,6 +12,13 @@ import {
   Min,
   ValidateIf,
 } from 'class-validator';
+
+export enum CategoryStatus {
+  PENDING = 'pending',
+  ACTIVE = 'active',
+  INACTIVE = 'inactive',
+  DELETED = 'deleted',
+}
 
 export class CreateCategoryDto {
   @ApiProperty({ description: 'Category name', maxLength: 100 })
@@ -38,11 +46,6 @@ export class CreateCategoryDto {
   @Length(1, 50)
   icon?: string;
 
-  @ApiPropertyOptional({ description: 'Media ID for category image' })
-  @IsUUID()
-  @IsOptional()
-  mediaId?: string;
-
   @ApiPropertyOptional({ description: 'Parent category ID' })
   @IsUUID()
   @IsOptional()
@@ -53,14 +56,9 @@ export class CreateCategoryDto {
     enum: ['pending', 'active', 'inactive', 'deleted'],
     default: 'pending',
   })
-  @IsString()
+  @IsEnum(CategoryStatus)
   @IsOptional()
   status: 'pending' | 'active' | 'inactive' | 'deleted';
-
-  @ApiPropertyOptional({ description: 'Is category active', default: true })
-  @IsBoolean()
-  @IsOptional()
-  isActive?: boolean;
 
   @ApiPropertyOptional({ description: 'Sorting order', default: 0 })
   @IsNumber()
@@ -135,19 +133,19 @@ export class CategoryResponseDto {
   icon: string;
 
   @ApiPropertyOptional()
-  mediaId?: string;
-
-  @ApiPropertyOptional()
   ownerId?: string;
 
   @ApiPropertyOptional()
   parentId?: string;
 
   @ApiProperty()
-  isActive: boolean;
-
-  @ApiProperty()
   sortOrder: number;
+
+  @ApiProperty({
+    enum: ['pending', 'active', 'inactive', 'deleted'],
+    default: 'active',
+  })
+  status: `${CategoryStatus}`;
 
   @ApiProperty()
   createdAt: Date;

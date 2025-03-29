@@ -1,4 +1,3 @@
-import { MediaService } from '@app/modules/media/media.service';
 import { User } from '@app/modules/users/entities/user.entity';
 import { Role } from '@app/shared/enums';
 import {
@@ -19,7 +18,6 @@ export class CategoryService {
   constructor(
     @InjectRepository(Category)
     private categoryRepository: Repository<Category>,
-    private readonly mediaService: MediaService,
   ) {}
 
   /**
@@ -50,14 +48,6 @@ export class CategoryService {
       }
     }
 
-    // Validate media if provided
-    if (createCategoryDto.mediaId) {
-      const media = await this.mediaService.findOne(createCategoryDto.mediaId);
-      if (!media) {
-        throw new NotFoundException('Media not found');
-      }
-    }
-
     // Create and save the new category
     const category = this.categoryRepository.create({
       ...createCategoryDto,
@@ -71,7 +61,7 @@ export class CategoryService {
    * Find all categories with optional filtering
    */
   findAll(filters: CategoryFilterDto = {}): Promise<Pagination<Category>> {
-    const { parentId, isActive, search, includeInactive, page = 1, limit = 10 } = filters;
+    const { parentId, search, page = 1, limit = 10 } = filters;
 
     // Build where conditions
     const where: FindManyOptions<Category>['where'] = {};
@@ -80,12 +70,6 @@ export class CategoryService {
       where.parentId = IsNull();
     } else if (parentId) {
       where.parentId = parentId;
-    }
-
-    if (isActive !== undefined) {
-      where.isActive = isActive;
-    } else if (!includeInactive) {
-      where.isActive = true;
     }
 
     // For the search functionality, we'll need to use a custom option
@@ -192,7 +176,7 @@ export class CategoryService {
    */
   async findBySlug(slug: string): Promise<Category> {
     const category = await this.categoryRepository.findOne({
-      where: { slug, isActive: true },
+      where: { slug, status: 'active' },
       relations: ['media', 'parent'],
     });
 
@@ -267,14 +251,6 @@ export class CategoryService {
         }
 
         currentParent = parent;
-      }
-    }
-
-    // Validate media if changing
-    if (updateCategoryDto.mediaId && updateCategoryDto.mediaId !== category.mediaId) {
-      const media = await this.mediaService.findOne(updateCategoryDto.mediaId);
-      if (!media) {
-        throw new NotFoundException('Media not found');
       }
     }
 

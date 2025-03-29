@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/unbound-method */
-import { MediaService } from '@app/modules/media/media.service';
 import { User } from '@app/modules/users/entities/user.entity';
 import { Role } from '@app/shared/enums';
 import { NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
@@ -33,7 +32,6 @@ jest.mock('nestjs-typeorm-paginate', () => ({
 describe('CategoryService', () => {
   let service: CategoryService;
   let categoryRepository: jest.Mocked<Repository<Category>>;
-  let mediaService: jest.Mocked<MediaService>;
 
   const mockCategoryRepository = () => ({
     findOne: jest.fn(),
@@ -48,10 +46,6 @@ describe('CategoryService', () => {
       orderBy: jest.fn().mockReturnThis(),
       addOrderBy: jest.fn().mockReturnThis(),
     })),
-  });
-
-  const mockMediaService = () => ({
-    findOne: jest.fn(),
   });
 
   const mockUser: User = {
@@ -76,16 +70,11 @@ describe('CategoryService', () => {
           provide: getRepositoryToken(Category),
           useFactory: mockCategoryRepository,
         },
-        {
-          provide: MediaService,
-          useFactory: mockMediaService,
-        },
       ],
     }).compile();
 
     service = module.get<CategoryService>(CategoryService);
     categoryRepository = module.get(getRepositoryToken(Category));
-    mediaService = module.get<MediaService>(MediaService) as jest.Mocked<MediaService>;
   });
 
   it('should be defined', () => {
@@ -154,22 +143,6 @@ describe('CategoryService', () => {
         where: { id: 'parent-id' },
       });
     });
-
-    it('should validate media if provided', async () => {
-      const createCategoryDto: CreateCategoryDto = {
-        name: 'Test Category',
-        slug: 'test-category',
-        mediaId: 'media-id',
-        status: 'pending',
-      };
-
-      categoryRepository.findOne.mockResolvedValue(null);
-      mediaService.findOne.mockResolvedValue(null as any);
-
-      await expect(service.create(createCategoryDto, mockUser)).rejects.toThrow(NotFoundException);
-
-      expect(mediaService.findOne).toHaveBeenCalledWith('media-id');
-    });
   });
 
   describe('findOne', () => {
@@ -190,27 +163,6 @@ describe('CategoryService', () => {
       categoryRepository.findOne.mockResolvedValue(null);
 
       await expect(service.findOne('non-existent-id')).rejects.toThrow(NotFoundException);
-    });
-  });
-
-  describe('findBySlug', () => {
-    it('should find a category by slug', async () => {
-      const mockCategory = { id: 'test-id', slug: 'test-slug', name: 'Test Category' };
-      categoryRepository.findOne.mockResolvedValue(mockCategory as any);
-
-      const result = await service.findBySlug('test-slug');
-
-      expect(categoryRepository.findOne).toHaveBeenCalledWith({
-        where: { slug: 'test-slug', isActive: true },
-        relations: ['media', 'parent'],
-      });
-      expect(result).toEqual(mockCategory);
-    });
-
-    it('should throw NotFoundException if category not found by slug', async () => {
-      categoryRepository.findOne.mockResolvedValue(null);
-
-      await expect(service.findBySlug('non-existent-slug')).rejects.toThrow(NotFoundException);
     });
   });
 

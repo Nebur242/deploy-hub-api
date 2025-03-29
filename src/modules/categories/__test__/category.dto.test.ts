@@ -21,7 +21,6 @@ describe('Category DTOs', () => {
         slug: 'test-category',
         description: 'A test category description',
         icon: 'test-icon',
-        mediaId: '123e4567-e89b-12d3-a456-426614174000',
         parentId: '123e4567-e89b-12d3-a456-426614174001',
         isActive: true,
         sortOrder: 5,
@@ -60,18 +59,6 @@ describe('Category DTOs', () => {
       const errors = await validate(dto);
       expect(errors.length).toBeGreaterThan(0);
       expect(errors[0].property).toBe('name');
-    });
-
-    it('should fail if mediaId is not a valid UUID', async () => {
-      const dto = plainToInstance(CreateCategoryDto, {
-        name: 'Test Category',
-        slug: 'test-category',
-        mediaId: 'not-a-uuid',
-      });
-
-      const errors = await validate(dto);
-      expect(errors.length).toBeGreaterThan(0);
-      expect(errors[0].property).toBe('mediaId');
     });
   });
 
