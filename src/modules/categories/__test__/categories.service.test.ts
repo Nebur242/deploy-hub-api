@@ -143,6 +143,53 @@ describe('CategoryService', () => {
         where: { id: 'parent-id' },
       });
     });
+
+    it('should create a category with specified status', async () => {
+      const createCategoryDto: CreateCategoryDto = {
+        name: 'Test Category',
+        slug: 'test-category',
+        status: 'inactive',
+      };
+
+      const createdCategory = {
+        ...createCategoryDto,
+        id: 'category-id',
+        ownerId: mockUser.id,
+      };
+
+      categoryRepository.findOne.mockResolvedValue(null);
+      categoryRepository.create.mockReturnValue(createdCategory as any);
+      categoryRepository.save.mockResolvedValue(createdCategory as any);
+
+      const result = await service.create(createCategoryDto, mockUser);
+
+      expect(categoryRepository.create).toHaveBeenCalledWith({
+        ...createCategoryDto,
+        ownerId: mockUser.id,
+      });
+      expect(result.status).toEqual('inactive');
+    });
+  });
+
+  describe('findBySlug', () => {
+    it('should find active category by slug', async () => {
+      const mockCategory = { id: 'test-id', slug: 'test-slug', status: 'active' };
+      categoryRepository.findOne.mockResolvedValue(mockCategory as any);
+
+      const result = await service.findBySlug('test-slug');
+
+      expect(categoryRepository.findOne).toHaveBeenCalledWith({
+        where: { slug: 'test-slug', status: 'active' },
+        relations: ['parent'],
+      });
+      expect(result).toEqual(mockCategory);
+    });
+
+    it('should throw NotFoundException if category not found by slug', async () => {
+      categoryRepository.findOne.mockResolvedValue(null);
+
+      await expect(service.findBySlug('non-existent-slug')).rejects.toThrow(NotFoundException);
+    });
   });
 
   describe('findOne', () => {
@@ -218,6 +265,30 @@ describe('CategoryService', () => {
 
       expect(categoryRepository.save).toHaveBeenCalled();
       expect(result).toEqual(updatedCategory);
+    });
+
+    it('should update category status', async () => {
+      const updateCategoryDto: UpdateCategoryDto = { status: 'inactive' };
+      const existingCategory = {
+        id: 'test-id',
+        name: 'Test Category',
+        status: 'active',
+        ownerId: mockUser.id,
+      };
+      const updatedCategory = { ...existingCategory, ...updateCategoryDto };
+
+      categoryRepository.findOne.mockResolvedValueOnce(existingCategory as any);
+      categoryRepository.findOne.mockResolvedValueOnce(null); // No conflict check
+      categoryRepository.save.mockResolvedValue(updatedCategory as any);
+
+      const result = await service.update('test-id', updateCategoryDto, mockUser);
+
+      expect(categoryRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'inactive',
+        }),
+      );
+      expect(result.status).toEqual('inactive');
     });
   });
 

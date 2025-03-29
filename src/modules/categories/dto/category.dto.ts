@@ -103,10 +103,14 @@ export class UpdateCategoryDto {
   @Length(1, 50)
   icon?: string;
 
-  @ApiPropertyOptional({ description: 'Media ID for category image' })
-  @IsUUID()
+  @ApiProperty({
+    description: 'Status of the category',
+    enum: ['pending', 'active', 'inactive', 'deleted'],
+    default: 'pending',
+  })
+  @IsEnum(CategoryStatus)
   @IsOptional()
-  mediaId?: string;
+  status?: 'pending' | 'active' | 'inactive' | 'deleted';
 
   @ApiPropertyOptional({ description: 'Parent category ID' })
   @IsUUID()

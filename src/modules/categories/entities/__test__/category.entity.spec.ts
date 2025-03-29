@@ -9,6 +9,24 @@ describe('Category Entity', () => {
     category = new Category();
   });
 
+  // src/modules/categories/entities/__test__/category.entity.spec.ts - Add to existing file
+
+  it('should have status property', () => {
+    expect(category).toHaveProperty('status');
+  });
+
+  it('should handle status property', () => {
+    const testStatus = 'active';
+    category.status = testStatus;
+    expect(category.status).toEqual(testStatus);
+  });
+
+  it('should handle image property', () => {
+    const testImage = 'https://example.com/test.jpg';
+    category.image = testImage;
+    expect(category.image).toEqual(testImage);
+  });
+
   it('should create a category instance', () => {
     expect(category).toBeDefined();
   });

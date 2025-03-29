@@ -106,6 +106,22 @@ describe('CategoryController', () => {
       expect(result).toEqual(mockCategory);
       expect(service.create).toHaveBeenCalledWith(createCategoryDto, mockUser);
     });
+
+    it('should create category with specified status', async () => {
+      const createCategoryDto: CreateCategoryDto = {
+        name: 'Test Category',
+        description: 'Test Description',
+        slug: 'test-category',
+        status: 'inactive',
+      };
+
+      await controller.create(createCategoryDto, mockUser);
+
+      expect(service.create).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'inactive' }),
+        mockUser,
+      );
+    });
   });
 
   describe('findAll', () => {
@@ -119,6 +135,20 @@ describe('CategoryController', () => {
 
       expect(result).toEqual(mockPagination);
       expect(service.findAll).toHaveBeenCalledWith(filters);
+    });
+
+    it('should filter by status', async () => {
+      const filters: CategoryFilterDto = {
+        status: 'inactive',
+      };
+
+      await controller.findAll(filters);
+
+      expect(service.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'inactive',
+        }),
+      );
     });
   });
 
@@ -149,6 +179,21 @@ describe('CategoryController', () => {
       expect(service.findAllPaginated).toHaveBeenCalledWith(
         { page: 1, limit: 10 },
         { status: 'active' },
+      );
+    });
+
+    it('should filter paginated results by status', async () => {
+      const filters: CategoryFilterDto = {
+        page: 1,
+        limit: 10,
+        status: 'pending',
+      };
+
+      await controller.findAllPaginated(filters);
+
+      expect(service.findAllPaginated).toHaveBeenCalledWith(
+        { page: 1, limit: 10 },
+        { status: 'pending' },
       );
     });
   });
@@ -199,6 +244,21 @@ describe('CategoryController', () => {
 
       expect(result).toEqual(mockCategory);
       expect(service.update).toHaveBeenCalledWith(id, updateCategoryDto, mockUser);
+    });
+
+    it('should update category status', async () => {
+      const id = 'category-id';
+      const updateCategoryDto: UpdateCategoryDto = {
+        status: 'deleted',
+      };
+
+      await controller.update(id, updateCategoryDto, mockUser);
+
+      expect(service.update).toHaveBeenCalledWith(
+        id,
+        expect.objectContaining({ status: 'deleted' }),
+        mockUser,
+      );
     });
   });
 

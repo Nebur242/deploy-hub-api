@@ -79,7 +79,7 @@ export class CategoryService {
     // For the search functionality, we'll need to use a custom option
     const options: FindManyOptions<Category> = {
       where,
-      relations: ['media'],
+      relations: ['parent'],
       order: {
         sortOrder: 'ASC',
         name: 'ASC',
