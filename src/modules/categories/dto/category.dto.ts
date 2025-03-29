@@ -46,6 +46,11 @@ export class CreateCategoryDto {
   @Length(1, 50)
   icon?: string;
 
+  @ApiPropertyOptional({ description: 'Category image URL' })
+  @IsString()
+  @IsOptional()
+  image?: string;
+
   @ApiPropertyOptional({ description: 'Parent category ID' })
   @IsUUID()
   @IsOptional()
@@ -86,6 +91,11 @@ export class UpdateCategoryDto {
   @IsOptional()
   @MaxLength(500)
   description?: string;
+
+  @ApiPropertyOptional({ description: 'Category image URL' })
+  @IsString()
+  @IsOptional()
+  image?: string;
 
   @ApiPropertyOptional({ description: 'Category icon identifier' })
   @IsString()
@@ -128,6 +138,9 @@ export class CategoryResponseDto {
 
   @ApiPropertyOptional()
   description?: string;
+
+  @ApiPropertyOptional()
+  image?: string;
 
   @ApiProperty()
   icon: string;

@@ -101,9 +101,7 @@ export class CategoryService {
     filters: CategoryFilterDto = {},
   ): Promise<Pagination<Category>> {
     const { parentId, status, search } = filters;
-    const queryBuilder = this.categoryRepository
-      .createQueryBuilder('category')
-      .leftJoinAndSelect('category.media', 'media');
+    const queryBuilder = this.categoryRepository.createQueryBuilder('category');
 
     // Apply filters
     if (parentId === 'root') {
