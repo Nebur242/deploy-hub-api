@@ -166,22 +166,15 @@ export class CategoryFilterDto {
   @IsUUID()
   parentId?: string;
 
-  @ApiPropertyOptional({ description: 'Filter by active status' })
-  @IsBoolean()
-  @IsOptional()
-  @Type(() => Boolean)
-  isActive?: boolean;
-
   @ApiPropertyOptional({ description: 'Search by name' })
   @IsString()
   @IsOptional()
   search?: string;
 
-  @ApiPropertyOptional({ description: 'Include disabled categories', default: false })
-  @IsBoolean()
+  @ApiPropertyOptional({ description: 'Filter by active status' })
+  @IsEnum(CategoryStatus)
   @IsOptional()
-  @Type(() => Boolean)
-  includeInactive?: boolean;
+  status?: `${CategoryStatus}`;
 
   @ApiPropertyOptional({ description: 'Page number', default: 1 })
   @IsNumber()

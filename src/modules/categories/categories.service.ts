@@ -61,7 +61,7 @@ export class CategoryService {
    * Find all categories with optional filtering
    */
   findAll(filters: CategoryFilterDto = {}): Promise<Pagination<Category>> {
-    const { parentId, search, page = 1, limit = 10 } = filters;
+    const { parentId, search, status, page = 1, limit = 10 } = filters;
 
     // Build where conditions
     const where: FindManyOptions<Category>['where'] = {};
@@ -70,6 +70,10 @@ export class CategoryService {
       where.parentId = IsNull();
     } else if (parentId) {
       where.parentId = parentId;
+    }
+
+    if (status) {
+      where.status = status;
     }
 
     // For the search functionality, we'll need to use a custom option
@@ -96,7 +100,7 @@ export class CategoryService {
     options: IPaginationOptions,
     filters: CategoryFilterDto = {},
   ): Promise<Pagination<Category>> {
-    const { parentId, isActive, search, includeInactive } = filters;
+    const { parentId, status, search } = filters;
     const queryBuilder = this.categoryRepository
       .createQueryBuilder('category')
       .leftJoinAndSelect('category.media', 'media');
@@ -108,10 +112,8 @@ export class CategoryService {
       queryBuilder.andWhere('category.parentId = :parentId', { parentId });
     }
 
-    if (isActive !== undefined) {
-      queryBuilder.andWhere('category.isActive = :isActive', { isActive });
-    } else if (!includeInactive) {
-      queryBuilder.andWhere('category.isActive = :isActive', { isActive: true });
+    if (status) {
+      queryBuilder.andWhere('category.status = :isActive', { status });
     }
 
     if (search) {

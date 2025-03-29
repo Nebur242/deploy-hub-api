@@ -111,7 +111,7 @@ describe('CategoryController', () => {
   describe('findAll', () => {
     it('should return an array of categories', async () => {
       const filters: CategoryFilterDto = {
-        isActive: true,
+        status: 'active',
         search: 'test',
       };
 
@@ -127,7 +127,7 @@ describe('CategoryController', () => {
       const filters: CategoryFilterDto = {
         page: 1,
         limit: 10,
-        isActive: true,
+        status: 'active',
       };
 
       const result = await controller.findAllPaginated(filters);
@@ -135,20 +135,20 @@ describe('CategoryController', () => {
       expect(result).toEqual(mockPagination);
       expect(service.findAllPaginated).toHaveBeenCalledWith(
         { page: 1, limit: 10 },
-        { isActive: true },
+        { status: 'active' },
       );
     });
 
     it('should use default pagination values', async () => {
       const filters: CategoryFilterDto = {
-        isActive: true,
+        status: 'active',
       };
 
       await controller.findAllPaginated(filters);
 
       expect(service.findAllPaginated).toHaveBeenCalledWith(
         { page: 1, limit: 10 },
-        { isActive: true },
+        { status: 'active' },
       );
     });
   });
@@ -157,7 +157,6 @@ describe('CategoryController', () => {
     it('should return category tree', async () => {
       const filters: CategoryFilterDto = {
         parentId: 'root',
-        includeInactive: false,
       };
 
       const result = await controller.getTree(filters);
