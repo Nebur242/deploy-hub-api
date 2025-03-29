@@ -111,7 +111,7 @@ export class CategoryService {
     }
 
     if (status) {
-      queryBuilder.andWhere('category.status = :isActive', { status });
+      queryBuilder.andWhere('category.status = :status', { status });
     }
 
     if (search) {
