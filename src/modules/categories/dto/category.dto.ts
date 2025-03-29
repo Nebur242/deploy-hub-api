@@ -48,6 +48,15 @@ export class CreateCategoryDto {
   @IsOptional()
   parentId?: string;
 
+  @ApiProperty({
+    description: 'Status of the category',
+    enum: ['pending', 'active', 'inactive', 'deleted'],
+    default: 'pending',
+  })
+  @IsString()
+  @IsOptional()
+  status: 'pending' | 'active' | 'inactive' | 'deleted';
+
   @ApiPropertyOptional({ description: 'Is category active', default: true })
   @IsBoolean()
   @IsOptional()

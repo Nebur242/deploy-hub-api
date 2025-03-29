@@ -98,6 +98,7 @@ describe('CategoryController', () => {
         name: 'Test Category',
         description: 'Test Description',
         slug: '',
+        status: 'pending',
       };
 
       const result = await controller.create(createCategoryDto, mockUser);

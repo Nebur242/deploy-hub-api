@@ -98,6 +98,7 @@ describe('CategoryService', () => {
         name: 'Test Category',
         slug: 'test-category',
         description: 'Test description',
+        status: 'pending',
       };
 
       const createdCategory = { ...createCategoryDto, id: 'category-id', ownerId: mockUser.id };
@@ -121,6 +122,7 @@ describe('CategoryService', () => {
       const createCategoryDto: CreateCategoryDto = {
         name: 'Test Category',
         slug: 'test-category',
+        status: 'pending',
       };
 
       const existingCategory = {
@@ -140,6 +142,7 @@ describe('CategoryService', () => {
         name: 'Test Category',
         slug: 'test-category',
         parentId: 'parent-id',
+        status: 'pending',
       };
 
       categoryRepository.findOne.mockResolvedValueOnce(null);
@@ -157,6 +160,7 @@ describe('CategoryService', () => {
         name: 'Test Category',
         slug: 'test-category',
         mediaId: 'media-id',
+        status: 'pending',
       };
 
       categoryRepository.findOne.mockResolvedValue(null);

@@ -33,13 +33,13 @@ export class Category {
 
   @ManyToOne(() => Media, { nullable: true })
   @JoinColumn({ name: 'mediaId' })
-  media: Media;
+  media?: Media;
 
   @Column({
     nullable: true,
     type: 'uuid',
   })
-  mediaId: string;
+  mediaId?: string;
 
   @Column({ nullable: true })
   @Index()
@@ -50,11 +50,11 @@ export class Category {
   owner: User;
 
   @Column({ nullable: true })
-  parentId: string;
+  parentId?: string;
 
   @ManyToOne(() => Category, category => category.children, { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'parentId' })
-  parent: Category;
+  parent?: Category;
 
   @OneToMany(() => Category, category => category.parent)
   children: Category[];
@@ -64,6 +64,9 @@ export class Category {
 
   @Column({ default: 0 })
   sortOrder: number;
+
+  @Column({ default: 'active' })
+  status: 'pending' | 'active' | 'inactive' | 'deleted';
 
   @CreateDateColumn()
   createdAt: Date;
