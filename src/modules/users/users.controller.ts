@@ -72,7 +72,7 @@ export class UserController {
       throw new ForbiddenException('Access denied');
     }
 
-    const requestedUser = await this.userService.findOne(currentUser.id);
+    const requestedUser = await this.userService.findByFirebaseUid(currentUser.uid);
     return this.userService.mapToResponseDto(requestedUser);
   }
 

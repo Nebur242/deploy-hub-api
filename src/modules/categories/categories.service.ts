@@ -29,16 +29,19 @@ export class CategoryService {
       where: [{ name: createCategoryDto.name }, { slug: createCategoryDto.slug }],
     });
 
-    if (existingCategory) {
+    if (existingCategory?.name === createCategoryDto.name) {
       throw new ConflictException(
-        existingCategory.name === createCategoryDto.name
-          ? 'Category with this name already exists'
-          : 'Category with this slug already exists',
+        `Category with this name: ${createCategoryDto.name} already exists`,
       );
     }
 
+    if (existingCategory?.slug === createCategoryDto.slug) {
+      throw new ConflictException(
+        `Category with this slug: ${createCategoryDto.slug} already exists`,
+      );
+    }
     // Validate parent category if provided
-    if (createCategoryDto.parentId) {
+    if (createCategoryDto.parentId && createCategoryDto.parentId !== 'root') {
       const parentCategory = await this.categoryRepository.findOne({
         where: { id: createCategoryDto.parentId },
       });
@@ -52,6 +55,7 @@ export class CategoryService {
     const category = this.categoryRepository.create({
       ...createCategoryDto,
       ownerId: user.id,
+      parentId: createCategoryDto.parentId === 'root' ? null : createCategoryDto.parentId,
     });
 
     return this.categoryRepository.save(category);
@@ -211,16 +215,26 @@ export class CategoryService {
       });
 
       if (existingCategory && existingCategory.id !== id) {
-        throw new ConflictException(
-          existingCategory.name === updateCategoryDto.name
-            ? 'Category with this name already exists'
-            : 'Category with this slug already exists',
-        );
+        if (existingCategory?.name === updateCategoryDto.name) {
+          throw new ConflictException(
+            `Category with this name: ${updateCategoryDto.name} already exists`,
+          );
+        }
+
+        if (existingCategory?.slug === updateCategoryDto.slug) {
+          throw new ConflictException(
+            `Category with this slug: ${updateCategoryDto.slug} already exists`,
+          );
+        }
       }
     }
 
     // Validate parent category if changing
-    if (updateCategoryDto.parentId && updateCategoryDto.parentId !== category.parentId) {
+    if (
+      updateCategoryDto.parentId &&
+      updateCategoryDto.parentId !== category.parentId &&
+      updateCategoryDto.parentId !== 'root'
+    ) {
       // Prevent circular references
       if (updateCategoryDto.parentId === id) {
         throw new ConflictException('Category cannot be its own parent');
@@ -252,8 +266,21 @@ export class CategoryService {
 
         currentParent = parent;
       }
+      Object.assign(category, updateCategoryDto);
+      return this.categoryRepository.save({
+        ...category,
+        parent: parentCategory,
+      });
     }
 
+    if (updateCategoryDto.parentId === 'root') {
+      Object.assign(category, updateCategoryDto);
+      return this.categoryRepository.save({
+        ...category,
+        parentId: null,
+        parent: undefined,
+      });
+    }
     // Update and save
     Object.assign(category, updateCategoryDto);
     return this.categoryRepository.save(category);

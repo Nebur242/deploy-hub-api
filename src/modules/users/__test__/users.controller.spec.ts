@@ -99,6 +99,7 @@ describe('UserController', () => {
       const currentUser = new User();
       currentUser.id = userId;
       currentUser.uid = 'firebase-uid';
+      currentUser.roles = ['admin']; // Add admin role to bypass authorization
 
       const foundUser = new User();
       foundUser.id = userId;
@@ -114,12 +115,12 @@ describe('UserController', () => {
         updatedAt: new Date(),
       };
 
-      jest.spyOn(usersService, 'findOne').mockResolvedValue(foundUser);
+      jest.spyOn(usersService, 'findByFirebaseUid').mockResolvedValue(foundUser);
       jest.spyOn(usersService, 'mapToResponseDto').mockReturnValue(responseDto);
 
-      const result = await controller.findOne(currentUser.uid, currentUser);
+      const result = await controller.findOne('firebase-uid', currentUser);
 
-      expect(usersService.findOne).toHaveBeenCalledWith(userId);
+      expect(usersService.findByFirebaseUid).toHaveBeenCalledWith('firebase-uid');
       expect(usersService.mapToResponseDto).toHaveBeenCalledWith(foundUser);
       expect(result).toEqual(responseDto);
     });

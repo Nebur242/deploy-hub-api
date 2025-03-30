@@ -44,7 +44,7 @@ export class Category {
   owner: User;
 
   @Column({ nullable: true })
-  parentId?: string;
+  parentId?: string | null;
 
   @ManyToOne(() => Category, category => category.children, { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'parentId' })
