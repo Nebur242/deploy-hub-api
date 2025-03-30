@@ -38,6 +38,7 @@ export class RolesGuard extends AuthGuard('firebase-jwt') {
       return user;
     }
     const hasRole = this.roles.some(role => user.roles?.includes(role));
+
     if (!hasRole) {
       throw new UnauthorizedException("You don't have access");
     }

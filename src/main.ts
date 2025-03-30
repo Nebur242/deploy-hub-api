@@ -43,14 +43,17 @@ function setupGlobalMiddlewares(app: INestApplication) {
         whitelist: true,
         forbidNonWhitelisted: true,
         transform: true,
-        exceptionFactory(errors) {
+        exceptionFactory(err) {
+          const errors = err.reduce((acc: string[], e) => {
+            if (e.constraints) {
+              Object.values(e.constraints).forEach(constraint => acc.push(constraint));
+            }
+            return acc;
+          }, []);
           return new BadRequestException({
             statusCode: 400,
-            message: 'Bad Request',
-            errors: errors.reduce(
-              (acc, e) => [...acc, ...(e.constraints ? Object.values(e.constraints) : [])],
-              [],
-            ),
+            message: `Validation failed: ${errors.join(', ')}`,
+            error: 'Bad Request',
           });
         },
       }),

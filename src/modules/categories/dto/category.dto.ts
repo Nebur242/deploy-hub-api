@@ -52,7 +52,6 @@ export class CreateCategoryDto {
   image?: string;
 
   @ApiPropertyOptional({ description: 'Parent category ID' })
-  @IsUUID()
   @IsOptional()
   parentId?: string;
 
@@ -113,9 +112,8 @@ export class UpdateCategoryDto {
   status?: 'pending' | 'active' | 'inactive' | 'deleted';
 
   @ApiPropertyOptional({ description: 'Parent category ID' })
-  @IsUUID()
   @IsOptional()
-  parentId?: string;
+  parentId?: string | null;
 
   @ApiPropertyOptional({ description: 'Is category active' })
   @IsBoolean()
@@ -153,7 +151,7 @@ export class CategoryResponseDto {
   ownerId?: string;
 
   @ApiPropertyOptional()
-  parentId?: string;
+  parentId?: string | null;
 
   @ApiProperty()
   sortOrder: number;
