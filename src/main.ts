@@ -44,10 +44,12 @@ function setupGlobalMiddlewares(app: INestApplication) {
         forbidNonWhitelisted: true,
         transform: true,
         exceptionFactory(err) {
-          const errors = err.reduce(
-            (acc, e) => [...acc, ...(e.constraints ? Object.values(e.constraints) : [])],
-            [],
-          );
+          const errors = err.reduce((acc: string[], e) => {
+            if (e.constraints) {
+              Object.values(e.constraints).forEach(constraint => acc.push(constraint));
+            }
+            return acc;
+          }, []);
           return new BadRequestException({
             statusCode: 400,
             message: `Validation failed: ${errors.join(', ')}`,
