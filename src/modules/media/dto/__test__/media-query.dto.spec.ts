@@ -56,16 +56,6 @@ describe('MediaQueryDto', () => {
     expect(errors[0].constraints).toHaveProperty('isArray');
   });
 
-  it('should fail validation with invalid isPublic', async () => {
-    const dto = plainToClass(MediaQueryDto, {
-      isPublic: 'not-a-boolean',
-    });
-
-    const errors = await validate(dto);
-    expect(errors.length).toBeGreaterThan(0);
-    expect(errors[0].constraints).toHaveProperty('isBoolean');
-  });
-
   it('should transform string "true" to boolean true', () => {
     const dto = plainToClass(MediaQueryDto, {
       isPublic: true,

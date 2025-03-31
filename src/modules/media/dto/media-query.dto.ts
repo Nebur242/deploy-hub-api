@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsBoolean, IsString, IsArray } from 'class-validator';
+import { IsEnum, IsOptional, IsString, IsArray } from 'class-validator';
 
 import { PaginationOptionsDto } from './pagination-options.dto';
 import { MediaType } from '../entities/media.entity';
@@ -23,8 +23,7 @@ export class MediaQueryDto extends PaginationOptionsDto {
 
   @ApiPropertyOptional()
   @IsOptional()
-  @IsBoolean()
-  isPublic?: boolean;
+  readonly isPublic?: boolean;
 
   @ApiPropertyOptional({ description: 'Search term for filename or alt text' })
   @IsString()

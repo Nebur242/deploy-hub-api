@@ -1,10 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { paginate, IPaginationMeta, IPaginationOptions, Pagination } from 'nestjs-typeorm-paginate';
-import { Repository } from 'typeorm';
+import { Like, Repository } from 'typeorm';
 
 import { CreateMediaDto } from './dto/create-media.dto';
-import { PaginationOptionsDto } from './dto/pagination-options.dto';
+import { MediaQueryDto } from './dto/media-query.dto';
 import { UpdateMediaDto } from './dto/update-media.dto';
 import { Media } from './entities/media.entity';
 
@@ -20,14 +20,27 @@ export class MediaService {
     return this.mediaRepository.save(media);
   }
 
-  findAll(options?: PaginationOptionsDto): Promise<Pagination<Media, IPaginationMeta>> {
+  findAll(options?: MediaQueryDto): Promise<Pagination<Media, IPaginationMeta>> {
     const paginationOptions: IPaginationOptions = {
       page: options?.page || 1,
       limit: options?.limit || 10,
       route: '/media',
     };
 
-    return paginate<Media, IPaginationMeta>(this.mediaRepository, paginationOptions);
+    const queryOptions = {
+      where: {
+        ...(options?.type && { type: options.type }),
+        ...(options?.ownerId && { ownerId: options.ownerId }),
+        ...(options?.isPublic !== undefined && { isPublic: options.isPublic }),
+        ...(options?.tags && { tags: Like(`%${options.tags.join(',')}%`) }),
+        ...(options?.search && { filename: Like(`%${options.search}%`) }),
+      },
+      order: {
+        [options?.sortBy || 'createdAt']: options?.order || 'DESC',
+      },
+    };
+
+    return paginate<Media, IPaginationMeta>(this.mediaRepository, paginationOptions, queryOptions);
   }
 
   async findOne(id: string): Promise<Media> {
