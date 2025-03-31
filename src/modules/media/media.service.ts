@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { paginate, IPaginationMeta, IPaginationOptions, Pagination } from 'nestjs-typeorm-paginate';
-import { Like, Repository } from 'typeorm';
+import { ArrayContains, Like, Repository } from 'typeorm';
 
 import { CreateMediaDto } from './dto/create-media.dto';
 import { MediaQueryDto } from './dto/media-query.dto';
@@ -32,7 +32,7 @@ export class MediaService {
         ...(options?.type && { type: options.type }),
         ...(options?.ownerId && { ownerId: options.ownerId }),
         ...(options?.isPublic !== undefined && { isPublic: options.isPublic }),
-        ...(options?.tags && { tags: Like(`%${options.tags.join(',')}%`) }),
+        ...(options?.tags && options.tags.length > 0 && { tags: ArrayContains(options.tags) }),
         ...(options?.search && { filename: Like(`%${options.search}%`) }),
       },
       order: {

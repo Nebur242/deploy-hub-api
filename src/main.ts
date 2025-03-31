@@ -15,6 +15,7 @@ import { cert, getApps, initializeApp } from 'firebase-admin/app';
 import { AppModule } from './app.module';
 import * as packages from '../package.json';
 import { EnvironmentVariables } from './config/env.validation';
+import { TypeOrmErrorsFilter } from './core/filters/typeorm-errors.filter';
 import { SentryInterceptor } from './core/interceptors/sentry.interceptor';
 
 const defaultVersion = '1';
@@ -62,6 +63,7 @@ function setupGlobalMiddlewares(app: INestApplication) {
       new TransformInterceptor(),
       new SentryInterceptor(configService.get('NODE_ENV')),
     )
+    .useGlobalFilters(new TypeOrmErrorsFilter())
     .setGlobalPrefix(globalPrefix)
     .enableVersioning({
       type: VersioningType.URI,
