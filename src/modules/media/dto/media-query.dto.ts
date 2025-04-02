@@ -1,5 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsBoolean, IsString, IsArray } from 'class-validator';
+import { Transform } from 'class-transformer';
+import { IsEnum, IsOptional, IsString, IsBoolean, IsArray } from 'class-validator';
 
 import { PaginationOptionsDto } from './pagination-options.dto';
 import { MediaType } from '../entities/media.entity';
@@ -16,15 +17,19 @@ export class MediaQueryDto extends PaginationOptionsDto {
   readonly ownerId?: string;
 
   @ApiPropertyOptional({ description: 'Filter by tags (comma-separated)' })
-  @IsArray()
   @IsString({ each: true })
   @IsOptional()
+  @Transform(({ value }: { value: string | string[] }) =>
+    Array.isArray(value) ? value : value.split(','),
+  )
+  @IsArray()
   readonly tags?: string[];
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsBoolean()
-  isPublic?: boolean;
+  @Transform(({ value }) => value === 'true' || value === true)
+  readonly isPublic?: boolean;
 
   @ApiPropertyOptional({ description: 'Search term for filename or alt text' })
   @IsString()

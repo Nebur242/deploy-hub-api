@@ -80,11 +80,15 @@ describe('MediaService', () => {
 
       const result = await service.findAll();
 
-      expect(paginateModule.paginate).toHaveBeenCalledWith(repository, {
-        page: 1,
-        limit: 10,
-        route: '/media',
-      });
+      expect(paginateModule.paginate).toHaveBeenCalledWith(
+        repository,
+        {
+          page: 1,
+          limit: 10,
+          route: '/media',
+        },
+        { where: {}, order: { createdAt: 'DESC' } },
+      );
       expect(result).toEqual(paginationResult);
     });
 
@@ -99,11 +103,15 @@ describe('MediaService', () => {
 
       const result = await service.findAll(options);
 
-      expect(paginateModule.paginate).toHaveBeenCalledWith(repository, {
-        page: 2,
-        limit: 20,
-        route: '/media',
-      });
+      expect(paginateModule.paginate).toHaveBeenCalledWith(
+        repository,
+        {
+          page: 2,
+          limit: 20,
+          route: '/media',
+        },
+        { where: {}, order: { createdAt: 'DESC' } },
+      );
       expect(result).toEqual(paginationResult);
     });
   });

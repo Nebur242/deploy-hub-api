@@ -19,6 +19,8 @@ export enum MediaType {
 }
 
 @Entity('media')
+@Index(['filename'])
+@Index(['tags'])
 export class Media {
   @PrimaryGeneratedColumn('uuid')
   id: string;
