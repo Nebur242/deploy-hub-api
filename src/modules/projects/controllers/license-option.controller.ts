@@ -45,7 +45,7 @@ export class LicenseOptionController {
     @Param('projectId') projectId: string,
     @Body() createLicenseDto: CreateLicenseOptionDto,
   ) {
-    return this.licenseService.create(projectId, user.uid, createLicenseDto);
+    return this.licenseService.create(projectId, user.id, createLicenseDto);
   }
 
   @Get()
@@ -92,7 +92,7 @@ export class LicenseOptionController {
     @Param('id') id: string,
     @Body() updateLicenseDto: UpdateLicenseOptionDto,
   ) {
-    return this.licenseService.update(id, user.uid, updateLicenseDto);
+    return this.licenseService.update(id, user.id, updateLicenseDto);
   }
 
   @Delete(':id')
@@ -103,7 +103,7 @@ export class LicenseOptionController {
   @ApiParam({ name: 'projectId', description: 'Project ID' })
   @ApiParam({ name: 'id', description: 'License option ID' })
   remove(@CurrentUser() user: User, @Param('id') id: string) {
-    return this.licenseService.remove(id, user.uid);
+    return this.licenseService.remove(id, user.id);
   }
 
   @Get('tiers/available')

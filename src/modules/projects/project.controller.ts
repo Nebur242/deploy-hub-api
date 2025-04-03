@@ -16,7 +16,7 @@ export class ProjectController {
 
   @Post()
   create(@CurrentUser() user: User, @Body() createProjectDto: CreateProjectDto) {
-    return this.projectService.create(user.uid, createProjectDto);
+    return this.projectService.create(user.id, createProjectDto);
   }
 
   @Get()
@@ -28,7 +28,7 @@ export class ProjectController {
       route: '/projects',
     };
 
-    return this.projectService.findAll(user.uid, searchDto, paginationOptions);
+    return this.projectService.findAll(user.id, searchDto, paginationOptions);
   }
 
   @Get(':id')
@@ -42,11 +42,11 @@ export class ProjectController {
     @Param('id') id: string,
     @Body() updateProjectDto: UpdateProjectDto,
   ) {
-    return this.projectService.update(id, user.uid, updateProjectDto);
+    return this.projectService.update(id, user.id, updateProjectDto);
   }
 
   @Delete(':id')
   remove(@CurrentUser() user: User, @Param('id') id: string) {
-    return this.projectService.remove(id, user.uid);
+    return this.projectService.remove(id, user.id);
   }
 }

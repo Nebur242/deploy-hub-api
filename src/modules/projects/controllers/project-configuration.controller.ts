@@ -18,7 +18,7 @@ export class ProjectConfigurationController {
     @Param('projectId') projectId: string,
     @Body() createConfigDto: CreateProjectConfigurationDto,
   ) {
-    return this.configService.create(projectId, user.uid, createConfigDto);
+    return this.configService.create(projectId, user.id, createConfigDto);
   }
 
   @Get()
@@ -37,11 +37,11 @@ export class ProjectConfigurationController {
     @Param('id') id: string,
     @Body() updateConfigDto: UpdateProjectConfigurationDto,
   ) {
-    return this.configService.update(id, user.uid, updateConfigDto);
+    return this.configService.update(id, user.id, updateConfigDto);
   }
 
   @Delete(':id')
   remove(@CurrentUser() user: User, @Param('id') id: string) {
-    return this.configService.remove(id, user.uid);
+    return this.configService.remove(id, user.id);
   }
 }

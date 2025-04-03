@@ -22,7 +22,7 @@ export class ProjectVersionController {
       isStable?: boolean;
     },
   ) {
-    return this.projectVersionService.create(projectId, user.uid, createVersionDto);
+    return this.projectVersionService.create(projectId, user.id, createVersionDto);
   }
 
   @Get()
@@ -37,11 +37,11 @@ export class ProjectVersionController {
 
   @Post(':id/set-stable')
   setAsStable(@CurrentUser() user: User, @Param('id') id: string) {
-    return this.projectVersionService.setAsStable(id, user.uid);
+    return this.projectVersionService.setAsStable(id, user.id);
   }
 
   @Delete(':id')
   remove(@CurrentUser() user: User, @Param('id') id: string) {
-    return this.projectVersionService.remove(id, user.uid);
+    return this.projectVersionService.remove(id, user.id);
   }
 }
