@@ -43,7 +43,10 @@ export class ProjectConfiguration {
     isSecret: boolean;
   }[];
 
-  @ManyToOne(() => Project, project => project.configurations)
+  @ManyToOne(() => Project, project => project.configurations, {
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
+  })
   @JoinColumn({ name: 'project_id' })
   project: Project;
 }

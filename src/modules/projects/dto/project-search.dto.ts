@@ -36,10 +36,10 @@ export class ProjectSearchDto {
     example: [TechStack.REACT, TechStack.NEXTJS],
   })
   @IsOptional()
-  @IsArray()
   @IsEnum(TechStack, { each: true })
   @Transform(({ value }: { value: TechStack[] | TechStack }) => {
     // Handle case when a single string value is passed
+    console.log('value', value);
     return Array.isArray(value) ? value : value ? [value] : [];
   })
   techStack?: TechStack[];

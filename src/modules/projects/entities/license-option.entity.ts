@@ -1,4 +1,4 @@
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn, JoinColumn } from 'typeorm';
+import { Column, Entity, PrimaryGeneratedColumn, ManyToMany } from 'typeorm';
 
 import { Project } from './project.entity';
 
@@ -11,9 +11,6 @@ export enum Currency {
 export class LicenseOption {
   @PrimaryGeneratedColumn('uuid')
   id: string;
-
-  @Column({ name: 'project_id' })
-  projectId: string;
 
   @Column()
   name: string;
@@ -40,7 +37,6 @@ export class LicenseOption {
   @Column({ type: 'text', array: true, default: [] })
   features: string[];
 
-  @ManyToOne(() => Project, project => project.licenses)
-  @JoinColumn({ name: 'project_id' })
-  project: Project;
+  @ManyToMany(() => Project, project => project.licenses)
+  projects: Project[];
 }

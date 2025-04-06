@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { paginate, IPaginationOptions } from 'nestjs-typeorm-paginate';
-import { Repository } from 'typeorm';
+import { FindManyOptions, FindOptionsWhere, Raw, Repository } from 'typeorm';
 
 import { Project, TechStack, Visibility } from '../entities/project.entity';
 
@@ -22,46 +22,86 @@ export class ProjectRepository {
     },
     paginationOptions: IPaginationOptions = { page: 1, limit: 10 },
   ) {
-    // Create query builder for more complex filtering
-    const queryBuilder = this.projectRepository
-      .createQueryBuilder('project')
-      .leftJoinAndSelect('project.categories', 'category')
-      .leftJoinAndSelect('project.versions', 'version');
+    // Create base find options
+    const findOptions: FindManyOptions<Project> = {
+      relations: ['categories', 'versions'],
+      order: { updatedAt: 'DESC' },
+    };
+
+    // Add where conditions
+    const whereConditions: FindOptionsWhere<Project> = {};
 
     // Apply owner filter
     if (options?.ownerId) {
-      queryBuilder.andWhere('project.ownerId = :ownerId', { ownerId: options.ownerId });
+      whereConditions.ownerId = options.ownerId;
     }
 
     // Apply visibility filter
     if (options?.visibility) {
-      queryBuilder.andWhere('project.visibility = :visibility', { visibility: options.visibility });
+      whereConditions.visibility = options.visibility;
     }
 
-    // Apply tech stack filter
-    if (options?.techStack && options.techStack.length > 0) {
-      queryBuilder.andWhere(':tech = ANY(project.techStack)', { tech: options.techStack });
-    }
+    // Handle tech stack filtering
+    // if (options?.techStack && options.techStack.length > 0) {
+    //   whereConditions.techStack = options.techStack as any;
+    // }
 
-    // Apply search filter if provided
+    // Build search conditions if needed
     if (options?.search) {
-      queryBuilder.andWhere('(project.name ILIKE :search OR project.description ILIKE :search)', {
-        search: `%${options.search}%`,
-      });
+      // For combined OR conditions using native repository
+      findOptions.where = [
+        {
+          ...whereConditions,
+          name: Raw(alias => `${alias} ILIKE :search`, { search: `%${options.search}%` }),
+        },
+        {
+          ...whereConditions,
+          description: Raw(alias => `${alias} ILIKE :search`, { search: `%${options.search}%` }),
+        },
+      ];
+    } else {
+      findOptions.where = whereConditions;
     }
 
-    // Filter by categories if provided
+    // If category filtering is needed, we need to use a query builder
+    // because filtering by relations is hard with the repository API
     if (options?.categoryIds && options.categoryIds.length > 0) {
-      queryBuilder.andWhere('category.id IN (:...categoryIds)', {
-        categoryIds: options.categoryIds,
-      });
+      const queryBuilder = this.projectRepository
+        .createQueryBuilder('project')
+        .leftJoinAndSelect('project.categories', 'category')
+        .leftJoinAndSelect('project.versions', 'version')
+        .orderBy('project.updatedAt', 'DESC')
+        .where('category.id IN (:...categoryIds)', {
+          categoryIds: options.categoryIds,
+        });
+
+      // Apply other filters to the query builder
+      if (options?.ownerId) {
+        queryBuilder.andWhere('project.ownerId = :ownerId', { ownerId: options.ownerId });
+      }
+
+      if (options?.visibility) {
+        queryBuilder.andWhere('project.visibility = :visibility', {
+          visibility: options.visibility,
+        });
+      }
+
+      if (options?.techStack && options.techStack.length > 0) {
+        queryBuilder.andWhere(':tech = ANY(project.techStack)', { tech: options.techStack });
+      }
+
+      if (options?.search) {
+        queryBuilder.andWhere('(project.name ILIKE :search OR project.description ILIKE :search)', {
+          search: `%${options.search}%`,
+        });
+      }
+
+      // Use the paginate function from nestjs-typeorm-paginate with query builder
+      return paginate<Project>(queryBuilder, paginationOptions);
     }
 
-    // Order by updated date (most recent first)
-    queryBuilder.orderBy('project.updatedAt', 'DESC');
-
-    // Use the paginate function from nestjs-typeorm-paginate
-    return paginate<Project>(queryBuilder, paginationOptions || { page: 1, limit: 10 });
+    // For cases without category filtering, we can use paginate with repository
+    return paginate<Project>(this.projectRepository, paginationOptions, findOptions);
   }
 
   findOne(id: string): Promise<Project | null> {
@@ -78,14 +118,11 @@ export class ProjectRepository {
 
   async update(id: string, project: Partial<Project>) {
     // First get existing categories if not provided to maintain relationships
-    if (!project.categories && project.id) {
-      const existingProject = await this.findOne(id);
-      if (existingProject?.categories) {
-        project.categories = existingProject.categories;
-      }
-    }
-
-    await this.projectRepository.update(id, project);
+    const updatedProject = this.projectRepository.create({
+      ...project,
+      id,
+    });
+    await this.projectRepository.save(updatedProject);
     return this.findOne(id);
   }
 

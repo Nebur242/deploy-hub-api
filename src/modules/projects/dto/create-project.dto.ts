@@ -1,3 +1,4 @@
+import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsNotEmpty,
@@ -7,6 +8,8 @@ import {
   IsOptional,
   IsUUID,
   ValidateNested,
+  IsDefined,
+  Length,
 } from 'class-validator';
 
 import { TechStack, Visibility } from '../entities/project.entity';
@@ -20,6 +23,12 @@ export class CreateProjectDto {
   @IsNotEmpty()
   @IsString()
   name: string;
+
+  @ApiProperty({ description: 'Category slug for URL', maxLength: 100 })
+  @IsNotEmpty()
+  @IsString()
+  @Length(1, 100)
+  slug: string;
 
   @IsString()
   description: string;
@@ -36,7 +45,7 @@ export class CreateProjectDto {
   @IsOptional()
   visibility: Visibility = Visibility.PRIVATE;
 
-  @IsOptional()
+  @IsDefined()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CategoryDto)

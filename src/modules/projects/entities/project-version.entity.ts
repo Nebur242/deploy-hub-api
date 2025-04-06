@@ -35,7 +35,10 @@ export class ProjectVersion {
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @ManyToOne(() => Project, project => project.versions)
+  @ManyToOne(() => Project, project => project.versions, {
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
+  })
   @JoinColumn({ name: 'project_id' })
   project: Project;
 }

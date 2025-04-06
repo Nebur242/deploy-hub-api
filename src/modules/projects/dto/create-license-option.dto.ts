@@ -1,4 +1,13 @@
-import { IsNotEmpty, IsString, IsNumber, IsEnum, IsArray, IsOptional, Min } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsString,
+  IsNumber,
+  IsEnum,
+  IsArray,
+  IsOptional,
+  Min,
+  IsUUID,
+} from 'class-validator';
 
 import { Currency } from '../entities/license-option.entity';
 
@@ -32,4 +41,8 @@ export class CreateLicenseOptionDto {
   @IsString({ each: true })
   @IsOptional()
   features: string[] = [];
+
+  @IsArray()
+  @IsUUID(undefined, { each: true })
+  projectIds: string[] = [];
 }

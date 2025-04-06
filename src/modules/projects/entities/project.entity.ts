@@ -3,6 +3,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   JoinTable,
   ManyToMany,
   OneToMany,
@@ -24,7 +25,6 @@ export enum TechStack {
   //   DJANGO = 'django',
   //   FLASK = 'flask',
   //   LARAVEL = 'laravel',
-  //   OTHER = 'other',
 }
 
 export enum Visibility {
@@ -49,6 +49,10 @@ export class Project {
 
   @Column({ nullable: true })
   repository: string;
+
+  @Column({ length: 100, unique: true })
+  @Index()
+  slug: string;
 
   @Column({
     type: 'enum',
@@ -79,12 +83,24 @@ export class Project {
   @UpdateDateColumn()
   updatedAt: Date;
 
-  @OneToMany(() => ProjectVersion, version => version.project, { cascade: true })
+  @OneToMany(() => ProjectVersion, version => version.project, {
+    cascade: true,
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
+  })
   versions: ProjectVersion[];
 
-  @OneToMany(() => ProjectConfiguration, config => config.project, { cascade: true })
+  @OneToMany(() => ProjectConfiguration, config => config.project, {
+    cascade: true,
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
+  })
   configurations: ProjectConfiguration[];
 
-  @OneToMany(() => LicenseOption, license => license.project, { cascade: true })
+  @ManyToMany(() => LicenseOption, licenseOption => licenseOption.projects)
+  @JoinTable({
+    joinColumn: { name: 'project_id', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'license_id', referencedColumnName: 'id' },
+  })
   licenses: LicenseOption[];
 }

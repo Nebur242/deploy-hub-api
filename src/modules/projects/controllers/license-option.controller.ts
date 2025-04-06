@@ -45,7 +45,7 @@ export class LicenseOptionController {
     @Param('projectId') projectId: string,
     @Body() createLicenseDto: CreateLicenseOptionDto,
   ) {
-    return this.licenseService.create(projectId, user.id, createLicenseDto);
+    return this.licenseService.create(user.id, createLicenseDto);
   }
 
   @Get()

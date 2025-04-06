@@ -56,7 +56,7 @@ export class PublicLicenseOptionController {
       const license = await this.licenseService.findOne(id);
 
       // Verify the license belongs to the specified project
-      if (license.projectId !== projectId) {
+      if (license.projects.some(project => project.id !== projectId)) {
         throw new NotFoundException('License option not found for this project');
       }
 

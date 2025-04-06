@@ -77,25 +77,22 @@ export class ProjectService {
     }
 
     // Validate categories if they exist
-    let foundCategories: Category[] = [];
-    if (updateProjectDto.categories && updateProjectDto.categories.length > 0) {
-      const categoryIds = updateProjectDto.categories.map(c => c.id);
-      foundCategories = await this.categoryRepository.find({
-        where: { id: In(categoryIds) },
-      });
-      if (foundCategories.length === 0) {
-        throw new BadRequestException('No valid categories provided');
-      }
-
-      if (foundCategories.length !== categoryIds.length) {
-        throw new BadRequestException('One or more categories do not exist');
-      }
-    }
+    const categoryIds = await Promise.all(
+      (updateProjectDto?.categories || []).map(async c => {
+        const category = await this.categoryRepository.findOne({
+          where: { id: c.id },
+        });
+        if (!category) {
+          throw new BadRequestException(`Category with ID ${c.id} does not exist`);
+        }
+        return category;
+      }),
+    );
 
     const { categories: _, ...projectData } = updateProjectDto;
     const updatedProject = await this.projectRepository.update(id, {
       ...projectData,
-      ...(foundCategories.length > 0 ? { categories: foundCategories } : {}),
+      ...(categoryIds.length > 0 ? { categories: categoryIds } : {}),
     });
 
     if (!updatedProject) {

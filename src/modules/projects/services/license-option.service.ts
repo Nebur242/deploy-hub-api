@@ -6,7 +6,7 @@ import { Repository } from 'typeorm';
 
 import { CreateLicenseOptionDto } from '../dto/create-license-option.dto';
 import { UpdateLicenseOptionDto } from '../dto/update-license-option.dto';
-import { LicenseOption, Currency } from '../entities/license-option.entity';
+import { LicenseOption } from '../entities/license-option.entity';
 import { Project } from '../entities/project.entity';
 
 @Injectable()
@@ -58,50 +58,39 @@ export class LicenseOptionService {
   /**
    * Create a new license option for a project
    */
-  async create(
-    projectId: string,
-    ownerId: string,
-    createLicenseDto: CreateLicenseOptionDto,
-  ): Promise<LicenseOption> {
-    // Check if project exists and user is the owner
-    const project = await this.projectRepository.findOne({
-      where: { id: projectId },
-    });
+  async create(ownerId: string, createLicenseDto: CreateLicenseOptionDto): Promise<LicenseOption> {
+    // Check if all projects exist and user is the owner of each
+    if (createLicenseDto.projectIds && createLicenseDto.projectIds.length > 0) {
+      const projects = await this.projectRepository.findByIds(createLicenseDto.projectIds);
 
-    if (!project) {
-      throw new NotFoundException(`Project with ID ${projectId} not found`);
+      if (projects.length !== createLicenseDto.projectIds.length) {
+        throw new NotFoundException('One or more projects not found');
+      }
+
+      // Verify ownership of all projects
+      for (const project of projects) {
+        if (project.ownerId !== ownerId) {
+          throw new BadRequestException(
+            `You do not have permission to add license to project: ${project.name}`,
+          );
+        }
+      }
     }
 
-    if (project.ownerId !== ownerId) {
-      throw new BadRequestException(
-        'You do not have permission to add license options to this project',
-      );
+    // Create license without projects first
+    const { projectIds, ...licenseData } = createLicenseDto;
+    const newLicense = this.licenseRepository.create(licenseData);
+    const savedLicense = await this.licenseRepository.save(newLicense);
+
+    // Now add the projects relationship if any
+    if (projectIds && projectIds.length > 0) {
+      const projects = await this.projectRepository.findByIds(projectIds);
+      savedLicense.projects = projects;
+      await this.licenseRepository.save(savedLicense);
     }
 
-    // Validate pricing info
-    if (createLicenseDto.price < 0) {
-      throw new BadRequestException('Price cannot be negative');
-    }
-
-    if (createLicenseDto.deploymentLimit < 1) {
-      throw new BadRequestException('Deployment limit must be at least 1');
-    }
-
-    // Create new license option
-    const newLicense = this.licenseRepository.create({
-      projectId,
-      name: createLicenseDto.name,
-      description: createLicenseDto.description,
-      price: createLicenseDto.price,
-      currency: createLicenseDto.currency || Currency.USD,
-      deploymentLimit: createLicenseDto.deploymentLimit || 1,
-      duration: createLicenseDto.duration || 0, // 0 means unlimited
-      features: createLicenseDto.features || [],
-    });
-
-    return this.licenseRepository.save(newLicense);
+    return savedLicense;
   }
-
   /**
    * Update an existing license option
    */
@@ -112,17 +101,21 @@ export class LicenseOptionService {
   ): Promise<LicenseOption> {
     const license = await this.findOne(id);
 
-    // Check if user is the owner of the project
-    const project = await this.projectRepository.findOne({
-      where: { id: license.projectId },
+    // Get all projects associated with this license
+    const licenseWithProjects = await this.licenseRepository.findOne({
+      where: { id },
+      relations: ['projects'],
     });
 
-    if (!project) {
-      throw new NotFoundException(`Project with ID ${license.projectId} not found`);
+    if (!licenseWithProjects) {
+      throw new NotFoundException(`License option with ID ${id} not found`);
     }
 
-    if (project.ownerId !== ownerId) {
-      throw new BadRequestException('You do not have permission to update this license option');
+    // Check if user is the owner of all associated projects
+    for (const project of licenseWithProjects.projects) {
+      if (project.ownerId !== ownerId) {
+        throw new BadRequestException('You do not have permission to update this license option');
+      }
     }
 
     // Validate pricing updates if provided
@@ -132,6 +125,28 @@ export class LicenseOptionService {
 
     if (updateLicenseDto.deploymentLimit !== undefined && updateLicenseDto.deploymentLimit < 1) {
       throw new BadRequestException('Deployment limit must be at least 1');
+    }
+
+    // Handle project updates if provided
+    if (updateLicenseDto.projectIds) {
+      // Fetch all projects to be associated with this license
+      const projects = await this.projectRepository.findByIds(updateLicenseDto.projectIds);
+
+      if (projects.length !== updateLicenseDto.projectIds.length) {
+        throw new NotFoundException('One or more projects not found');
+      }
+
+      // Verify ownership of all projects
+      for (const project of projects) {
+        if (project.ownerId !== ownerId) {
+          throw new BadRequestException(
+            `You do not have permission to add project "${project.name}" to this license`,
+          );
+        }
+      }
+
+      // Update the projects relation
+      licenseWithProjects.projects = projects;
     }
 
     // Update license option fields
@@ -157,26 +172,30 @@ export class LicenseOptionService {
       license.features = updateLicenseDto.features;
     }
 
-    return this.licenseRepository.save(license);
+    // Save the changes
+    Object.assign(licenseWithProjects, license);
+    return this.licenseRepository.save(licenseWithProjects);
   }
 
   /**
    * Delete a license option
    */
   async remove(id: string, ownerId: string): Promise<void> {
-    const license = await this.findOne(id);
-
-    // Check if user is the owner of the project
-    const project = await this.projectRepository.findOne({
-      where: { id: license.projectId },
+    // Get license with its associated projects
+    const license = await this.licenseRepository.findOne({
+      where: { id },
+      relations: ['projects'],
     });
 
-    if (!project) {
-      throw new NotFoundException(`Project with ID ${license.projectId} not found`);
+    if (!license) {
+      throw new NotFoundException(`License option with ID ${id} not found`);
     }
 
-    if (project.ownerId !== ownerId) {
-      throw new BadRequestException('You do not have permission to delete this license option');
+    // Check if user is the owner of all associated projects
+    for (const project of license.projects) {
+      if (project.ownerId !== ownerId) {
+        throw new BadRequestException('You do not have permission to delete this license option');
+      }
     }
 
     // Check if there are any active purchases for this license
