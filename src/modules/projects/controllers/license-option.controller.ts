@@ -40,11 +40,7 @@ export class LicenseOptionController {
   @ApiResponse({ status: 400, description: 'Invalid input data' })
   @ApiResponse({ status: 404, description: 'Project not found' })
   @ApiParam({ name: 'projectId', description: 'Project ID' })
-  create(
-    @CurrentUser() user: User,
-    @Param('projectId') projectId: string,
-    @Body() createLicenseDto: CreateLicenseOptionDto,
-  ) {
+  create(@CurrentUser() user: User, @Body() createLicenseDto: CreateLicenseOptionDto) {
     return this.licenseService.create(user.id, createLicenseDto);
   }
 

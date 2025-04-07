@@ -1,7 +1,37 @@
 import { Type } from 'class-transformer';
-import { IsString, IsEnum, IsArray, IsOptional, IsBoolean, ValidateNested } from 'class-validator';
+import {
+  IsString,
+  IsEnum,
+  IsArray,
+  IsOptional,
+  ValidateNested,
+  IsBoolean,
+  IsUrl,
+} from 'class-validator';
 
 import { DeploymentProvider } from '../entities/project-configuration.entity';
+
+export class EnvironmentVariableDto {
+  @IsString()
+  key: string;
+
+  @IsString()
+  defaultValue: string;
+
+  @IsString()
+  description: string;
+
+  @IsOptional()
+  @IsString()
+  @IsUrl()
+  video?: string;
+
+  @IsBoolean()
+  isRequired: boolean;
+
+  @IsBoolean()
+  isSecret: boolean;
+}
 
 class GithubAccountDto {
   @IsString()
@@ -10,35 +40,20 @@ class GithubAccountDto {
   @IsString()
   accessToken: string;
 
-  @IsArray()
-  @IsString({ each: true })
-  @IsOptional()
-  repositories: string[] = [];
+  @IsString()
+  repository: string;
+
+  @IsString()
+  workflowFile: string;
 }
 
 class DeploymentOptionDto {
   @IsEnum(DeploymentProvider)
   provider: DeploymentProvider;
 
-  @IsString()
-  configTemplate: string;
-}
-
-class EnvironmentVariableDto {
-  @IsString()
-  key: string;
-
-  @IsString()
-  @IsOptional()
-  defaultValue: string = '';
-
-  @IsBoolean()
-  @IsOptional()
-  isRequired: boolean = false;
-
-  @IsBoolean()
-  @IsOptional()
-  isSecret: boolean = false;
+  @ValidateNested({ each: true })
+  @Type(() => EnvironmentVariableDto)
+  environmentVariables: EnvironmentVariableDto[];
 }
 
 export class CreateProjectConfigurationDto {
@@ -46,22 +61,9 @@ export class CreateProjectConfigurationDto {
   @ValidateNested({ each: true })
   @Type(() => GithubAccountDto)
   @IsOptional()
-  githubAccounts: GithubAccountDto[] = [];
+  githubAccounts: GithubAccountDto[];
 
-  @IsArray()
-  @ValidateNested({ each: true })
+  @ValidateNested()
   @Type(() => DeploymentOptionDto)
-  @IsOptional()
-  deploymentOptions: DeploymentOptionDto[] = [];
-
-  @IsArray()
-  @IsString({ each: true })
-  @IsOptional()
-  buildCommands: string[] = [];
-
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => EnvironmentVariableDto)
-  @IsOptional()
-  environmentVariables: EnvironmentVariableDto[] = [];
+  deploymentOption: DeploymentOptionDto;
 }

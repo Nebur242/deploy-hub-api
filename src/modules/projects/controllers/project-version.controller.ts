@@ -1,8 +1,10 @@
 import { CurrentUser } from '@app/core/decorators/current-user.decorator';
 import { Admin } from '@app/core/guards/roles-auth.guard';
 import { User } from '@app/modules/users/entities/user.entity';
-import { Controller, Get, Post, Body, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete, Patch } from '@nestjs/common';
 
+import { CreateVersionDto } from '../dto/create-version.dto';
+import { UpdateVersionDto } from '../dto/update-version.dto';
 import { ProjectVersionService } from '../services/project-version.service';
 
 @Admin()
@@ -15,12 +17,7 @@ export class ProjectVersionController {
     @CurrentUser() user: User,
     @Param('projectId') projectId: string,
     @Body()
-    createVersionDto: {
-      version: string;
-      releaseNotes?: string;
-      commitHash?: string;
-      isStable?: boolean;
-    },
+    createVersionDto: CreateVersionDto,
   ) {
     return this.projectVersionService.create(projectId, user.id, createVersionDto);
   }
@@ -33,6 +30,11 @@ export class ProjectVersionController {
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.projectVersionService.findOne(id);
+  }
+
+  @Patch(':id')
+  updateVersion(@Param('id') id: string, @Body() updateVersionDto: UpdateVersionDto) {
+    return this.projectVersionService.updateVersion(id, updateVersionDto);
   }
 
   @Post(':id/set-stable')

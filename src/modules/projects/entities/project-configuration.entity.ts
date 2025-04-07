@@ -1,13 +1,19 @@
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn, JoinColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+  JoinColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 
 import { Project } from './project.entity';
+import { EnvironmentVariableDto } from '../dto/create-project-configuration.dto';
 
 export enum DeploymentProvider {
   NETLIFY = 'netlify',
   VERCEL = 'vercel',
-  AWS = 'aws',
-  GCP = 'gcp',
-  AZURE = 'azure',
 }
 
 @Entity('project_configurations')
@@ -18,30 +24,19 @@ export class ProjectConfiguration {
   @Column({ name: 'project_id' })
   projectId: string;
 
-  @Column({ type: 'jsonb', nullable: true })
+  @Column({ type: 'jsonb' })
   githubAccounts: {
-    id: string;
     username: string;
     accessToken: string;
-    repositories: string[];
+    repository: string;
+    workflowFile: string;
   }[];
 
-  @Column({ type: 'jsonb', nullable: true })
-  deploymentOptions: {
+  @Column({ type: 'jsonb' })
+  deploymentOption: {
     provider: DeploymentProvider;
-    configTemplate: string;
-  }[];
-
-  @Column({ type: 'text', array: true, default: [] })
-  buildCommands: string[];
-
-  @Column({ type: 'jsonb', nullable: true })
-  environmentVariables: {
-    key: string;
-    defaultValue: string;
-    isRequired: boolean;
-    isSecret: boolean;
-  }[];
+    environmentVariables: EnvironmentVariableDto[];
+  };
 
   @ManyToOne(() => Project, project => project.configurations, {
     onDelete: 'CASCADE',
@@ -49,4 +44,10 @@ export class ProjectConfiguration {
   })
   @JoinColumn({ name: 'project_id' })
   project: Project;
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
 }

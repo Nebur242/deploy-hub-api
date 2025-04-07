@@ -2,6 +2,8 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
+import { CreateVersionDto } from '../dto/create-version.dto';
+import { UpdateVersionDto } from '../dto/update-version.dto';
 import { ProjectVersion } from '../entities/project-version.entity';
 import { Project } from '../entities/project.entity';
 
@@ -36,16 +38,12 @@ export class ProjectVersionService {
   async create(
     projectId: string,
     ownerId: string,
-    versionData: {
-      version: string;
-      releaseNotes?: string;
-      commitHash?: string;
-      isStable?: boolean;
-    },
+    versionData: CreateVersionDto,
   ): Promise<ProjectVersion> {
     // Check if project exists and user is the owner
     const project = await this.projectRepository.findOne({
       where: { id: projectId },
+      relations: ['versions'],
     });
 
     if (!project) {
@@ -83,6 +81,16 @@ export class ProjectVersionService {
     });
 
     return this.projectVersionRepository.save(newVersion);
+  }
+
+  async updateVersion(id: string, updateVersionDto: UpdateVersionDto) {
+    const version = await this.findOne(id);
+    const updatedVersion = this.projectVersionRepository.create({
+      ...version,
+      ...updateVersionDto,
+    });
+    const updated = await this.projectVersionRepository.save(updatedVersion);
+    return updated;
   }
 
   async setAsStable(id: string, ownerId: string): Promise<ProjectVersion> {
@@ -125,5 +133,18 @@ export class ProjectVersionService {
     }
 
     await this.projectVersionRepository.delete(id);
+
+    // set the last version as latest if this was the last version
+    const versions = await this.projectVersionRepository.find({
+      where: { projectId: version.projectId },
+      order: { createdAt: 'DESC' },
+    });
+
+    if (versions.length > 0) {
+      await this.projectVersionRepository.update(
+        { projectId: version.projectId, id: versions[0].id },
+        { isLatest: true },
+      );
+    }
   }
 }

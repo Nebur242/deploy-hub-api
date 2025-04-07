@@ -42,6 +42,7 @@ export class ProjectConfigurationService {
     // Check if project exists and user is the owner
     const project = await this.projectRepository.findOne({
       where: { id: projectId },
+      relations: ['configurations'],
     });
 
     if (!project) {
@@ -51,6 +52,16 @@ export class ProjectConfigurationService {
     if (project.ownerId !== ownerId) {
       throw new BadRequestException(
         'You do not have permission to add configurations to this project',
+      );
+    }
+
+    const existingConfig = project.configurations.find(
+      config => config.deploymentOption.provider === createConfigDto.deploymentOption.provider,
+    );
+
+    if (existingConfig) {
+      throw new BadRequestException(
+        `A configuration with this provider: ${createConfigDto.deploymentOption.provider} already exists for this project`,
       );
     }
 

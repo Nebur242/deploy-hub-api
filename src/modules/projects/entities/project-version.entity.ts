@@ -5,6 +5,7 @@ import {
   PrimaryGeneratedColumn,
   CreateDateColumn,
   JoinColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 
 import { Project } from './project.entity';
@@ -32,13 +33,16 @@ export class ProjectVersion {
   @Column({ name: 'is_stable', default: false })
   isStable: boolean;
 
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
-
   @ManyToOne(() => Project, project => project.versions, {
     onDelete: 'CASCADE',
     onUpdate: 'CASCADE',
   })
   @JoinColumn({ name: 'project_id' })
   project: Project;
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
 }
