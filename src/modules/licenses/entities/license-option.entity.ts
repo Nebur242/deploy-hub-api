@@ -1,4 +1,4 @@
-import { Currency } from '@app/common/enums';
+import { Project } from '@app/modules/projects/entities/project.entity';
 import {
   Column,
   Entity,
@@ -8,7 +8,10 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 
-import { Project } from './project.entity';
+export enum Currency {
+  USD = 'USD',
+  EUR = 'EUR',
+}
 
 @Entity('license_options')
 export class LicenseOption {
