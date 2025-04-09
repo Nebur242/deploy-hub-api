@@ -104,13 +104,12 @@ export class ProjectSearchDto {
 
   @ApiProperty({
     description: 'Number of items per page',
-    required: false,
+    required: true,
     type: Number,
     minimum: 1,
     maximum: 100,
     default: 10,
   })
-  @IsOptional()
   @IsInt()
   @Min(1)
   @Max(100)

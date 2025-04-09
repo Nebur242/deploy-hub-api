@@ -9,6 +9,7 @@ import {
   IsUUID,
   ValidateNested,
   Length,
+  IsUrl,
 } from 'class-validator';
 
 import { TechStack, Visibility } from '../entities/project.entity';
@@ -35,6 +36,7 @@ export class CreateProjectDto {
 
   @IsNotEmpty()
   @IsString()
+  @IsUrl()
   repository: string;
 
   @IsArray()

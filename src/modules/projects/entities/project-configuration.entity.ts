@@ -1,3 +1,4 @@
+import { EncryptionService } from '@app/common/encryption/encryption.service';
 import {
   Column,
   Entity,
@@ -50,4 +51,46 @@ export class ProjectConfiguration {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  // Temporary field to hold decrypted values in memory
+  private decryptedAccessTokens: Record<number, string> = {};
+
+  // Method to decrypt sensitive data - now takes encryptionService as parameter
+  decryptSensitiveData(encryptionService: EncryptionService) {
+    if (this.githubAccounts && Array.isArray(this.githubAccounts)) {
+      this.githubAccounts.forEach((account, index) => {
+        if (account.accessToken && account.accessToken !== '[ENCRYPTED]') {
+          // Store decrypted value temporarily
+          this.decryptedAccessTokens[index] = encryptionService.decrypt(account.accessToken);
+          // Replace encrypted value with placeholder for extra security
+          account.accessToken = '[ENCRYPTED]';
+        }
+      });
+    }
+  }
+
+  // Method to access decrypted values when needed
+  getDecryptedAccessToken(accountIndex: number): string {
+    return this.decryptedAccessTokens[accountIndex];
+  }
+
+  // Now takes encryptionService as parameter
+  encryptSensitiveData(encryptionService: EncryptionService) {
+    if (this.githubAccounts && Array.isArray(this.githubAccounts)) {
+      this.githubAccounts.forEach(account => {
+        if (account.accessToken && account.accessToken !== '[ENCRYPTED]') {
+          account.accessToken = encryptionService.encrypt(account.accessToken);
+        }
+      });
+    }
+
+    // Also encrypt sensitive environment variables
+    if (this.deploymentOption?.environmentVariables) {
+      this.deploymentOption.environmentVariables.forEach(envVar => {
+        if (envVar.isSecret && envVar.defaultValue && envVar.defaultValue !== '[ENCRYPTED]') {
+          envVar.defaultValue = encryptionService.encrypt(envVar.defaultValue);
+        }
+      });
+    }
+  }
 }

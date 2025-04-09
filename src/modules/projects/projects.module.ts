@@ -1,3 +1,4 @@
+import { EncryptionService } from '@app/common/encryption/encryption.service';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
@@ -36,6 +37,7 @@ import { Category } from '../categories/entities/category.entity';
     ProjectConfigurationService,
     LicenseOptionService,
     PublicProjectService,
+    EncryptionService,
   ],
   controllers: [
     ProjectController,
