@@ -11,14 +11,29 @@ export class PublicProjectService {
   findAll(searchDto: ProjectSearchDto) {
     return this.projectRepository.findAll(
       {
-        visibility: searchDto.visibility,
+        visibility: Visibility.PUBLIC,
         techStack: searchDto.techStack,
         categoryIds: searchDto.categoryIds,
         search: searchDto.search,
+        sortBy: searchDto.sortBy,
+        sortDirection: searchDto.sortDirection,
       },
       {
         page: searchDto.page || 1,
         limit: searchDto.limit || 10,
+      },
+    );
+  }
+
+  findFeatured(searchDto: ProjectSearchDto) {
+    return this.projectRepository.findFeatured(
+      {
+        page: searchDto.page || 1,
+        limit: searchDto.limit || 10,
+      },
+      {
+        sortBy: searchDto.sortBy,
+        sortDirection: searchDto.sortDirection,
       },
     );
   }
@@ -35,5 +50,11 @@ export class PublicProjectService {
     }
 
     return null;
+  }
+
+  async getStats() {
+    return {
+      techStacks: await this.projectRepository.countByTechStack(),
+    };
   }
 }

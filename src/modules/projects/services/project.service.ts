@@ -3,12 +3,12 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { IPaginationOptions, Pagination } from 'nestjs-typeorm-paginate';
 import { In, Repository } from 'typeorm';
 
-import { CreateProjectDto } from './dto/create-project.dto';
-import { ProjectSearchDto } from './dto/project-search.dto';
-import { UpdateProjectDto } from './dto/update-project.dto';
-import { Project } from './entities/project.entity';
-import { ProjectRepository } from './repositories/project.repository';
-import { Category } from '../categories/entities/category.entity';
+import { Category } from '../../categories/entities/category.entity';
+import { CreateProjectDto } from '../dto/create-project.dto';
+import { ProjectSearchDto } from '../dto/project-search.dto';
+import { UpdateProjectDto } from '../dto/update-project.dto';
+import { Project } from '../entities/project.entity';
+import { ProjectRepository } from '../repositories/project.repository';
 
 @Injectable()
 export class ProjectService {
@@ -30,6 +30,8 @@ export class ProjectService {
         techStack: searchDto.techStack,
         categoryIds: searchDto.categoryIds,
         search: searchDto.search,
+        sortBy: searchDto.sortBy,
+        sortDirection: searchDto.sortDirection,
       },
       paginationOptions,
     );
@@ -77,22 +79,22 @@ export class ProjectService {
     }
 
     // Validate categories if they exist
-    const categoryIds = await Promise.all(
-      (updateProjectDto?.categories || []).map(async c => {
-        const category = await this.categoryRepository.findOne({
-          where: { id: c.id },
-        });
-        if (!category) {
-          throw new BadRequestException(`Category with ID ${c.id} does not exist`);
-        }
-        return category;
-      }),
-    );
+    let categories: Category[] = [];
+    if (updateProjectDto?.categories && updateProjectDto.categories.length > 0) {
+      const categoryIds = updateProjectDto.categories.map(c => c.id);
+      categories = await this.categoryRepository.find({
+        where: { id: In(categoryIds) },
+      });
+
+      if (categories.length !== categoryIds.length) {
+        throw new BadRequestException('One or more categories do not exist');
+      }
+    }
 
     const { categories: _, ...projectData } = updateProjectDto;
     const updatedProject = await this.projectRepository.update(id, {
       ...projectData,
-      ...(categoryIds.length > 0 ? { categories: categoryIds } : {}),
+      ...(categories.length > 0 ? { categories } : {}),
     });
 
     if (!updatedProject) {
@@ -127,7 +129,13 @@ export class ProjectService {
     );
   }
 
-  findFeatured(paginationOptions: IPaginationOptions): Promise<Pagination<Project>> {
-    return this.projectRepository.findFeatured(paginationOptions);
+  findFeatured(
+    paginationOptions: IPaginationOptions,
+    searchDto?: ProjectSearchDto,
+  ): Promise<Pagination<Project>> {
+    return this.projectRepository.findFeatured(paginationOptions, {
+      sortBy: searchDto?.sortBy,
+      sortDirection: searchDto?.sortDirection,
+    });
   }
 }

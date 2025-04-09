@@ -3,11 +3,11 @@ import { Admin } from '@app/core/guards/roles-auth.guard';
 import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { IPaginationOptions } from 'nestjs-typeorm-paginate';
 
-import { CreateProjectDto } from './dto/create-project.dto';
-import { ProjectSearchDto } from './dto/project-search.dto';
-import { UpdateProjectDto } from './dto/update-project.dto';
-import { ProjectService } from './project.service';
-import { User } from '../users/entities/user.entity';
+import { User } from '../../users/entities/user.entity';
+import { CreateProjectDto } from '../dto/create-project.dto';
+import { ProjectSearchDto } from '../dto/project-search.dto';
+import { UpdateProjectDto } from '../dto/update-project.dto';
+import { ProjectService } from '../services/project.service';
 
 @Admin()
 @Controller('projects')

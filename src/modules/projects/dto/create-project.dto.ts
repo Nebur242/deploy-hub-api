@@ -8,7 +8,6 @@ import {
   IsOptional,
   IsUUID,
   ValidateNested,
-  IsDefined,
   Length,
 } from 'class-validator';
 
@@ -30,10 +29,11 @@ export class CreateProjectDto {
   @Length(1, 100)
   slug: string;
 
+  @IsNotEmpty()
   @IsString()
   description: string;
 
-  @IsOptional()
+  @IsNotEmpty()
   @IsString()
   repository: string;
 
@@ -43,9 +43,9 @@ export class CreateProjectDto {
 
   @IsEnum(Visibility)
   @IsOptional()
-  visibility: Visibility = Visibility.PRIVATE;
+  visibility?: Visibility;
 
-  @IsDefined()
+  @IsNotEmpty({ each: true })
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CategoryDto)

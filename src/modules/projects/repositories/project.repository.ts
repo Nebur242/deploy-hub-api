@@ -19,13 +19,15 @@ export class ProjectRepository {
       techStack?: TechStack[];
       categoryIds?: string[];
       search?: string;
+      sortBy?: string;
+      sortDirection?: 'ASC' | 'DESC';
     },
     paginationOptions: IPaginationOptions = { page: 1, limit: 10 },
   ) {
     // Create base find options
     const findOptions: FindManyOptions<Project> = {
       relations: ['categories', 'versions'],
-      order: { updatedAt: 'DESC' },
+      order: { [options?.sortBy || 'updatedAt']: options?.sortDirection || 'DESC' },
     };
 
     // Add where conditions
@@ -41,10 +43,12 @@ export class ProjectRepository {
       whereConditions.visibility = options.visibility;
     }
 
-    // Handle tech stack filtering
-    // if (options?.techStack && options.techStack.length > 0) {
-    //   whereConditions.techStack = options.techStack as any;
-    // }
+    // Handle tech stack filtering for repository API
+    if (options?.techStack && options.techStack.length > 0) {
+      whereConditions.techStack = Raw(
+        alias => `${alias} && ARRAY[${options.techStack?.map(tech => `'${tech}'`).join(',')}]`,
+      );
+    }
 
     // Build search conditions if needed
     if (options?.search) {
@@ -70,7 +74,7 @@ export class ProjectRepository {
         .createQueryBuilder('project')
         .leftJoinAndSelect('project.categories', 'category')
         .leftJoinAndSelect('project.versions', 'version')
-        .orderBy('project.updatedAt', 'DESC')
+        .orderBy(`project.${options?.sortBy || 'updatedAt'}`, options?.sortDirection || 'DESC')
         .where('category.id IN (:...categoryIds)', {
           categoryIds: options.categoryIds,
         });
@@ -152,12 +156,19 @@ export class ProjectRepository {
     );
   }
 
-  findFeatured(paginationOptions: IPaginationOptions) {
+  findFeatured(
+    paginationOptions: IPaginationOptions,
+    sortOptions?: { sortBy?: string; sortDirection?: 'ASC' | 'DESC' },
+  ) {
     const queryBuilder = this.projectRepository
       .createQueryBuilder('project')
       .leftJoinAndSelect('project.categories', 'category')
+      .leftJoinAndSelect('project.versions', 'version')
       .where('project.visibility = :visibility', { visibility: Visibility.FEATURED })
-      .orderBy('project.updatedAt', 'DESC');
+      .orderBy(
+        `project.${sortOptions?.sortBy || 'updatedAt'}`,
+        sortOptions?.sortDirection || 'DESC',
+      );
 
     return paginate<Project>(queryBuilder, paginationOptions);
   }

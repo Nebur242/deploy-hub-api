@@ -12,6 +12,16 @@ export class PublicProjectController {
     return this.publicProjectService.findAll(searchDto);
   }
 
+  @Get('featured')
+  findFeatured(@Query() searchDto: ProjectSearchDto) {
+    return this.publicProjectService.findFeatured(searchDto);
+  }
+
+  @Get('stats')
+  getStats() {
+    return this.publicProjectService.getStats();
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string) {
     const project = await this.publicProjectService.findOne(id);
