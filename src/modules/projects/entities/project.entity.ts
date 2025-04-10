@@ -1,4 +1,5 @@
 import { Category } from '@app/modules/categories/entities/category.entity';
+import { LicenseOption } from '@app/modules/licenses/entities/license-option.entity';
 import {
   Column,
   CreateDateColumn,
@@ -11,20 +12,12 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 
-import { LicenseOption } from './license-option.entity';
 import { ProjectConfiguration } from './project-configuration.entity';
 import { ProjectVersion } from './project-version.entity';
 
 export enum TechStack {
   REACT = 'react',
   NEXTJS = 'nextjs',
-  //   VUE = 'vue',
-  //   ANGULAR = 'angular',
-  //   NODE = 'node',
-  //   NESTJS = 'nestjs',
-  //   DJANGO = 'django',
-  //   FLASK = 'flask',
-  //   LARAVEL = 'laravel',
 }
 
 export enum Visibility {

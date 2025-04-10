@@ -2,9 +2,10 @@ import { ProjectRepository } from '@app/modules/projects/repositories/project.re
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IPaginationOptions, paginate, Pagination } from 'nestjs-typeorm-paginate';
-import { Repository } from 'typeorm';
+import { Repository, ILike, FindOptionsOrder } from 'typeorm';
 
 import { CreateLicenseOptionDto } from '../dto/create-license-option.dto';
+import { FilterLicenseDto } from '../dto/filter.dto';
 import { UpdateLicenseOptionDto } from '../dto/update-license-option.dto';
 import { LicenseOption } from '../entities/license-option.entity';
 
@@ -56,7 +57,7 @@ export class LicenseOptionService {
   async findOne(id: string): Promise<LicenseOption> {
     const license = await this.licenseRepository.findOne({
       where: { id },
-      relations: ['project'],
+      relations: ['projects'],
     });
 
     if (!license) {
@@ -67,24 +68,68 @@ export class LicenseOptionService {
   }
 
   /**
-   * Find all license options for a project with pagination
+   * Find all license options with filtering, sorting and pagination
    */
-  findByProject(
-    projectId: string,
-    paginationOptions?: IPaginationOptions,
+  findAll(
+    filter: FilterLicenseDto,
+    paginationOptions: IPaginationOptions,
   ): Promise<Pagination<LicenseOption>> {
-    const queryBuilder = this.licenseRepository
-      .createQueryBuilder('license')
-      .where('license.projectId = :projectId', { projectId })
-      .orderBy('license.price', 'ASC');
+    const { search, currency, sortBy, sortDirection } = filter;
 
-    // Provide default pagination options if none are provided
-    const options: IPaginationOptions = paginationOptions || {
-      page: 1,
-      limit: 10,
-    };
+    // Build the where conditions
+    const whereConditions: Partial<Record<keyof LicenseOption, any>> = {};
 
-    return paginate<LicenseOption>(queryBuilder, options);
+    // Add search condition if provided
+    if (search) {
+      whereConditions.name = ILike(`%${search}%`);
+      // If you want to search in description as well, you'd need a more complex query
+      // This will be implemented below using queryBuilder
+    }
+
+    // Add currency filter if provided
+    if (currency) {
+      whereConditions.currency = currency;
+    }
+
+    // Build the order condition
+    let orderCondition: FindOptionsOrder<LicenseOption> = {};
+    if (sortBy) {
+      orderCondition[sortBy] = sortDirection || 'ASC';
+    } else {
+      // Default sort by createdAt desc
+      orderCondition = { createdAt: 'DESC' };
+    }
+
+    // If we need to search in multiple columns, we need to use queryBuilder
+    if (search) {
+      const queryBuilder = this.licenseRepository
+        .createQueryBuilder('license')
+        .leftJoinAndSelect('license.projects', 'projects')
+        .where('license.name ILIKE :search OR license.description ILIKE :search', {
+          search: `%${search}%`,
+        });
+
+      // Add currency filter if provided
+      if (currency) {
+        queryBuilder.andWhere('license.currency = :currency', { currency });
+      }
+
+      // Add sorting
+      if (sortBy) {
+        queryBuilder.orderBy(`license.${sortBy}`, sortDirection || 'ASC');
+      } else {
+        queryBuilder.orderBy('license.createdAt', 'DESC');
+      }
+
+      return paginate<LicenseOption>(queryBuilder, paginationOptions);
+    }
+
+    // If no search is needed, use the simpler approach
+    return paginate<LicenseOption>(this.licenseRepository, paginationOptions, {
+      where: whereConditions,
+      order: orderCondition,
+      relations: ['projects'],
+    });
   }
 
   /**
@@ -143,11 +188,11 @@ export class LicenseOptionService {
     }
 
     // Validate pricing updates if provided
-    if (updateLicenseDto.price !== undefined && updateLicenseDto.price < 0) {
+    if (updateLicenseDto.price && updateLicenseDto.price < 0) {
       throw new BadRequestException('Price cannot be negative');
     }
 
-    if (updateLicenseDto.deploymentLimit !== undefined && updateLicenseDto.deploymentLimit < 1) {
+    if (updateLicenseDto.deploymentLimit && updateLicenseDto.deploymentLimit < 1) {
       throw new BadRequestException('Deployment limit must be at least 1');
     }
 
@@ -184,25 +229,25 @@ export class LicenseOptionService {
     }
 
     // Update license option fields
-    if (updateLicenseDto.name !== undefined) {
+    if (updateLicenseDto.name) {
       license.name = updateLicenseDto.name;
     }
-    if (updateLicenseDto.description !== undefined) {
+    if (updateLicenseDto.description) {
       license.description = updateLicenseDto.description;
     }
-    if (updateLicenseDto.price !== undefined) {
+    if (updateLicenseDto.price) {
       license.price = updateLicenseDto.price;
     }
-    if (updateLicenseDto.currency !== undefined) {
+    if (updateLicenseDto.currency) {
       license.currency = updateLicenseDto.currency;
     }
-    if (updateLicenseDto.deploymentLimit !== undefined) {
+    if (updateLicenseDto.deploymentLimit) {
       license.deploymentLimit = updateLicenseDto.deploymentLimit;
     }
-    if (updateLicenseDto.duration !== undefined) {
+    if (updateLicenseDto.duration) {
       license.duration = updateLicenseDto.duration;
     }
-    if (updateLicenseDto.features !== undefined) {
+    if (updateLicenseDto.features) {
       license.features = updateLicenseDto.features;
     }
 

@@ -8,6 +8,7 @@ import { EnvironmentVariables, validate } from './config/env.validation';
 import { AuthModule } from './modules/auth/auth.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { FirebaseModule } from './modules/firebase/firebase.module';
+import { LicensesModule } from './modules/licenses/licenses.module';
 import { MediaModule } from './modules/media/media.module';
 import { ProjectsModule } from './modules/projects/projects.module';
 import { TestHelpersModule } from './modules/test-helpers/test-helpers.module';
@@ -43,6 +44,7 @@ import { UserModule } from './modules/users/users.module';
     UserModule,
     MediaModule,
     ProjectsModule,
+    LicensesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

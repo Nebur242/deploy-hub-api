@@ -7,6 +7,8 @@ import {
   JoinColumn,
   CreateDateColumn,
   UpdateDateColumn,
+  BeforeInsert,
+  BeforeUpdate,
 } from 'typeorm';
 
 import { Project } from './project.entity';
@@ -91,6 +93,68 @@ export class ProjectConfiguration {
           envVar.defaultValue = encryptionService.encrypt(envVar.defaultValue);
         }
       });
+    }
+  }
+
+  /**
+   * Process an environment variable and encrypt its value if it's marked as secret
+   * @param environmentVariable Environment variable to process
+   * @param encryptionService Encryption service to use
+   * @returns Processed environment variable with encrypted value if necessary
+   */
+  static createEnvironmentVariable(
+    environmentVariable: EnvironmentVariableDto,
+    encryptionService: EncryptionService,
+  ): EnvironmentVariableDto {
+    if (environmentVariable.isSecret && environmentVariable.defaultValue) {
+      environmentVariable.defaultValue = encryptionService.encrypt(
+        environmentVariable.defaultValue,
+      );
+    }
+    return environmentVariable;
+  }
+
+  // Inject encryptionService via property
+  private static injectedEncryptionService: EncryptionService;
+
+  // Set the encryption service for the entity to use in hooks
+  static setEncryptionService(encryptionService: EncryptionService): void {
+    ProjectConfiguration.injectedEncryptionService = encryptionService;
+  }
+
+  // Process environment variables before insert
+  @BeforeInsert()
+  processEnvironmentVariablesBeforeInsert(): void {
+    if (!ProjectConfiguration.injectedEncryptionService) {
+      throw new Error('EncryptionService not injected into ProjectConfiguration entity');
+    }
+
+    if (this.deploymentOption?.environmentVariables) {
+      this.deploymentOption.environmentVariables = this.deploymentOption.environmentVariables.map(
+        envVar =>
+          ProjectConfiguration.createEnvironmentVariable(
+            envVar,
+            ProjectConfiguration.injectedEncryptionService,
+          ),
+      );
+    }
+  }
+
+  // Process environment variables before update
+  @BeforeUpdate()
+  processEnvironmentVariablesBeforeUpdate(): void {
+    if (!ProjectConfiguration.injectedEncryptionService) {
+      throw new Error('EncryptionService not injected into ProjectConfiguration entity');
+    }
+
+    if (this.deploymentOption?.environmentVariables) {
+      this.deploymentOption.environmentVariables = this.deploymentOption.environmentVariables.map(
+        envVar =>
+          ProjectConfiguration.createEnvironmentVariable(
+            envVar,
+            ProjectConfiguration.injectedEncryptionService,
+          ),
+      );
     }
   }
 }

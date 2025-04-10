@@ -15,7 +15,8 @@ export class EncryptionService {
       throw new Error('ENCRYPTION_KEY environment variable is not set');
     }
     // Create a fixed-length key using a hash of the provided key
-    this.key = crypto.createHash('sha256').update(encryptionKey).digest();
+    const salt = crypto.randomBytes(16);
+    this.key = crypto.pbkdf2Sync(encryptionKey, salt, 100000, 32, 'sha256');
   }
 
   encrypt(text: string): string {
@@ -48,9 +49,16 @@ export class EncryptionService {
     decipher.setAuthTag(authTag);
 
     // Decrypt
-    let decrypted = decipher.update(encryptedHex, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
-
-    return decrypted;
+    try {
+      let decrypted = decipher.update(encryptedHex, 'hex', 'utf8');
+      decrypted += decipher.final('utf8');
+      return decrypted;
+    } catch (err) {
+      const error = err as Error;
+      if (error.message.includes('auth')) {
+        throw new Error('Data integrity compromised: Authentication failed');
+      }
+      throw error;
+    }
   }
 }

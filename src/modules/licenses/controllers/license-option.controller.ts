@@ -1,18 +1,7 @@
 import { CurrentUser } from '@app/core/decorators/current-user.decorator';
 import { Admin } from '@app/core/guards/roles-auth.guard';
 import { User } from '@app/modules/users/entities/user.entity';
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-  Query,
-  DefaultValuePipe,
-  ParseIntPipe,
-} from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -24,12 +13,13 @@ import {
 import { IPaginationOptions } from 'nestjs-typeorm-paginate';
 
 import { CreateLicenseOptionDto } from '../dto/create-license-option.dto';
+import { FilterLicenseDto } from '../dto/filter.dto';
 import { UpdateLicenseOptionDto } from '../dto/update-license-option.dto';
 import { LicenseOptionService } from '../services/license-option.service';
 
-@ApiTags('project-licenses')
+@ApiTags('licenses')
 @ApiBearerAuth()
-@Controller('projects/:projectId/licenses')
+@Controller('licenses')
 export class LicenseOptionController {
   constructor(private readonly licenseService: LicenseOptionService) {}
 
@@ -45,31 +35,34 @@ export class LicenseOptionController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get all license options for a project' })
+  @ApiOperation({ summary: 'Get all license options with filtering and sorting' })
   @ApiResponse({ status: 200, description: 'Returns a list of license options' })
-  @ApiResponse({ status: 404, description: 'Project not found' })
-  @ApiParam({ name: 'projectId', description: 'Project ID' })
+  @ApiQuery({ name: 'search', required: false, description: 'Search term for name or description' })
+  @ApiQuery({ name: 'currency', required: false, description: 'Filter by currency' })
+  @ApiQuery({ name: 'sortBy', required: false, description: 'Field to sort by' })
+  @ApiQuery({
+    name: 'sortDirection',
+    required: false,
+    enum: ['ASC', 'DESC'],
+    description: 'Sort direction',
+  })
   @ApiQuery({ name: 'page', required: false, description: 'Page number (1-based)' })
   @ApiQuery({ name: 'limit', required: false, description: 'Items per page' })
-  findAll(
-    @Param('projectId') projectId: string,
-    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number = 1,
-    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number = 10,
-  ) {
+  findAll(@Query() filter: FilterLicenseDto) {
+    const { page = 1, limit = 10 } = filter;
     const paginationOptions: IPaginationOptions = {
       page,
       limit,
-      route: `/projects/${projectId}/licenses`,
+      route: '/licenses',
     };
 
-    return this.licenseService.findByProject(projectId, paginationOptions);
+    return this.licenseService.findAll(filter, paginationOptions);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a license option by ID' })
   @ApiResponse({ status: 200, description: 'Returns the license option' })
   @ApiResponse({ status: 404, description: 'License option not found' })
-  @ApiParam({ name: 'projectId', description: 'Project ID' })
   @ApiParam({ name: 'id', description: 'License option ID' })
   findOne(@Param('id') id: string) {
     return this.licenseService.findOne(id);
@@ -81,7 +74,6 @@ export class LicenseOptionController {
   @ApiResponse({ status: 200, description: 'License option successfully updated' })
   @ApiResponse({ status: 400, description: 'Invalid input data' })
   @ApiResponse({ status: 404, description: 'License option not found' })
-  @ApiParam({ name: 'projectId', description: 'Project ID' })
   @ApiParam({ name: 'id', description: 'License option ID' })
   update(
     @CurrentUser() user: User,
@@ -96,18 +88,8 @@ export class LicenseOptionController {
   @ApiOperation({ summary: 'Delete a license option' })
   @ApiResponse({ status: 200, description: 'License option successfully deleted' })
   @ApiResponse({ status: 404, description: 'License option not found' })
-  @ApiParam({ name: 'projectId', description: 'Project ID' })
   @ApiParam({ name: 'id', description: 'License option ID' })
   remove(@CurrentUser() user: User, @Param('id') id: string) {
     return this.licenseService.remove(id, user.id);
   }
-
-  @Get('tiers/available')
-  @ApiOperation({ summary: 'Get available license tiers' })
-  @ApiResponse({ status: 200, description: 'Returns available license tiers' })
-  getLicenseTiers() {
-    return this.licenseService.getLicenseTiers();
-  }
 }
-
-// src/projects/controllers/public-license-option.controller.ts
