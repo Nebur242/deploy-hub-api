@@ -32,6 +32,7 @@ describe('EnvironmentVariables', function (this: void) {
         DB_SYNC: 'true',
         STAGE: 'dev',
         ENCRYPTION_KEY: 'encryption-key',
+        ENCRYPTION_SALT: 'encryption-salt',
       };
 
       // Act
@@ -65,6 +66,7 @@ describe('EnvironmentVariables', function (this: void) {
         SENTRY_DSN: 'https://sentry.io/123',
         PORT: '3000',
         ENCRYPTION_KEY: 'encryption-key',
+        ENCRYPTION_SALT: 'encryption-salt',
         // For sqlite, we don't need these
         // DB_HOST, DB_PORT, DB_USERNAME, DB_PASSWORD
       };
@@ -202,6 +204,7 @@ describe('EnvironmentVariables', function (this: void) {
         DB_USERNAME: 'postgres',
         DB_PASSWORD: 'password',
         ENCRYPTION_KEY: 'encryption-key',
+        ENCRYPTION_SALT: 'encryption-salt',
       };
 
       // Act
@@ -239,6 +242,7 @@ describe('EnvironmentVariables', function (this: void) {
         EXTRA_FIELD: 'should not be included', // Extraneous field
         ANOTHER_EXTRA: 123, // Another extraneous field,
         ENCRYPTION_KEY: 'encryption-key',
+        ENCRYPTION_SALT: 'encryption-salt',
       };
 
       // Act
@@ -278,6 +282,7 @@ describe('EnvironmentVariables', function (this: void) {
         DB_SYNC: 'true', // Optional field
         STAGE: 'production', // Optional field
         ENCRYPTION_KEY: 'encryption-key',
+        ENCRYPTION_SALT: 'encryption-salt',
       };
 
       // Act
@@ -315,6 +320,7 @@ describe('EnvironmentVariables', function (this: void) {
         DB_USERNAME: 'postgres',
         DB_PASSWORD: 'password',
         ENCRYPTION_KEY: 'encryption-key',
+        ENCRYPTION_SALT: 'encryption-salt',
         // No optional fields: DB_SSL, DB_LOGGING, DB_SYNC, STAGE
       };
 

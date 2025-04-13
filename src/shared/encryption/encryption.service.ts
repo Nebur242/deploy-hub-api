@@ -11,14 +11,18 @@ export class EncryptionService {
   constructor(private configService: ConfigService) {
     // Get encryption key from environment variables
     const encryptionKey = this.configService.get<string>('ENCRYPTION_KEY');
+    const encryptionSalt = this.configService.get<string>('ENCRYPTION_SALT');
     if (!encryptionKey) {
       throw new Error('ENCRYPTION_KEY environment variable is not set');
     }
+    if (!encryptionSalt) {
+      throw new Error('ENCRYPTION_SALT environment variable is not set');
+    }
     // Create a fixed-length key using a hash of the provided key
-    const salt = crypto.randomBytes(16);
-    this.key = crypto.pbkdf2Sync(encryptionKey, salt, 100000, 32, 'sha256');
+    // For production, store the salt in an environment variable or a secure store
+    const stableSalt = Buffer.from(encryptionSalt, 'hex');
+    this.key = crypto.pbkdf2Sync(encryptionKey, stableSalt, 100000, 32, 'sha256');
   }
-
   encrypt(text: string): string {
     // Generate a random initialization vector
     const iv = crypto.randomBytes(16);

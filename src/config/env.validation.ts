@@ -123,6 +123,11 @@ export class EnvironmentVariables {
   @IsString()
   @Expose()
   ENCRYPTION_KEY: string;
+
+  @IsNotEmpty()
+  @IsString()
+  @Expose()
+  ENCRYPTION_SALT: string;
 }
 
 export const validate = (config: Record<string, unknown>) => {
