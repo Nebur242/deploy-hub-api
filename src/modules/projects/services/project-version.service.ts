@@ -83,14 +83,32 @@ export class ProjectVersionService {
     return this.projectVersionRepository.save(newVersion);
   }
 
-  async updateVersion(id: string, updateVersionDto: UpdateVersionDto) {
+  async updateVersion(
+    id: string,
+    ownerId: string,
+    updateVersionDto: UpdateVersionDto,
+  ): Promise<ProjectVersion> {
     const version = await this.findOne(id);
+
+    // Check if user has permission to update this version
+    const project = await this.projectRepository.findOne({
+      where: { id: version.projectId },
+    });
+
+    if (!project) {
+      throw new NotFoundException(`Project with ID ${version.projectId} not found`);
+    }
+
+    if (project.ownerId !== ownerId) {
+      throw new BadRequestException('You do not have permission to update this project version');
+    }
+
     const updatedVersion = this.projectVersionRepository.create({
       ...version,
       ...updateVersionDto,
     });
-    const updated = await this.projectVersionRepository.save(updatedVersion);
-    return updated;
+
+    return this.projectVersionRepository.save(updatedVersion);
   }
 
   async setAsStable(id: string, ownerId: string): Promise<ProjectVersion> {
@@ -135,16 +153,25 @@ export class ProjectVersionService {
     await this.projectVersionRepository.delete(id);
 
     // set the last version as latest if this was the last version
-    const versions = await this.projectVersionRepository.find({
-      where: { projectId: version.projectId },
-      order: { createdAt: 'DESC' },
-    });
+    // Use a transaction to ensure atomicity when removing version and updating latest flag
+    await this.projectVersionRepository.manager.transaction(async transactionalEntityManager => {
+      // Delete the version first
+      await transactionalEntityManager.delete(ProjectVersion, id);
 
-    if (versions.length > 0) {
-      await this.projectVersionRepository.update(
-        { projectId: version.projectId, id: versions[0].id },
-        { isLatest: true },
-      );
-    }
+      // Find the newest remaining version
+      const versions = await transactionalEntityManager.find(ProjectVersion, {
+        where: { projectId: version.projectId },
+        order: { createdAt: 'DESC' },
+      });
+
+      // Set the newest version as latest if any versions remain
+      if (versions.length > 0) {
+        await transactionalEntityManager.update(
+          ProjectVersion,
+          { projectId: version.projectId, id: versions[0].id },
+          { isLatest: true },
+        );
+      }
+    });
   }
 }

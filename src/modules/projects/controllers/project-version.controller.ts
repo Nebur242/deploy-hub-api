@@ -33,8 +33,12 @@ export class ProjectVersionController {
   }
 
   @Patch(':id')
-  updateVersion(@Param('id') id: string, @Body() updateVersionDto: UpdateVersionDto) {
-    return this.projectVersionService.updateVersion(id, updateVersionDto);
+  updateVersion(
+    @Param('id') id: string,
+    @Body() updateVersionDto: UpdateVersionDto,
+    @CurrentUser() user: User,
+  ) {
+    return this.projectVersionService.updateVersion(id, user.id, updateVersionDto);
   }
 
   @Post(':id/set-stable')

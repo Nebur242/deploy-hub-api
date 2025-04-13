@@ -91,7 +91,9 @@ export class ProjectRepository {
       }
 
       if (options?.techStack && options.techStack.length > 0) {
-        queryBuilder.andWhere(':tech = ANY(project.techStack)', { tech: options.techStack });
+        queryBuilder.andWhere('project.techStack && ARRAY[:...techStack]', {
+          techStack: options.techStack,
+        });
       }
 
       if (options?.search) {
@@ -120,14 +122,32 @@ export class ProjectRepository {
     return this.projectRepository.save(newProject);
   }
 
-  async update(id: string, project: Partial<Project>) {
-    // First get existing categories if not provided to maintain relationships
-    const updatedProject = this.projectRepository.create({
-      ...project,
-      id,
+  update(id: string, project: Partial<Project>) {
+    // Use a transaction to ensure data integrity
+    return this.projectRepository.manager.transaction(async transactionalEntityManager => {
+      // Get the current version with pessimistic lock
+      const currentProject = await transactionalEntityManager.findOne(Project, {
+        where: { id },
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      if (!currentProject) {
+        throw new Error(`Project with id ${id} not found`);
+      }
+
+      // Create the updated project
+      const updatedProject = transactionalEntityManager.create(Project, {
+        ...currentProject,
+        ...project,
+        id,
+      });
+
+      // Save with transaction
+      await transactionalEntityManager.save(updatedProject);
+
+      // Return the updated entity with relations
+      return this.findOne(id);
     });
-    await this.projectRepository.save(updatedProject);
-    return this.findOne(id);
   }
 
   async remove(id: string): Promise<void> {

@@ -1,6 +1,16 @@
 import { CurrentUser } from '@app/core/decorators/current-user.decorator';
 import { Admin } from '@app/core/guards/roles-auth.guard';
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  ForbiddenException,
+} from '@nestjs/common';
 import { IPaginationOptions } from 'nestjs-typeorm-paginate';
 
 import { User } from '../../users/entities/user.entity';
@@ -21,7 +31,7 @@ export class ProjectController {
 
   @Get()
   findAll(@CurrentUser() user: User, @Query() searchDto: ProjectSearchDto) {
-    const { page = 1, limit = 10 } = searchDto;
+    const { page = 1, limit = 10 } = searchDto || {};
     const paginationOptions: IPaginationOptions = {
       page,
       limit,
@@ -32,8 +42,12 @@ export class ProjectController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.projectService.findOne(id);
+  async findOne(@Param('id') id: string, @CurrentUser() user: User) {
+    const project = await this.projectService.findOne(id);
+    if (project.ownerId !== user.id) {
+      throw new ForbiddenException('You do not have permission to access this project');
+    }
+    return project;
   }
 
   @Patch(':id')
