@@ -49,11 +49,18 @@ function setupGlobalMiddlewares(app: INestApplication) {
             if (e.constraints) {
               Object.values(e.constraints).forEach(constraint => acc.push(constraint));
             }
+            if (e.children && e.children.length > 0) {
+              e.children.forEach(child => {
+                if (child.constraints) {
+                  Object.values(child.constraints).forEach(constraint => acc.push(constraint));
+                }
+              });
+            }
             return acc;
           }, []);
           return new BadRequestException({
             statusCode: 400,
-            message: `Validation failed: ${errors.join(', ')}`,
+            message: `Validation failed: ${errors.join(', ') || 'Invalid data'}`,
             error: 'Bad Request',
           });
         },

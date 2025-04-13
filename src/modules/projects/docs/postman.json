@@ -1,0 +1,559 @@
+{
+  "info": {
+    "name": "Project Management & Deployment API",
+    "description": "API collection for project management and deployment system",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Projects",
+      "item": [
+        {
+          "name": "Create Project",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"E-commerce Platform\",\n    \"description\": \"A full-featured e-commerce platform with product management, cart, and checkout\",\n    \"repository\": \"github.com/username/ecommerce\",\n    \"techStack\": [\"react\", \"nextjs\", \"node\"],\n    \"visibility\": \"public\",\n    \"categories\": [\n        {\n            \"id\": \"{{category_id}}\"\n        }\n    ]\n}"
+            },
+            "url": {
+              "raw": "{{api_url}}/projects",
+              "host": ["{{api_url}}"],
+              "path": ["projects"]
+            },
+            "description": "Create a new project"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Projects",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/projects?page=1&limit=10&search=platform&techStack=react&visibility=public&sortBy=updatedAt&sortDirection=DESC",
+              "host": ["{{api_url}}"],
+              "path": ["projects"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "search",
+                  "value": "platform"
+                },
+                {
+                  "key": "techStack",
+                  "value": "react"
+                },
+                {
+                  "key": "visibility",
+                  "value": "public"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "updatedAt"
+                },
+                {
+                  "key": "sortDirection",
+                  "value": "DESC"
+                }
+              ]
+            },
+            "description": "Get all projects with filtering and pagination"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Project By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/projects/{{project_id}}",
+              "host": ["{{api_url}}"],
+              "path": ["projects", "{{project_id}}"]
+            },
+            "description": "Get a project by its ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Project",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Advanced E-commerce Platform\",\n    \"description\": \"Updated description with new features\",\n    \"visibility\": \"featured\"\n}"
+            },
+            "url": {
+              "raw": "{{api_url}}/projects/{{project_id}}",
+              "host": ["{{api_url}}"],
+              "path": ["projects", "{{project_id}}"]
+            },
+            "description": "Update an existing project"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Project",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/projects/{{project_id}}",
+              "host": ["{{api_url}}"],
+              "path": ["projects", "{{project_id}}"]
+            },
+            "description": "Delete a project"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Public Projects",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/public/projects?page=1&limit=10&search=commerce&techStack=react&sortBy=name",
+              "host": ["{{api_url}}"],
+              "path": ["public", "projects"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "search",
+                  "value": "commerce"
+                },
+                {
+                  "key": "techStack",
+                  "value": "react"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "name"
+                }
+              ]
+            },
+            "description": "Get public projects (no authentication required)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Featured Projects",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/public/projects/featured?page=1&limit=10",
+              "host": ["{{api_url}}"],
+              "path": ["public", "projects", "featured"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Get featured projects"
+          },
+          "response": []
+        }
+      ],
+      "description": "Project management operations"
+    },
+    {
+      "name": "Project Versions",
+      "item": [
+        {
+          "name": "Create Project Version",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"version\": \"1.0.0\",\n    \"releaseNotes\": \"Initial release with core functionality\",\n    \"commitHash\": \"a1b2c3d4e5f6g7h8i9j0\",\n    \"isStable\": true\n}"
+            },
+            "url": {
+              "raw": "{{api_url}}/projects/{{project_id}}/versions",
+              "host": ["{{api_url}}"],
+              "path": ["projects", "{{project_id}}", "versions"]
+            },
+            "description": "Create a new version for a project"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Project Versions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/projects/{{project_id}}/versions",
+              "host": ["{{api_url}}"],
+              "path": ["projects", "{{project_id}}", "versions"]
+            },
+            "description": "Get all versions for a project"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Version By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/projects/{{project_id}}/versions/{{version_id}}",
+              "host": ["{{api_url}}"],
+              "path": ["projects", "{{project_id}}", "versions", "{{version_id}}"]
+            },
+            "description": "Get a specific version by ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Set Version as Stable",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/projects/{{project_id}}/versions/{{version_id}}/set-stable",
+              "host": ["{{api_url}}"],
+              "path": ["projects", "{{project_id}}", "versions", "{{version_id}}", "set-stable"]
+            },
+            "description": "Set a specific version as stable"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Version",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/projects/{{project_id}}/versions/{{version_id}}",
+              "host": ["{{api_url}}"],
+              "path": ["projects", "{{project_id}}", "versions", "{{version_id}}"]
+            },
+            "description": "Delete a project version"
+          },
+          "response": []
+        }
+      ],
+      "description": "Operations related to project versions"
+    },
+    {
+      "name": "Project Configurations",
+      "item": [
+        {
+          "name": "Create Project Configuration",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"githubAccounts\": [\n        {\n            \"username\": \"github-username\",\n            \"accessToken\": \"github-access-token\",\n            \"repository\": \"repo-name\",\n            \"workflowFile\": \"workflow.yml\"\n        }\n    ],\n    \"deploymentOptions\": {\n        \"provider\": \"netlify\",\n        \"environmentVariables\": [\n            {\n                \"key\": \"API_URL\",\n                \"defaultValue\": \"https://api.example.com\",\n                \"description\": \"API URL for the application\",\n                \"isRequired\": true,\n                \"isSecret\": false\n            },\n            {\n                \"key\": \"DATABASE_URL\",\n                \"defaultValue\": \"\",\n                \"description\": \"Database connection string\",\n                \"isRequired\": true,\n                \"isSecret\": true\n            }\n        ]\n    }\n}"
+            },
+            "url": {
+              "raw": "{{api_url}}/projects/{{project_id}}/configurations",
+              "host": ["{{api_url}}"],
+              "path": ["projects", "{{project_id}}", "configurations"]
+            },
+            "description": "Create a new deployment configuration for a project"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Project Configurations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/projects/{{project_id}}/configurations",
+              "host": ["{{api_url}}"],
+              "path": ["projects", "{{project_id}}", "configurations"]
+            },
+            "description": "Get all configurations for a project"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Configuration By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/projects/{{project_id}}/configurations/{{config_id}}",
+              "host": ["{{api_url}}"],
+              "path": ["projects", "{{project_id}}", "configurations", "{{config_id}}"]
+            },
+            "description": "Get a specific configuration by ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Configuration",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"buildCommands\": [\"npm ci\", \"npm run build:prod\"],\n    \"environmentVariables\": [\n        {\n            \"key\": \"API_URL\",\n            \"defaultValue\": \"https://api-v2.example.com\",\n            \"isRequired\": true,\n            \"isSecret\": false\n        }\n    ]\n}"
+            },
+            "url": {
+              "raw": "{{api_url}}/projects/{{project_id}}/configurations/{{config_id}}",
+              "host": ["{{api_url}}"],
+              "path": ["projects", "{{project_id}}", "configurations", "{{config_id}}"]
+            },
+            "description": "Update an existing configuration"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Configuration",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/projects/{{project_id}}/configurations/{{config_id}}",
+              "host": ["{{api_url}}"],
+              "path": ["projects", "{{project_id}}", "configurations", "{{config_id}}"]
+            },
+            "description": "Delete a configuration"
+          },
+          "response": []
+        }
+      ],
+      "description": "Operations related to project deployment configurations"
+    },
+    {
+      "name": "License Options",
+      "item": [
+        {
+          "name": "Create License Option",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Basic License\",\n    \"description\": \"Single deployment license for personal use\",\n    \"price\": 29.99,\n    \"currency\": \"USD\",\n    \"deploymentLimit\": 1,\n    \"duration\": 365,\n    \"features\": [\n        \"Single deployment\",\n        \"Email support\",\n        \"1 year updates\"\n    ]\n}"
+            },
+            "url": {
+              "raw": "{{api_url}}/projects/{{project_id}}/licenses",
+              "host": ["{{api_url}}"],
+              "path": ["projects", "{{project_id}}", "licenses"]
+            },
+            "description": "Create a new license option for a project"
+          },
+          "response": []
+        },
+        {
+          "name": "Get License Options",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/projects/{{project_id}}/licenses",
+              "host": ["{{api_url}}"],
+              "path": ["projects", "{{project_id}}", "licenses"]
+            },
+            "description": "Get all license options for a project"
+          },
+          "response": []
+        },
+        {
+          "name": "Get License Option By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/projects/{{project_id}}/licenses/{{license_id}}",
+              "host": ["{{api_url}}"],
+              "path": ["projects", "{{project_id}}", "licenses", "{{license_id}}"]
+            },
+            "description": "Get a specific license option by ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Update License Option",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Basic License Plus\",\n    \"price\": 39.99,\n    \"deploymentLimit\": 2,\n    \"features\": [\n        \"Two deployments\",\n        \"Priority email support\",\n        \"1 year updates\"\n    ]\n}"
+            },
+            "url": {
+              "raw": "{{api_url}}/projects/{{project_id}}/licenses/{{license_id}}",
+              "host": ["{{api_url}}"],
+              "path": ["projects", "{{project_id}}", "licenses", "{{license_id}}"]
+            },
+            "description": "Update an existing license option"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete License Option",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/projects/{{project_id}}/licenses/{{license_id}}",
+              "host": ["{{api_url}}"],
+              "path": ["projects", "{{project_id}}", "licenses", "{{license_id}}"]
+            },
+            "description": "Delete a license option"
+          },
+          "response": []
+        }
+      ],
+      "description": "Operations related to project license options"
+    }
+  ]
+}

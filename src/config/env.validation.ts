@@ -1,6 +1,14 @@
 import { Environment } from '@app/shared/enums';
 import { Expose, plainToInstance, Transform } from 'class-transformer';
-import { IsEnum, IsNumber, IsOptional, IsString, ValidateIf, validateSync } from 'class-validator';
+import {
+  IsEnum,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  ValidateIf,
+  validateSync,
+} from 'class-validator';
 
 export class EnvironmentVariables {
   @IsString()
@@ -110,6 +118,16 @@ export class EnvironmentVariables {
   @IsString()
   @Expose()
   STAGE?: string;
+
+  @IsNotEmpty()
+  @IsString()
+  @Expose()
+  ENCRYPTION_KEY: string;
+
+  @IsNotEmpty()
+  @IsString()
+  @Expose()
+  ENCRYPTION_SALT: string;
 }
 
 export const validate = (config: Record<string, unknown>) => {
