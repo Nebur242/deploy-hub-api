@@ -1,4 +1,4 @@
-import { EncryptionService } from '@app/common/encryption/encryption.service';
+import { EncryptionService } from '@app/shared/encryption/encryption.service';
 import {
   Column,
   Entity,

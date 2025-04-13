@@ -1,4 +1,4 @@
-import { Currency } from '@app/common/enums';
+import { Currency } from '@app/shared/enums';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsNotEmpty,

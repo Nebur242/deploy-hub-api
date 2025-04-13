@@ -1,5 +1,5 @@
-import { Currency } from '@app/common/enums';
 import { Project } from '@app/modules/projects/entities/project.entity';
+import { Currency } from '@app/shared/enums';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   Column,

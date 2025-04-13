@@ -1,4 +1,4 @@
-import { Currency } from '@app/common/enums';
+import { Currency } from '@app/shared/enums';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsEnum, IsOptional, IsString, IsNumber, Min } from 'class-validator';

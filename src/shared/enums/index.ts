@@ -9,3 +9,8 @@ export enum Role {
   USER = 'user',
   SUPER_ADMIN = 'super_admin',
 }
+
+export enum Currency {
+  USD = 'USD',
+  EUR = 'EUR',
+}
