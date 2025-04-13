@@ -11,6 +11,7 @@ import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as Sentry from '@sentry/node';
 import { cert, getApps, initializeApp } from 'firebase-admin/app';
+import * as fs from 'fs';
 
 import { AppModule } from './app.module';
 import * as packages from '../package.json';
@@ -113,6 +114,11 @@ async function bootstrap() {
   const port = configService.get<string>('PORT') || 3000;
 
   initializeServices(app);
+
+  // Create logs directory if it doesn't exist
+  if (!fs.existsSync('./logs')) {
+    fs.mkdirSync('./logs');
+  }
 
   await app.listen(port);
 
