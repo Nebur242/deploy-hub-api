@@ -27,7 +27,7 @@ export class FilterLicenseDto {
     enum: ['name', 'price', 'createdAt', 'updatedAt'],
   })
   @IsOptional()
-  @IsString()
+  @IsEnum(['name', 'price', 'createdAt', 'updatedAt'])
   sortBy?: string;
 
   @ApiPropertyOptional({
