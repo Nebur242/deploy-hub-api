@@ -1,57 +1,35 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsEnum, IsOptional } from 'class-validator';
+import { EnvironmentVariableDto } from '@app/modules/projects/dto/create-project-configuration.dto';
+import { ApiProperty } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
+import { IsString, IsNotEmpty, ValidateNested, IsEnum } from 'class-validator';
 
-// create-deployment.dto.ts
+import { DeplomentEnvironment } from '../entities/deployment.entity';
 
 export class CreateDeploymentDto {
   // User identification
-  @ApiProperty({ description: 'Unique identifier for the user' })
+  @IsEnum(DeplomentEnvironment)
+  @IsNotEmpty()
+  environment: `${DeplomentEnvironment}`;
+
   @IsString()
   @IsNotEmpty()
-  id: string;
+  branch: string;
 
-  @ApiProperty({ description: 'User name' })
   @IsString()
   @IsNotEmpty()
-  name: string;
+  projectId: string;
 
-  // Vercel credentials
-  @ApiProperty({ description: 'Vercel API token' })
   @IsString()
   @IsNotEmpty()
-  vercelToken: string;
+  configurationId: string;
 
-  @ApiProperty({ description: 'Vercel project ID' })
-  @IsString()
-  @IsNotEmpty()
-  vercelProjectId: string;
+  @ValidateNested({ each: true })
+  @Type(() => EnvironmentVariableDto)
+  environmentVariables: EnvironmentVariableDto[];
+}
 
-  @ApiProperty({ description: 'Vercel organization ID' })
-  @IsString()
-  @IsNotEmpty()
-  vercelOrgId: string;
-
-  // Supabase credentials
-  @ApiProperty({ description: 'Supabase URL' })
-  @IsString()
-  @IsNotEmpty()
-  supabaseUrl: string;
-
-  @ApiProperty({ description: 'Supabase anonymous key' })
-  @IsString()
-  @IsNotEmpty()
-  supabaseAnonKey: string;
-
-  // Deployment options
-  @ApiPropertyOptional({ enum: ['production', 'preview'], description: 'Deployment environment' })
-  @IsEnum(['production', 'preview'])
-  @IsOptional()
-  environment?: 'production' | 'preview';
-
-  @ApiPropertyOptional({ description: 'Git branch to deploy' })
-  @IsString()
-  @IsOptional()
-  branch?: string;
+export class ServiceCreateDeploymentDto extends CreateDeploymentDto {
+  ownerId: string;
 }
 
 // batch-deployment.dto.ts

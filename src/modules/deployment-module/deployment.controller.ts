@@ -1,54 +1,119 @@
-import { Controller, Post, Body, Get, Param, Query, Logger } from '@nestjs/common';
+import { CurrentUser } from '@app/core/decorators/current-user.decorator';
+import { Authenticated } from '@app/core/guards/roles-auth.guard';
+import { Controller, Post, Body, Logger, Get, Param, ForbiddenException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 
 import { DeploymentService } from './deployment.service';
-import { BatchDeploymentDto, CreateDeploymentDto } from './dto/create-deployment.dto';
+import { CreateDeploymentDto } from './dto/create-deployment.dto';
+import { ProjectConfiguration } from '../projects/entities/project-configuration.entity';
+import { Project } from '../projects/entities/project.entity';
+import { User } from '../users/entities/user.entity';
 
 @Controller('deployments')
+@Authenticated()
 export class DeploymentController {
   private readonly logger = new Logger(DeploymentController.name);
 
-  constructor(private readonly deploymentService: DeploymentService) {}
+  constructor(
+    private readonly deploymentService: DeploymentService,
+    @InjectRepository(Project)
+    private projectRepository: Repository<Project>,
+    @InjectRepository(ProjectConfiguration)
+    private projectConfigurationRepository: Repository<ProjectConfiguration>,
+  ) {}
 
   @Post()
-  createDeployment(@Body() createDeploymentDto: CreateDeploymentDto) {
-    this.logger.log(`Received deployment request for ${createDeploymentDto.name}`);
-    return this.deploymentService.createDeployment(createDeploymentDto);
-  }
-
-  @Post('batch')
-  batchDeployment(@Body() batchDeploymentDto: BatchDeploymentDto) {
-    this.logger.log(
-      `Received batch deployment request for ${batchDeploymentDto.deployments.length} users`,
-    );
-    return this.deploymentService.batchDeployment(batchDeploymentDto.deployments);
-  }
-
-  @Get()
-  getAllDeployments(
-    @Query('status') status?: string,
-    @Query('userId') userId?: string,
-    @Query('environment') environment?: string,
+  async createDeployment(
+    @Body() createDeploymentDto: CreateDeploymentDto,
+    @CurrentUser() user: User,
   ) {
-    return this.deploymentService.getAllDeployments(status, userId, environment);
+    const project = await this.projectRepository.findOne({
+      where: { id: createDeploymentDto.projectId },
+    });
+    if (!project) {
+      throw new ForbiddenException('Project not found');
+    }
+    const configuration = await this.projectConfigurationRepository.findOne({
+      where: { id: createDeploymentDto.configurationId },
+    });
+    if (!configuration) {
+      throw new ForbiddenException('Configuration not found');
+    }
+
+    // Verify project ownership
+    if (project.ownerId !== user.id) {
+      throw new ForbiddenException('You do not have permission to deploy this project');
+    }
+
+    this.logger.log(
+      `Received deployment request for project ${project.id} with configuration ${configuration.id}`,
+    );
+
+    return this.deploymentService.createDeployment(
+      {
+        ...createDeploymentDto,
+        ownerId: user.id,
+      },
+      project,
+      configuration,
+    );
   }
 
-  @Get(':id')
-  getDeployment(@Param('id') id: string) {
-    return this.deploymentService.getDeploymentById(id);
+  @Get(':deploymentId')
+  async getDeployment(@Param('deploymentId') deploymentId: string, @CurrentUser() user: User) {
+    // Load deployment
+    const deployment = await this.deploymentService.getDeployment(deploymentId);
+
+    // Verify ownership
+    if (deployment.ownerId !== user.id) {
+      throw new ForbiddenException('You do not have permission to access this deployment');
+    }
+
+    return deployment;
   }
 
-  @Post(':id/retry')
-  retryDeployment(@Param('id') id: string) {
-    return this.deploymentService.retryDeployment(id);
+  @Post(':deploymentId/retry')
+  async retryDeployment(@Param('deploymentId') deploymentId: string, @CurrentUser() user: User) {
+    // Load deployment
+    const deployment = await this.deploymentService.getDeployment(deploymentId);
+
+    // Verify ownership
+    if (deployment.ownerId !== user.id) {
+      throw new ForbiddenException('You do not have permission to retry this deployment');
+    }
+
+    return this.deploymentService.retryDeployment(deploymentId);
   }
 
-  @Post('production')
-  triggerProductionDeployments() {
-    return this.deploymentService.triggerEnvironmentDeployments('production');
+  @Get('project/:projectId')
+  async getProjectDeployments(@Param('projectId') projectId: string, @CurrentUser() user: User) {
+    // Verify project ownership
+    const project = await this.projectRepository.findOne({
+      where: { id: projectId },
+      relations: ['owner'],
+    });
+    if (!project) {
+      throw new ForbiddenException('Project not found');
+    }
+    if (project.ownerId !== user.id) {
+      throw new ForbiddenException('You do not have permission to access this project');
+    }
+
+    // Get deployments for the project
+    return this.deploymentService.getProjectDeployments(projectId);
   }
 
-  @Post('preview')
-  triggerPreviewDeployments() {
-    return this.deploymentService.triggerEnvironmentDeployments('preview');
+  @Get(':deploymentId/logs')
+  async getDeploymentLogs(@Param('deploymentId') deploymentId: string, @CurrentUser() user: User) {
+    // Load deployment
+    const deployment = await this.deploymentService.getDeployment(deploymentId);
+
+    // Verify ownership
+    if (deployment.ownerId !== user.id) {
+      throw new ForbiddenException('You do not have permission to access this deployment');
+    }
+
+    return this.deploymentService.getDeploymentLogs(deploymentId);
   }
 }

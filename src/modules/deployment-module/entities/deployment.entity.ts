@@ -1,51 +1,92 @@
+import { EnvironmentVariableDto } from '@app/modules/projects/dto/create-project-configuration.dto';
+import { ProjectConfiguration } from '@app/modules/projects/entities/project-configuration.entity';
+import { Project } from '@app/modules/projects/entities/project.entity';
 import {
   Entity,
   Column,
   PrimaryGeneratedColumn,
   CreateDateColumn,
   UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 
+import { GitHubAccount } from '../dto/github-account.dto';
+
+export enum DeploymentStatus {
+  PENDING = 'pending',
+  RUNNING = 'running',
+  SUCCESS = 'success',
+  FAILED = 'failed',
+  CANCELED = 'canceled',
+}
+
+export enum DeplomentEnvironment {
+  PRODUCTION = 'production',
+  PREVIEW = 'preview',
+}
+
 @Entity('deployments')
-export class DeploymentEntity {
+export class Deployment {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column()
-  userId: string;
+  ownerId: string;
 
-  @Column()
-  userName: string;
+  @Column({ name: 'project_id' })
+  projectId: string;
 
-  @Column()
-  environment: 'production' | 'preview';
+  @ManyToOne(() => Project, project => project.id, {
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
+  })
+  @JoinColumn({ name: 'project_id' })
+  project: Project;
+
+  @Column({ name: 'configuration_id' })
+  configurationId: string;
+
+  @ManyToOne(() => ProjectConfiguration, configuration => configuration.id, {
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
+  })
+  @JoinColumn({ name: 'configuration_id' })
+  configuration: ProjectConfiguration;
+
+  @Column({
+    type: 'enum',
+    enum: DeplomentEnvironment,
+  })
+  environment: `${DeplomentEnvironment}`;
 
   @Column()
   branch: string;
 
   @Column({ nullable: true })
-  githubAccount: string;
+  workflowRunId?: number;
+
+  @Column({
+    type: 'enum',
+    enum: DeploymentStatus,
+    default: DeploymentStatus.PENDING,
+  })
+  status: `${DeploymentStatus}`;
 
   @Column({ nullable: true })
-  workflowRunId: number;
+  deploymentUrl?: string;
 
-  @Column({ default: 'pending' })
-  status: 'pending' | 'running' | 'success' | 'failed';
+  @Column({ name: 'environment_variables', type: 'jsonb' })
+  environmentVariables: EnvironmentVariableDto[];
+
+  @Column({ nullable: true, type: 'jsonb' })
+  githubAccount?: GitHubAccount;
 
   @Column({ nullable: true })
-  deploymentUrl: string;
-
-  @Column({ nullable: true })
-  errorMessage: string;
+  errorMessage?: string;
 
   @Column({ default: 0 })
   retryCount: number;
-
-  @Column({ nullable: true })
-  vercelProjectId: string;
-
-  @Column({ nullable: true })
-  vercelOrgId: string;
 
   @CreateDateColumn()
   createdAt: Date;

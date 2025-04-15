@@ -7,6 +7,7 @@ import { AppService } from './app.service';
 import { EnvironmentVariables, validate } from './config/env.validation';
 import { AuthModule } from './modules/auth/auth.module';
 import { CategoriesModule } from './modules/categories/categories.module';
+import { DeploymentModule } from './modules/deployment-module/deployment-module.module';
 import { FirebaseModule } from './modules/firebase/firebase.module';
 import { LicensesModule } from './modules/licenses/licenses.module';
 import { MediaModule } from './modules/media/media.module';
@@ -45,6 +46,7 @@ import { UserModule } from './modules/users/users.module';
     MediaModule,
     ProjectsModule,
     LicensesModule,
+    DeploymentModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,316 +1,379 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { EncryptionService } from '@app/shared/encryption/encryption.service';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThan } from 'typeorm';
+import { Repository } from 'typeorm';
 
-import { CreateDeploymentDto } from './dto/create-deployment.dto';
-import { DeploymentEntity } from './entities/deployment.entity';
-import { DeploymentController as GithubDeploymentController } from './github-deployer.controller';
+import { ServiceCreateDeploymentDto } from './dto/create-deployment.dto';
+import { GitHubAccount } from './dto/github-account.dto';
+import { Deployment, DeploymentStatus } from './entities/deployment.entity';
+import { GithubDeployerService } from './services/github-deployer.service';
+import { ProjectConfiguration } from '../projects/entities/project-configuration.entity';
+import { Project } from '../projects/entities/project.entity';
 
 @Injectable()
 export class DeploymentService {
   private readonly logger = new Logger(DeploymentService.name);
-  private readonly maxRetries = 3;
 
   constructor(
-    @InjectRepository(DeploymentEntity)
-    private deploymentRepository: Repository<DeploymentEntity>,
-    private githubDeploymentController: GithubDeploymentController,
+    @InjectRepository(Deployment)
+    private deploymentRepository: Repository<Deployment>,
+    private encryptionService: EncryptionService,
+    private readonly deployerService: GithubDeployerService,
+    @InjectRepository(ProjectConfiguration)
+    private projectConfigurationRepository: Repository<ProjectConfiguration>,
   ) {}
 
   /**
-   * Create a new deployment
+   * Create a new deployment using project GitHub accounts
    */
-  async createDeployment(createDeploymentDto: CreateDeploymentDto): Promise<DeploymentEntity> {
+  async createDeployment(
+    serviceCreateDeploymentDto: ServiceCreateDeploymentDto,
+    project: Project,
+    configuration: ProjectConfiguration,
+  ): Promise<Deployment> {
+    // Create deployment record
     const deployment = this.deploymentRepository.create({
-      userId: createDeploymentDto.id || createDeploymentDto.name,
-      userName: createDeploymentDto.name,
-      environment: createDeploymentDto.environment || 'production',
-      branch: createDeploymentDto.branch || 'main',
-      vercelProjectId: createDeploymentDto.vercelProjectId,
-      vercelOrgId: createDeploymentDto.vercelOrgId,
+      projectId: serviceCreateDeploymentDto.projectId,
+      configurationId: serviceCreateDeploymentDto.configurationId,
+      configuration,
+      project,
+      ownerId: serviceCreateDeploymentDto.ownerId,
+      environment: serviceCreateDeploymentDto.environment,
+      branch: serviceCreateDeploymentDto.branch,
       status: 'pending',
+      environmentVariables: serviceCreateDeploymentDto.environmentVariables,
     });
 
     await this.deploymentRepository.save(deployment);
 
-    // Trigger the deployment
-    await this.triggerDeployment(deployment, createDeploymentDto);
+    // Get recent deployments for this project to determine next account in rotation
+    const recentDeployments = await this.deploymentRepository.find({
+      where: { projectId: serviceCreateDeploymentDto.projectId },
+      order: { createdAt: 'DESC' },
+      take: configuration.githubAccounts.length > 0 ? configuration.githubAccounts.length : 1,
+    });
 
-    return deployment;
-  }
+    // Decrypt GitHub account tokens
+    const githubAccounts = configuration.githubAccounts.map(account => ({
+      ...account,
+      accessToken: this.encryptionService.decrypt(account.accessToken),
+      available: true,
+      failureCount: 0,
+      lastUsed: new Date(),
+    }));
 
-  /**
-   * Batch create deployments
-   */
-  async batchDeployment(deployments: CreateDeploymentDto[]): Promise<DeploymentEntity[]> {
-    const results: DeploymentEntity[] = [];
-
-    for (const dto of deployments) {
-      try {
-        const deployment = await this.createDeployment(dto);
-        results.push(deployment);
-      } catch (err) {
-        const error = err as Error;
-        this.logger.error(`Error creating deployment for ${dto.name}: ${error.message}`);
-      }
+    if (githubAccounts.length === 0) {
+      throw new Error('No GitHub accounts available for deployment');
     }
 
-    return results;
-  }
-
-  /**
-   * Get all deployments with optional filters
-   */
-  getAllDeployments(
-    status?: string,
-    userId?: string,
-    environment?: string,
-  ): Promise<DeploymentEntity[]> {
-    const query = this.deploymentRepository.createQueryBuilder('deployment');
-
-    if (status) {
-      query.andWhere('deployment.status = :status', { status });
-    }
-
-    if (userId) {
-      query.andWhere('deployment.userId = :userId', { userId });
-    }
-
-    if (environment) {
-      query.andWhere('deployment.environment = :environment', { environment });
-    }
-
-    query.orderBy('deployment.createdAt', 'DESC');
-
-    return query.getMany();
-  }
-
-  /**
-   * Get deployment by ID
-   */
-  async getDeploymentById(id: string): Promise<DeploymentEntity> {
-    const deployment = await this.deploymentRepository.findOne({ where: { id } });
-
-    if (!deployment) {
-      throw new NotFoundException(`Deployment with ID "${id}" not found`);
-    }
-
-    return deployment;
-  }
-
-  /**
-   * Trigger a deployment using the GitHub deployer
-   */
-  private async triggerDeployment(
-    deployment: DeploymentEntity,
-    config: CreateDeploymentDto,
-  ): Promise<void> {
+    // Start deployment process asynchronously with ordered accounts
     try {
-      const result = await this.githubDeploymentController.deployForUser({
-        id: deployment.userId,
-        name: deployment.userName,
-        vercelToken: config.vercelToken,
-        vercelProjectId: config.vercelProjectId,
-        vercelOrgId: config.vercelOrgId,
-        supabaseUrl: config.supabaseUrl,
-        supabaseAnonKey: config.supabaseAnonKey,
-        environment: deployment.environment,
-        branch: deployment.branch,
-      });
-
-      // Update deployment with result
-      deployment.status = result.success ? 'running' : 'failed';
-      deployment.githubAccount = result.account ?? '';
-      deployment.workflowRunId = result.runId ?? 0;
-      deployment.errorMessage = result.error ?? '';
-
-      if (!result.success && deployment.retryCount < this.maxRetries) {
-        deployment.retryCount += 1;
-        this.logger.log(
-          `Auto-retrying deployment ${deployment.id} (Attempt ${deployment.retryCount}/${this.maxRetries})`,
-        );
-      }
-
-      await this.deploymentRepository.save(deployment);
+      const orderedAccounts = this.getOrderedAccounts(githubAccounts, recentDeployments);
+      await this.triggerDeployment(
+        deployment,
+        configuration,
+        serviceCreateDeploymentDto,
+        orderedAccounts,
+      );
+      this.logger.log(`Deployment ${deployment.id} started successfully`);
     } catch (err) {
       const error = err as Error;
-      this.logger.error(`Error triggering deployment: ${error.message}`);
-
-      deployment.status = 'failed';
+      this.logger.error(`Deployment ${deployment.id} failed: ${error.message}`);
+      deployment.status = DeploymentStatus.FAILED;
       deployment.errorMessage = error.message;
       await this.deploymentRepository.save(deployment);
-
-      throw error;
     }
+
+    return deployment;
+  }
+
+  /**
+   * Order GitHub accounts for round-robin deployment
+   */
+  private getOrderedAccounts(
+    githubAccounts: GitHubAccount[],
+    recentDeployments: Deployment[],
+  ): GitHubAccount[] {
+    // If there's only one account or no recent deployments, just return the accounts
+    if (githubAccounts.length <= 1 || recentDeployments.length === 0) {
+      return [...githubAccounts];
+    }
+
+    // Find the last used account
+    let startIndex = 0;
+    if (recentDeployments[0].githubAccount) {
+      const lastUsername = recentDeployments[0].githubAccount.username;
+      const lastIndex = githubAccounts.findIndex(a => a.username === lastUsername);
+      if (lastIndex !== -1) {
+        // Start with the next account in the sequence
+        startIndex = (lastIndex + 1) % githubAccounts.length;
+      }
+    }
+
+    // Reorder accounts to start with the next one in sequence (round-robin)
+    return [...githubAccounts.slice(startIndex), ...githubAccounts.slice(0, startIndex)];
+  }
+
+  private async triggerDeployment(
+    deployment: Deployment,
+    configuration: ProjectConfiguration,
+    deploymentConfig: ServiceCreateDeploymentDto,
+    orderedAccounts: GitHubAccount[],
+  ): Promise<void> {
+    // Ensure we have accounts to try
+    if (orderedAccounts.length === 0) {
+      throw new Error('No GitHub accounts available for deployment');
+    }
+
+    let lastError: Error | null = null;
+
+    // Try each account in the ordered list until one succeeds
+    for (const account of orderedAccounts) {
+      try {
+        const githubAccount = {
+          ...account,
+          available: true,
+          failureCount: 0,
+          lastUsed: new Date(),
+        };
+
+        const result = await this.deployerService.deployToGitHub(
+          deployment,
+          githubAccount,
+          deploymentConfig,
+        );
+
+        // Success - update deployment with result
+        deployment.githubAccount = {
+          ...githubAccount,
+          accessToken: this.encryptionService.encrypt(githubAccount.accessToken),
+        };
+        deployment.workflowRunId = result.workflowRunId;
+        deployment.status = DeploymentStatus.RUNNING;
+        await this.deploymentRepository.save(deployment);
+
+        // Successfully deployed, return
+        return;
+      } catch (err) {
+        const error = err as Error;
+        lastError = error;
+        this.logger.warn(`Deployment with account ${account.username} failed: ${error.message}`);
+
+        // Continue to next account in the list
+        deployment.retryCount++;
+        await this.deploymentRepository.save(deployment);
+      }
+    }
+
+    // If we get here, all accounts failed
+    deployment.status = DeploymentStatus.FAILED;
+    deployment.errorMessage = lastError ? lastError.message : 'All GitHub accounts failed';
+    await this.deploymentRepository.save(deployment);
+    throw new Error(deployment.errorMessage);
   }
 
   /**
    * Retry a failed deployment
    */
-  async retryDeployment(id: string): Promise<DeploymentEntity> {
-    const deployment = await this.getDeploymentById(id);
+  async retryDeployment(deploymentId: string): Promise<Deployment> {
+    const deployment = await this.deploymentRepository.findOne({ where: { id: deploymentId } });
 
-    if (deployment.status !== 'failed' && deployment.status !== 'pending') {
-      throw new Error(
-        `Deployment with ID "${id}" is currently ${deployment.status} and cannot be retried`,
-      );
+    if (!deployment) {
+      throw new Error(`Deployment with ID "${deploymentId}" not found`);
     }
 
-    // Reset deployment status
-    deployment.status = 'pending';
-    deployment.retryCount += 1;
+    if (deployment.status !== DeploymentStatus.FAILED) {
+      throw new Error('Only failed deployments can be retried');
+    }
+
+    // Reset deployment status for retry
+    deployment.status = DeploymentStatus.PENDING;
     deployment.errorMessage = '';
 
     await this.deploymentRepository.save(deployment);
 
-    // Get the original configuration from stored data
-    const config: CreateDeploymentDto = {
-      id: deployment.userId,
-      name: deployment.userName,
-      // We need to fetch these from a secure storage in a real app
-      // Here we're demonstrating the pattern but not the actual secure implementation
-      vercelToken: process.env[`VERCEL_TOKEN_${deployment.userId}`] || '',
-      vercelProjectId: deployment.vercelProjectId,
-      vercelOrgId: deployment.vercelOrgId,
-      supabaseUrl: process.env[`SUPABASE_URL_${deployment.userId}`] || '',
-      supabaseAnonKey: process.env[`SUPABASE_ANON_KEY_${deployment.userId}`] || '',
+    // Find project and configuration
+    // await this.projectService.findOne(deployment.projectId);
+    const configuration = await this.projectConfigurationRepository.findOne({
+      where: { id: deployment.configurationId },
+    });
+
+    if (!configuration) {
+      throw new Error(`Configuration with ID "${deployment.configurationId}" not found`);
+    }
+    // Get all GitHub accounts for the project
+    const githubAccounts = configuration.githubAccounts.map(account => ({
+      ...account,
+      accessToken: this.encryptionService.decrypt(account.accessToken),
+      available: true,
+      failureCount: 0,
+      lastUsed: new Date(),
+    }));
+
+    // Get recent deployments to determine order
+    const recentDeployments = await this.deploymentRepository.find({
+      where: { projectId: deployment.projectId },
+      order: { createdAt: 'DESC' },
+      take: configuration.githubAccounts.length > 0 ? configuration.githubAccounts.length : 1,
+    });
+
+    // Exclude the last failed account if possible
+    const orderedAccounts = this.getOrderedAccountsForRetry(
+      githubAccounts,
+      recentDeployments,
+      deployment.githubAccount?.username,
+    );
+
+    // Create deployment config from stored deployment
+    const deploymentConfig: ServiceCreateDeploymentDto = {
+      projectId: deployment.projectId,
+      configurationId: configuration.id,
       environment: deployment.environment,
       branch: deployment.branch,
+      environmentVariables: deployment.environmentVariables,
+      ownerId: deployment.ownerId,
     };
 
-    // Re-trigger the deployment
-    await this.triggerDeployment(deployment, config);
+    // Trigger deployment with reordered accounts
+    try {
+      await this.triggerDeployment(deployment, configuration, deploymentConfig, orderedAccounts);
+      this.logger.log(`Deployment ${deployment.id} retry started successfully`);
+    } catch (err) {
+      const error = err as Error;
+      this.logger.error(`Deployment ${deployment.id} retry failed: ${error.message}`);
+      deployment.status = DeploymentStatus.FAILED;
+      deployment.errorMessage = error.message;
+      await this.deploymentRepository.save(deployment);
+    }
 
     return deployment;
   }
 
   /**
-   * Trigger deployments for a specific environment (production/preview)
+   * Order GitHub accounts for retry, prioritizing accounts that haven't failed
    */
-  triggerEnvironmentDeployments(
-    environment: 'production' | 'preview',
-  ): Promise<DeploymentEntity[]> {
-    // In a real application, you would load user configurations from a database
-    // For demonstration purposes, we'll use environment variables
+  private getOrderedAccountsForRetry(
+    githubAccounts: GitHubAccount[],
+    recentDeployments: Deployment[],
+    lastFailedUsername?: string,
+  ): GitHubAccount[] {
+    // If we don't have a last failed account or only one account, return default order
+    if (!lastFailedUsername || githubAccounts.length <= 1) {
+      return this.getOrderedAccounts(githubAccounts, recentDeployments);
+    }
 
-    const configKeys = Object.keys(process.env).filter(
-      key =>
-        key.startsWith('USER_ID_') &&
-        process.env[`USER_ENV_${key.replace('USER_ID_', '')}`] === environment,
-    );
+    // Find the failed account index
+    const failedIndex = githubAccounts.findIndex(a => a.username === lastFailedUsername);
+    if (failedIndex === -1) {
+      return this.getOrderedAccounts(githubAccounts, recentDeployments);
+    }
 
-    const deploymentDtos: CreateDeploymentDto[] = configKeys.map(key => {
-      const userId = process.env[key] || '';
-      const userPrefix = key.replace('USER_ID_', '');
+    // Start with the next account after the failed one
+    const startIndex = (failedIndex + 1) % githubAccounts.length;
 
-      return {
-        id: userId,
-        name: process.env[`USER_NAME_${userPrefix}`] || userId,
-        vercelToken: process.env[`VERCEL_TOKEN_${userPrefix}`] || '',
-        vercelProjectId: process.env[`VERCEL_PROJECT_ID_${userPrefix}`] || '',
-        vercelOrgId: process.env[`VERCEL_ORG_ID_${userPrefix}`] || '',
-        supabaseUrl: process.env[`SUPABASE_URL_${userPrefix}`] || '',
-        supabaseAnonKey: process.env[`SUPABASE_ANON_KEY_${userPrefix}`] || '',
-        environment: environment,
-        branch: process.env[`USER_BRANCH_${userPrefix}`] || 'main',
-      };
-    });
-
-    return this.batchDeployment(deploymentDtos);
+    // Return accounts starting from the next one after the failed one
+    return [...githubAccounts.slice(startIndex), ...githubAccounts.slice(0, startIndex)];
   }
 
   /**
-   * Scheduled job to check the status of running deployments
+   * Get a single deployment by ID
    */
-  @Cron(CronExpression.EVERY_MINUTE)
-  async checkDeploymentStatuses() {
-    this.logger.debug('Checking status of running deployments');
-
-    const runningDeployments = await this.deploymentRepository.find({
-      where: { status: 'running' },
+  async getDeployment(deploymentId: string): Promise<Deployment> {
+    const deployment = await this.deploymentRepository.findOne({
+      where: { id: deploymentId },
     });
 
-    if (runningDeployments.length === 0) {
-      return;
+    if (!deployment) {
+      throw new Error(`Deployment with ID "${deploymentId}" not found`);
     }
 
-    this.logger.log(`Checking status of ${runningDeployments.length} running deployments`);
+    return deployment;
+  }
 
-    for (const deployment of runningDeployments) {
-      try {
-        if (!deployment.githubAccount || !deployment.workflowRunId) {
-          continue;
-        }
+  /**
+   * Get all deployments for a project
+   */
+  getProjectDeployments(projectId: string): Promise<Deployment[]> {
+    return this.deploymentRepository.find({
+      where: { projectId },
+      order: { createdAt: 'DESC' },
+    });
+  }
 
-        const status = await this.githubDeploymentController.checkStatus({
-          success: true,
-          userId: deployment.userId,
-          userName: deployment.userName,
-          environment: deployment.environment,
-          account: deployment.githubAccount,
-          runId: deployment.workflowRunId,
-          timestamp: deployment.createdAt,
-        });
+  /**
+   * Get logs for a deployment
+   */
+  async getDeploymentLogs(deploymentId: string): Promise<{ logs: string }> {
+    const deployment = await this.getDeployment(deploymentId);
 
-        // Update status based on GitHub workflow status
+    if (!deployment.githubAccount || !deployment.workflowRunId) {
+      return { logs: 'No workflow information available for this deployment' };
+    }
+
+    try {
+      const logs = await this.deployerService.getWorkflowLogs(
+        {
+          username: deployment.githubAccount.username,
+          accessToken: this.encryptionService.decrypt(deployment.githubAccount.accessToken),
+          repository: deployment.githubAccount.repository,
+        },
+        deployment.workflowRunId,
+      );
+
+      return { logs };
+    } catch (err) {
+      const error = err as Error;
+      this.logger.error(`Error fetching logs for deployment ${deploymentId}: ${error.message}`);
+      return { logs: `Error fetching logs: ${error.message}` };
+    }
+  }
+
+  /**
+   * Update deployment status from GitHub workflow
+   * This should be called periodically or webhook-triggered
+   */
+  async updateDeploymentStatus(deploymentId: string): Promise<Deployment> {
+    const deployment = await this.getDeployment(deploymentId);
+
+    // Only check running deployments
+    if (
+      deployment.status !== DeploymentStatus.RUNNING ||
+      !deployment.githubAccount ||
+      !deployment.workflowRunId
+    ) {
+      return deployment;
+    }
+
+    try {
+      // Check workflow status
+      const status = await this.deployerService.checkWorkflowStatus(
+        {
+          username: deployment.githubAccount.username,
+          accessToken: this.encryptionService.decrypt(deployment.githubAccount.accessToken),
+          repository: deployment.githubAccount.repository,
+        },
+        deployment.workflowRunId,
+      );
+
+      // Update deployment based on workflow status
+      if (status.status === 'completed') {
         if (status.conclusion === 'success') {
-          deployment.status = 'success';
-          deployment.deploymentUrl = status.deploymentUrl || '';
+          deployment.status = DeploymentStatus.SUCCESS;
+          deployment.deploymentUrl = status.deploymentUrl;
           deployment.completedAt = new Date();
         } else if (status.conclusion === 'failure' || status.conclusion === 'cancelled') {
-          deployment.status = 'failed';
+          deployment.status = DeploymentStatus.FAILED;
           deployment.errorMessage = `GitHub workflow ${status.conclusion}`;
-
-          // Auto-retry logic
-          if (deployment.retryCount < this.maxRetries) {
-            await this.retryDeployment(deployment.id);
-          }
         }
 
         await this.deploymentRepository.save(deployment);
-      } catch (err) {
-        const error = err as Error;
-        this.logger.error(
-          `Error checking status for deployment ${deployment.id}: ${error.message}`,
-        );
       }
-    }
-  }
 
-  /**
-   * Scheduled job to retry failed deployments with a cooldown period
-   */
-  @Cron(CronExpression.EVERY_10_MINUTES)
-  async retryFailedDeployments() {
-    this.logger.debug('Looking for failed deployments to retry');
-
-    // Find failed deployments that haven't exceeded max retries
-    // and haven't been updated in the last 10 minutes
-    const tenMinutesAgo = new Date();
-    tenMinutesAgo.setMinutes(tenMinutesAgo.getMinutes() - 10);
-
-    const failedDeployments = await this.deploymentRepository.find({
-      where: {
-        status: 'failed',
-        retryCount: LessThan(this.maxRetries), // Less than max retries
-        updatedAt: LessThan(tenMinutesAgo), // Not updated in last 10 minutes
-      },
-    });
-
-    if (failedDeployments.length === 0) {
-      return;
-    }
-
-    this.logger.log(`Auto-retrying ${failedDeployments.length} failed deployments`);
-
-    for (const deployment of failedDeployments) {
-      try {
-        await this.retryDeployment(deployment.id);
-      } catch (err) {
-        const error = err as Error;
-        this.logger.error(`Error retrying deployment ${deployment.id}: ${error.message}`);
-      }
+      return deployment;
+    } catch (err) {
+      const error = err as Error;
+      this.logger.error(`Error updating deployment status: ${error.message}`);
+      return deployment;
     }
   }
 }

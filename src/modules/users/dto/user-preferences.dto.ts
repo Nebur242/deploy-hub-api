@@ -1,13 +1,5 @@
+import { DeploymentProvider } from '@app/modules/projects/entities/project-configuration.entity';
 import { IsBoolean, IsEnum, IsOptional } from 'class-validator';
-
-export enum DeploymentProvider {
-  VERCEL = 'vercel',
-  NETLIFY = 'netlify',
-  AWS = 'aws',
-  DIGITAL_OCEAN = 'digital_ocean',
-  HEROKU = 'heroku',
-  GITHUB_PAGES = 'github_pages',
-}
 
 export enum Theme {
   LIGHT = 'light',
