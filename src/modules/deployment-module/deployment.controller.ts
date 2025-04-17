@@ -91,7 +91,6 @@ export class DeploymentController {
     // Verify project ownership
     const project = await this.projectRepository.findOne({
       where: { id: projectId },
-      relations: ['owner'],
     });
     if (!project) {
       throw new ForbiddenException('Project not found');

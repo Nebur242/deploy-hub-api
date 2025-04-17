@@ -64,7 +64,7 @@ export class Deployment {
   branch: string;
 
   @Column({ nullable: true })
-  workflowRunId?: number;
+  workflowRunId?: string;
 
   @Column({
     type: 'enum',

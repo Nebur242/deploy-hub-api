@@ -25,7 +25,7 @@ export class GithubDeployerService {
 
     try {
       // Get the workflow ID
-      const workflowPath = githubAccount.workflowFile || '.github/workflows/deploy.yml';
+      const workflowPath = '.github/workflows/deploy.yml';
 
       // Find the workflow
       const { data: workflows } = await octokit.actions.listRepoWorkflows({
@@ -33,10 +33,12 @@ export class GithubDeployerService {
         repo: githubAccount.repository,
       });
 
+      console.log('Workflows:', workflows);
+
       // Find workflow by path or by name "Deploy to Vercel"
-      const workflow = workflows.workflows.find(
-        w => w.path === workflowPath || w.name === 'Deploy to Vercel',
-      );
+      const workflow = workflows.workflows.find(w => w.path === workflowPath);
+
+      console.log('Workflow:', workflow);
 
       if (!workflow) {
         throw new Error(`Workflow not found: ${workflowPath}`);
@@ -64,7 +66,7 @@ export class GithubDeployerService {
         repo: githubAccount.repository,
         workflow_id: workflow.id,
         ref: 'main', // The branch where the workflow file exists
-        inputs,
+        // inputs,
       });
 
       // Get the workflow run ID - try multiple times as there can be a delay
@@ -92,6 +94,7 @@ export class GithubDeployerService {
 
       return { workflowRunId: runId };
     } catch (error) {
+      console.log('Error deploying to GitHub:', error);
       this.logger.error(`Error deploying to GitHub: ${error.message}`);
       throw error;
     }
@@ -164,7 +167,7 @@ export class GithubDeployerService {
         `GET /repos/${account.username}/${account.repository}/actions/jobs/${jobId}/logs`,
         {
           headers: {
-            accept: 'application/octet-stream',
+            accept: 'application/json',
           },
         },
       );

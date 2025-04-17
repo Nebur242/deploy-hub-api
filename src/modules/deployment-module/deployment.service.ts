@@ -56,7 +56,7 @@ export class DeploymentService {
     // Decrypt GitHub account tokens
     const githubAccounts = configuration.githubAccounts.map(account => ({
       ...account,
-      accessToken: this.encryptionService.decrypt(account.accessToken),
+      //   accessToken: this.encryptionService.decrypt(account.accessToken),
       available: true,
       failureCount: 0,
       lastUsed: new Date(),
@@ -148,7 +148,7 @@ export class DeploymentService {
           ...githubAccount,
           accessToken: this.encryptionService.encrypt(githubAccount.accessToken),
         };
-        deployment.workflowRunId = result.workflowRunId;
+        deployment.workflowRunId = `${result.workflowRunId}`;
         deployment.status = DeploymentStatus.RUNNING;
         await this.deploymentRepository.save(deployment);
 
@@ -157,6 +157,7 @@ export class DeploymentService {
       } catch (err) {
         const error = err as Error;
         lastError = error;
+        console.log(`Error deploying with account ${account.username}: ${error}`);
         this.logger.warn(`Deployment with account ${account.username} failed: ${error.message}`);
 
         // Continue to next account in the list
@@ -317,7 +318,7 @@ export class DeploymentService {
           accessToken: this.encryptionService.decrypt(deployment.githubAccount.accessToken),
           repository: deployment.githubAccount.repository,
         },
-        deployment.workflowRunId,
+        parseInt(deployment.workflowRunId, 10),
       );
 
       return { logs };
@@ -352,7 +353,8 @@ export class DeploymentService {
           accessToken: this.encryptionService.decrypt(deployment.githubAccount.accessToken),
           repository: deployment.githubAccount.repository,
         },
-        deployment.workflowRunId,
+
+        parseInt(deployment.workflowRunId, 10),
       );
 
       // Update deployment based on workflow status
