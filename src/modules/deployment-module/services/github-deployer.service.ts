@@ -21,9 +21,9 @@ export class GithubDeployerService {
     deploymentConfig: ServiceCreateDeploymentDto,
   ): Promise<{ workflowRunId: number }> {
     // Initialize Octokit with the GitHub token
-    const octokit = new Octokit({ auth: githubAccount.accessToken });
-
     try {
+      const octokit = new Octokit({ auth: githubAccount.accessToken });
+
       // Get the workflow ID
       const workflowPath = '.github/workflows/deploy.yml';
 
@@ -33,12 +33,8 @@ export class GithubDeployerService {
         repo: githubAccount.repository,
       });
 
-      console.log('Workflows:', workflows);
-
       // Find workflow by path or by name "Deploy to Vercel"
       const workflow = workflows.workflows.find(w => w.path === workflowPath);
-
-      console.log('Workflow:', workflow);
 
       if (!workflow) {
         throw new Error(`Workflow not found: ${workflowPath}`);

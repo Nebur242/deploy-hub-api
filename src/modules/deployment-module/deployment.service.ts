@@ -1,9 +1,11 @@
 import { EncryptionService } from '@app/shared/encryption/encryption.service';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { IPaginationOptions, paginate, Pagination } from 'nestjs-typeorm-paginate';
 import { Repository } from 'typeorm';
 
 import { ServiceCreateDeploymentDto } from './dto/create-deployment.dto';
+import { FilterDeploymentDto } from './dto/filter.dto';
 import { GitHubAccount } from './dto/github-account.dto';
 import { Deployment, DeploymentStatus } from './entities/deployment.entity';
 import { GithubDeployerService } from './services/github-deployer.service';
@@ -125,52 +127,44 @@ export class DeploymentService {
       throw new Error('No GitHub accounts available for deployment');
     }
 
-    let lastError: Error | null = null;
+    // Only use the first account in the ordered list
+    const account = orderedAccounts[0];
 
-    // Try each account in the ordered list until one succeeds
-    for (const account of orderedAccounts) {
-      try {
-        const githubAccount = {
-          ...account,
-          available: true,
-          failureCount: 0,
-          lastUsed: new Date(),
-        };
+    try {
+      const githubAccount = {
+        ...account,
+        available: true,
+        failureCount: 0,
+        lastUsed: new Date(),
+      };
 
-        const result = await this.deployerService.deployToGitHub(
-          deployment,
-          githubAccount,
-          deploymentConfig,
-        );
+      const result = await this.deployerService.deployToGitHub(
+        deployment,
+        githubAccount,
+        deploymentConfig,
+      );
 
-        // Success - update deployment with result
-        deployment.githubAccount = {
-          ...githubAccount,
-          accessToken: this.encryptionService.encrypt(githubAccount.accessToken),
-        };
-        deployment.workflowRunId = `${result.workflowRunId}`;
-        deployment.status = DeploymentStatus.RUNNING;
-        await this.deploymentRepository.save(deployment);
+      // Success - update deployment with result
+      deployment.githubAccount = {
+        ...githubAccount,
+        accessToken: this.encryptionService.encrypt(githubAccount.accessToken),
+      };
+      deployment.workflowRunId = `${result.workflowRunId}`;
+      deployment.status = DeploymentStatus.RUNNING;
+      await this.deploymentRepository.save(deployment);
 
-        // Successfully deployed, return
-        return;
-      } catch (err) {
-        const error = err as Error;
-        lastError = error;
-        console.log(`Error deploying with account ${account.username}: ${error}`);
-        this.logger.warn(`Deployment with account ${account.username} failed: ${error.message}`);
+      // Successfully deployed, return
+      return;
+    } catch (err) {
+      const error = err as Error;
+      this.logger.warn(`Deployment with account ${account.username} failed: ${error.message}`);
 
-        // Continue to next account in the list
-        deployment.retryCount++;
-        await this.deploymentRepository.save(deployment);
-      }
+      // Mark as failed since we're not trying multiple accounts
+      deployment.status = DeploymentStatus.FAILED;
+      deployment.errorMessage = error.message;
+      await this.deploymentRepository.save(deployment);
+      throw error;
     }
-
-    // If we get here, all accounts failed
-    deployment.status = DeploymentStatus.FAILED;
-    deployment.errorMessage = lastError ? lastError.message : 'All GitHub accounts failed';
-    await this.deploymentRepository.save(deployment);
-    throw new Error(deployment.errorMessage);
   }
 
   /**
@@ -282,6 +276,7 @@ export class DeploymentService {
   async getDeployment(deploymentId: string): Promise<Deployment> {
     const deployment = await this.deploymentRepository.findOne({
       where: { id: deploymentId },
+      relations: ['project', 'configuration'],
     });
 
     if (!deployment) {
@@ -301,6 +296,57 @@ export class DeploymentService {
     });
   }
 
+  /**
+   * Get paginated deployments with filters
+   */
+  getDeployments(
+    filterDto: FilterDeploymentDto,
+    options: IPaginationOptions,
+  ): Promise<Pagination<Deployment>> {
+    const queryBuilder = this.deploymentRepository.createQueryBuilder('deployment');
+
+    // Always filter by project
+
+    if (filterDto.projectId) {
+      queryBuilder.where('deployment.projectId = :projectId', {
+        projectId: filterDto.projectId,
+      });
+    }
+
+    // Apply optional filters
+    if (filterDto.ownerId) {
+      queryBuilder.andWhere('deployment.ownerId = :ownerId', {
+        ownerId: filterDto.ownerId,
+      });
+    }
+
+    if (filterDto.environment) {
+      queryBuilder.andWhere('deployment.environment = :environment', {
+        environment: filterDto.environment,
+      });
+    }
+
+    if (filterDto.status) {
+      queryBuilder.andWhere('deployment.status = :status', {
+        status: filterDto.status,
+      });
+    }
+
+    if (filterDto.branch) {
+      queryBuilder.andWhere('deployment.branch = :branch', {
+        branch: filterDto.branch,
+      });
+    }
+
+    // Always order by createdAt DESC (newest first)
+    queryBuilder.orderBy('deployment.createdAt', 'DESC');
+
+    // add project relation
+    queryBuilder.leftJoinAndSelect('deployment.project', 'project');
+    queryBuilder.leftJoinAndSelect('deployment.configuration', 'configuration');
+
+    return paginate<Deployment>(queryBuilder, options);
+  }
   /**
    * Get logs for a deployment
    */
