@@ -21,3 +21,8 @@ size = "shared-cpu-1x"
 memory = '1gb'
 cpu_kind = 'shared'
 cpus = 1
+
+[env]
+DEPLOYMENT_TRACKER_BATCH_SIZE = "10"
+DEPLOYMENT_MAX_RUNNING_HOURS = '1'
+API_BASE_URL = "https://maketou-deploy-hub-api.fly.dev/api/v1"

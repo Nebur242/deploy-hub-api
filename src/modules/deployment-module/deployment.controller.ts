@@ -11,6 +11,7 @@ import {
   Query,
   DefaultValuePipe,
   ParseIntPipe,
+  BadRequestException,
 } from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -21,7 +22,11 @@ import { DeploymentService } from './deployment.service';
 import { CreateDeploymentDto } from './dto/create-deployment.dto';
 import { FilterDeploymentDto } from './dto/filter.dto';
 import { Deployment } from './entities/deployment.entity';
-import { ProjectConfiguration } from '../projects/entities/project-configuration.entity';
+import { VercelService } from './services/vercel.service';
+import {
+  DeploymentProvider,
+  ProjectConfiguration,
+} from '../projects/entities/project-configuration.entity';
 import { Project } from '../projects/entities/project.entity';
 import { User } from '../users/entities/user.entity';
 
@@ -36,6 +41,7 @@ export class DeploymentController {
     private projectRepository: Repository<Project>,
     @InjectRepository(ProjectConfiguration)
     private projectConfigurationRepository: Repository<ProjectConfiguration>,
+    private readonly vercelService: VercelService,
   ) {}
 
   @Post()
@@ -56,22 +62,58 @@ export class DeploymentController {
       throw new ForbiddenException('Configuration not found');
     }
 
-    // Verify project ownership
-    if (project.ownerId !== user.id) {
-      throw new ForbiddenException('You do not have permission to deploy this project');
-    }
-
     this.logger.log(
       `Received deployment request for project ${project.id} with configuration ${configuration.id}`,
     );
 
-    return this.deploymentService.createDeployment(
-      {
-        ...createDeploymentDto,
-        ownerId: user.id,
-      },
-      project,
-      configuration,
+    if (configuration.deploymentOption.provider === DeploymentProvider.VERCEL) {
+      const tokenVar = createDeploymentDto.environmentVariables.find(
+        env => env.key === 'VERCEL_TOKEN',
+      );
+
+      if (!tokenVar) {
+        throw new BadRequestException('VERCEL_TOKEN is required for Vercel deployment');
+      }
+
+      const orgIdVar = createDeploymentDto.environmentVariables.find(
+        env => env.key === 'VERCEL_ORG_ID',
+      );
+
+      if (!orgIdVar) {
+        throw new BadRequestException('VERCEL_ORG_ID is required for Vercel deployment');
+      }
+
+      const vercelProject = await this.vercelService.createProject({
+        orgId: orgIdVar.defaultValue,
+        token: tokenVar.defaultValue,
+      });
+
+      if (!project) {
+        throw new BadRequestException('Failed to create Vercel project');
+      }
+
+      return this.deploymentService.createDeployment(
+        {
+          ...createDeploymentDto,
+          ownerId: user.id,
+          environmentVariables: createDeploymentDto.environmentVariables.map(env => {
+            if (env.key === 'VERCEL_PROJECT_ID') {
+              return {
+                ...env,
+                defaultValue: vercelProject.id,
+              };
+            }
+            return env;
+          }),
+          siteId: vercelProject.id,
+        },
+        project,
+        configuration,
+      );
+    }
+
+    throw new BadRequestException(
+      `Deployment provider ${configuration.deploymentOption.provider} is not supported`,
     );
   }
 

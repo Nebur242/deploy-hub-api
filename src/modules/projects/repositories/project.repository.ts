@@ -26,7 +26,7 @@ export class ProjectRepository {
   ) {
     // Create base find options
     const findOptions: FindManyOptions<Project> = {
-      relations: ['categories', 'versions'],
+      relations: ['categories', 'versions', 'configurations'],
       order: { [options?.sortBy || 'updatedAt']: options?.sortDirection || 'DESC' },
     };
 

@@ -30,6 +30,7 @@ export class CreateDeploymentDto {
 
 export class ServiceCreateDeploymentDto extends CreateDeploymentDto {
   ownerId: string;
+  siteId: string | null;
 }
 
 // batch-deployment.dto.ts

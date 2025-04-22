@@ -43,7 +43,7 @@ export class ProjectVersionService {
     // Check if project exists and user is the owner
     const project = await this.projectRepository.findOne({
       where: { id: projectId },
-      relations: ['versions'],
+      relations: ['versions', 'configurations'],
     });
 
     if (!project) {
@@ -52,6 +52,13 @@ export class ProjectVersionService {
 
     if (project.ownerId !== ownerId) {
       throw new BadRequestException('You do not have permission to add versions to this project');
+    }
+
+    // Check if project has any configuration - prevent version creation if not
+    if (!project.configurations || project.configurations.length === 0) {
+      throw new BadRequestException(
+        'Cannot create a version for this project because it has no configuration',
+      );
     }
 
     // Check if version already exists

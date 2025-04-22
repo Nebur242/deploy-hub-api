@@ -66,6 +66,9 @@ export class Deployment {
   @Column({ nullable: true })
   workflowRunId?: string;
 
+  @Column({ nullable: true })
+  siteId: string;
+
   @Column({
     type: 'enum',
     enum: DeploymentStatus,
@@ -87,6 +90,13 @@ export class Deployment {
 
   @Column({ default: 0 })
   retryCount: number;
+
+  @Column({ nullable: true, type: 'jsonb' })
+  webhookInfo?: {
+    hookId: number;
+    repositoryOwner: string;
+    repositoryName: string;
+  };
 
   @CreateDateColumn()
   createdAt: Date;

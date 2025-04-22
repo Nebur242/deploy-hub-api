@@ -1,5 +1,11 @@
 import { EncryptionService } from '@app/shared/encryption/encryption.service';
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  BadGatewayException,
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IPaginationOptions, paginate, Pagination } from 'nestjs-typeorm-paginate';
 import { Repository } from 'typeorm';
@@ -9,6 +15,7 @@ import { FilterDeploymentDto } from './dto/filter.dto';
 import { GitHubAccount } from './dto/github-account.dto';
 import { Deployment, DeploymentStatus } from './entities/deployment.entity';
 import { GithubDeployerService } from './services/github-deployer.service';
+import { GithubWebhookService } from './services/github-webhook.service';
 import { ProjectConfiguration } from '../projects/entities/project-configuration.entity';
 import { Project } from '../projects/entities/project.entity';
 
@@ -21,6 +28,7 @@ export class DeploymentService {
     private deploymentRepository: Repository<Deployment>,
     private encryptionService: EncryptionService,
     private readonly deployerService: GithubDeployerService,
+    private readonly webhookService: GithubWebhookService,
     @InjectRepository(ProjectConfiguration)
     private projectConfigurationRepository: Repository<ProjectConfiguration>,
   ) {}
@@ -44,6 +52,7 @@ export class DeploymentService {
       branch: serviceCreateDeploymentDto.branch,
       status: 'pending',
       environmentVariables: serviceCreateDeploymentDto.environmentVariables,
+      siteId: serviceCreateDeploymentDto.siteId || undefined,
     });
 
     await this.deploymentRepository.save(deployment);
@@ -58,7 +67,6 @@ export class DeploymentService {
     // Decrypt GitHub account tokens
     const githubAccounts = configuration.githubAccounts.map(account => ({
       ...account,
-      //   accessToken: this.encryptionService.decrypt(account.accessToken),
       available: true,
       failureCount: 0,
       lastUsed: new Date(),
@@ -71,6 +79,7 @@ export class DeploymentService {
     // Start deployment process asynchronously with ordered accounts
     try {
       const orderedAccounts = this.getOrderedAccounts(githubAccounts, recentDeployments);
+
       await this.triggerDeployment(
         deployment,
         configuration,
@@ -93,9 +102,13 @@ export class DeploymentService {
    * Order GitHub accounts for round-robin deployment
    */
   private getOrderedAccounts(
-    githubAccounts: GitHubAccount[],
+    accounts: GitHubAccount[],
     recentDeployments: Deployment[],
   ): GitHubAccount[] {
+    const githubAccounts = accounts.map(account => ({
+      ...account,
+      accessToken: this.encryptionService.decrypt(account.accessToken),
+    }));
     // If there's only one account or no recent deployments, just return the accounts
     if (githubAccounts.length <= 1 || recentDeployments.length === 0) {
       return [...githubAccounts];
@@ -151,9 +164,44 @@ export class DeploymentService {
       };
       deployment.workflowRunId = `${result.workflowRunId}`;
       deployment.status = DeploymentStatus.RUNNING;
-      await this.deploymentRepository.save(deployment);
 
-      // Successfully deployed, return
+      // Create webhook for this repository to get real-time status updates
+      try {
+        // const { owner: repositoryOwner, name: repositoryName } =
+        //   this.webhookService.extractRepositoryInfo(account.repository);
+
+        const webhookResult = await this.webhookService.createDeploymentWebhook(
+          githubAccount.username,
+          githubAccount.repository,
+          account.accessToken, // Using the decrypted token from orderedAccounts
+          deployment.id,
+        );
+
+        if (webhookResult.success && webhookResult.hookId) {
+          // Store webhook information in the deployment record
+          deployment.webhookInfo = {
+            hookId: webhookResult.hookId,
+            repositoryOwner: githubAccount.username,
+            repositoryName: githubAccount.repository,
+          };
+          this.logger.log(
+            `Created webhook ${webhookResult.hookId} for deployment ${deployment.id}`,
+          );
+        } else {
+          this.logger.warn(
+            `Failed to create webhook for deployment ${deployment.id}: ${webhookResult.message}`,
+          );
+        }
+      } catch (err) {
+        const webhookError = err as Error;
+        // Don't fail deployment if webhook creation fails
+        this.logger.error(
+          `Error creating webhook for deployment ${deployment.id}: ${webhookError.message}`,
+          webhookError.stack,
+        );
+      }
+
+      await this.deploymentRepository.save(deployment);
       return;
     } catch (err) {
       const error = err as Error;
@@ -163,7 +211,9 @@ export class DeploymentService {
       deployment.status = DeploymentStatus.FAILED;
       deployment.errorMessage = error.message;
       await this.deploymentRepository.save(deployment);
-      throw error;
+      throw new BadGatewayException(
+        `Deployment failed with account ${account.username}: ${error.message}`,
+      );
     }
   }
 
@@ -174,11 +224,11 @@ export class DeploymentService {
     const deployment = await this.deploymentRepository.findOne({ where: { id: deploymentId } });
 
     if (!deployment) {
-      throw new Error(`Deployment with ID "${deploymentId}" not found`);
+      throw new NotFoundException(`Deployment with ID "${deploymentId}" not found`);
     }
 
     if (deployment.status !== DeploymentStatus.FAILED) {
-      throw new Error('Only failed deployments can be retried');
+      throw new BadRequestException('Only failed deployments can be retried');
     }
 
     // Reset deployment status for retry
@@ -225,8 +275,15 @@ export class DeploymentService {
       configurationId: configuration.id,
       environment: deployment.environment,
       branch: deployment.branch,
-      environmentVariables: deployment.environmentVariables,
+      environmentVariables: deployment.environmentVariables.map(env => ({
+        ...env,
+        defaultValue:
+          env.isSecret && env.defaultValue
+            ? this.encryptionService.decrypt(env.defaultValue)
+            : env.defaultValue,
+      })),
       ownerId: deployment.ownerId,
+      siteId: deployment.siteId,
     };
 
     // Trigger deployment with reordered accounts
@@ -404,17 +461,29 @@ export class DeploymentService {
       );
 
       // Update deployment based on workflow status
+      let completedDeployment = false;
+
       if (status.status === 'completed') {
         if (status.conclusion === 'success') {
           deployment.status = DeploymentStatus.SUCCESS;
           deployment.deploymentUrl = status.deploymentUrl;
           deployment.completedAt = new Date();
+          completedDeployment = true;
         } else if (status.conclusion === 'failure' || status.conclusion === 'cancelled') {
           deployment.status = DeploymentStatus.FAILED;
           deployment.errorMessage = `GitHub workflow ${status.conclusion}`;
+          completedDeployment = true;
         }
 
         await this.deploymentRepository.save(deployment);
+
+        // Cleanup webhook if deployment is complete and webhook exists
+        if (completedDeployment && deployment.webhookInfo && deployment.webhookInfo.hookId) {
+          this.cleanupDeploymentWebhook(deployment).catch(err => {
+            const error = err as Error;
+            this.logger.error(`Failed to clean up webhook: ${error.message}`);
+          });
+        }
       }
 
       return deployment;
@@ -422,6 +491,43 @@ export class DeploymentService {
       const error = err as Error;
       this.logger.error(`Error updating deployment status: ${error.message}`);
       return deployment;
+    }
+  }
+
+  /**
+   * Clean up webhook after deployment completion
+   */
+  private async cleanupDeploymentWebhook(deployment: Deployment): Promise<void> {
+    if (!deployment.webhookInfo || !deployment.webhookInfo.hookId || !deployment.githubAccount) {
+      return;
+    }
+
+    try {
+      const { hookId, repositoryOwner, repositoryName } = deployment.webhookInfo;
+      const accessToken = this.encryptionService.decrypt(deployment.githubAccount.accessToken);
+
+      const success = await this.webhookService.deleteDeploymentWebhook(
+        repositoryOwner,
+        repositoryName,
+        accessToken,
+        hookId,
+      );
+
+      if (success) {
+        this.logger.log(`Cleaned up webhook ${hookId} for completed deployment ${deployment.id}`);
+
+        // Remove webhook info from deployment
+        deployment.webhookInfo = undefined;
+        await this.deploymentRepository.save(deployment);
+      } else {
+        this.logger.warn(`Failed to delete webhook ${hookId} for deployment ${deployment.id}`);
+      }
+    } catch (err) {
+      const error = err as Error;
+      this.logger.error(
+        `Error deleting webhook for deployment ${deployment.id}: ${error.message}`,
+        error.stack,
+      );
     }
   }
 }

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Octokit } from '@octokit/rest';
 
 import { ServiceCreateDeploymentDto } from '../dto/create-deployment.dto';
@@ -25,7 +25,7 @@ export class GithubDeployerService {
       const octokit = new Octokit({ auth: githubAccount.accessToken });
 
       // Get the workflow ID
-      const workflowPath = '.github/workflows/deploy.yml';
+      const workflowPath = `.github/workflows/${githubAccount.workflowFile}`;
 
       // Find the workflow
       const { data: workflows } = await octokit.actions.listRepoWorkflows({
@@ -37,13 +37,14 @@ export class GithubDeployerService {
       const workflow = workflows.workflows.find(w => w.path === workflowPath);
 
       if (!workflow) {
-        throw new Error(`Workflow not found: ${workflowPath}`);
+        throw new NotFoundException(`Workflow not found: ${workflowPath}`);
       }
 
       // Prepare workflow inputs based on deployment provider
       const inputs: Record<string, string> = {
-        branch: deployment.branch,
-        environment: deployment.environment,
+        BRANCH: deployment.branch,
+        ENVIRONMENT: deployment.environment,
+        ACCESS_TOKEN: githubAccount.accessToken,
       };
 
       // Add environment variables as inputs
@@ -52,17 +53,22 @@ export class GithubDeployerService {
       });
 
       // Add deployment metadata for tracking
-      inputs.deployment_id = deployment.id;
-      inputs.user_id = deployment.ownerId;
-      inputs.project_id = deployment.projectId;
+      //   inputs.deployment_id = deployment.id;
+      //   inputs.user_id = deployment.ownerId;
+      //   inputs.project_id = deployment.projectId;
+
+      //   console.log('Inputs:', inputs);
+      //   console.log('Deployment:', workflow.id);
+
+      //   return { workflowRunId: 0 };
 
       // Trigger the workflow
       await octokit.actions.createWorkflowDispatch({
         owner: githubAccount.username,
         repo: githubAccount.repository,
         workflow_id: workflow.id,
-        ref: 'main', // The branch where the workflow file exists
-        // inputs,
+        ref: deploymentConfig.branch, // The branch where the workflow file exists
+        inputs,
       });
 
       // Get the workflow run ID - try multiple times as there can be a delay
