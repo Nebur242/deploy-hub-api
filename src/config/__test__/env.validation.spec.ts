@@ -33,13 +33,19 @@ describe('EnvironmentVariables', function (this: void) {
         STAGE: 'dev',
         ENCRYPTION_KEY: 'encryption-key',
         ENCRYPTION_SALT: 'encryption-salt',
+        DEPLOYMENT_TRACKER_BATCH_SIZE: '100',
+        DEPLOYMENT_MAX_RUNNING_HOURS: '24',
+        API_BASE_URL: 'https://api.example.com',
       };
 
       // Act
       const validatedConfig = validate(mockConfig);
-
-      // Assert
-      expect(validatedConfig).toBeDefined();
+      expect(validatedConfig.DB_PORT).toBe(5432); // Should be converted to number
+      expect(validatedConfig.NODE_ENV).toBe('development');
+      expect(validatedConfig.DB_TYPE).toBe('postgres');
+      expect(validatedConfig.DEPLOYMENT_TRACKER_BATCH_SIZE).toBe(100);
+      expect(validatedConfig.DEPLOYMENT_MAX_RUNNING_HOURS).toBe(24);
+      expect(validatedConfig.API_BASE_URL).toBe('https://api.example.com');
       expect(validatedConfig.DB_PORT).toBe(5432); // Should be converted to number
       expect(validatedConfig.NODE_ENV).toBe('development');
       expect(validatedConfig.DB_TYPE).toBe('postgres');
@@ -67,6 +73,9 @@ describe('EnvironmentVariables', function (this: void) {
         PORT: '3000',
         ENCRYPTION_KEY: 'encryption-key',
         ENCRYPTION_SALT: 'encryption-salt',
+        DEPLOYMENT_TRACKER_BATCH_SIZE: '100',
+        DEPLOYMENT_MAX_RUNNING_HOURS: '24',
+        API_BASE_URL: 'https://api.example.com',
         // For sqlite, we don't need these
         // DB_HOST, DB_PORT, DB_USERNAME, DB_PASSWORD
       };
@@ -205,6 +214,9 @@ describe('EnvironmentVariables', function (this: void) {
         DB_PASSWORD: 'password',
         ENCRYPTION_KEY: 'encryption-key',
         ENCRYPTION_SALT: 'encryption-salt',
+        DEPLOYMENT_TRACKER_BATCH_SIZE: '100',
+        DEPLOYMENT_MAX_RUNNING_HOURS: '24',
+        API_BASE_URL: 'https://api.example.com',
       };
 
       // Act
@@ -243,6 +255,9 @@ describe('EnvironmentVariables', function (this: void) {
         ANOTHER_EXTRA: 123, // Another extraneous field,
         ENCRYPTION_KEY: 'encryption-key',
         ENCRYPTION_SALT: 'encryption-salt',
+        DEPLOYMENT_TRACKER_BATCH_SIZE: '100',
+        DEPLOYMENT_MAX_RUNNING_HOURS: '24',
+        API_BASE_URL: 'https://api.example.com',
       };
 
       // Act
@@ -283,6 +298,9 @@ describe('EnvironmentVariables', function (this: void) {
         STAGE: 'production', // Optional field
         ENCRYPTION_KEY: 'encryption-key',
         ENCRYPTION_SALT: 'encryption-salt',
+        DEPLOYMENT_TRACKER_BATCH_SIZE: '100',
+        DEPLOYMENT_MAX_RUNNING_HOURS: '24',
+        API_BASE_URL: 'https://api.example.com',
       };
 
       // Act
@@ -321,6 +339,9 @@ describe('EnvironmentVariables', function (this: void) {
         DB_PASSWORD: 'password',
         ENCRYPTION_KEY: 'encryption-key',
         ENCRYPTION_SALT: 'encryption-salt',
+        DEPLOYMENT_TRACKER_BATCH_SIZE: '100',
+        DEPLOYMENT_MAX_RUNNING_HOURS: '24',
+        API_BASE_URL: 'https://api.example.com',
         // No optional fields: DB_SSL, DB_LOGGING, DB_SYNC, STAGE
       };
 
