@@ -50,7 +50,7 @@ export class DeploymentService {
       ownerId: serviceCreateDeploymentDto.ownerId,
       environment: serviceCreateDeploymentDto.environment,
       branch: serviceCreateDeploymentDto.branch,
-      status: 'pending',
+      status: DeploymentStatus.PENDING,
       environmentVariables: serviceCreateDeploymentDto.environmentVariables,
       siteId: serviceCreateDeploymentDto.siteId || undefined,
     });
