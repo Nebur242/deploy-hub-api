@@ -1,5 +1,5 @@
 import { EncryptionService } from '@app/shared/encryption/encryption.service';
-import { Module, OnModuleInit } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { ProjectConfigurationController } from './controllers/project-configuration.controller';
@@ -40,12 +40,4 @@ import { Category } from '../categories/entities/category.entity';
     PublicProjectService,
   ],
 })
-export class ProjectsModule implements OnModuleInit {
-  constructor(private readonly encryptionService: EncryptionService) {}
-
-  onModuleInit() {
-    // Inject the encryption service into the ProjectConfiguration entity
-    // This will make it available for the BeforeInsert and BeforeUpdate hooks
-    ProjectConfiguration.setEncryptionService(this.encryptionService);
-  }
-}
+export class ProjectsModule {}

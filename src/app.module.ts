@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { AppController } from './app.controller';
@@ -7,6 +8,7 @@ import { AppService } from './app.service';
 import { EnvironmentVariables, validate } from './config/env.validation';
 import { AuthModule } from './modules/auth/auth.module';
 import { CategoriesModule } from './modules/categories/categories.module';
+import { DeploymentModule } from './modules/deployment-module/deployment-module.module';
 import { FirebaseModule } from './modules/firebase/firebase.module';
 import { LicensesModule } from './modules/licenses/licenses.module';
 import { MediaModule } from './modules/media/media.module';
@@ -20,6 +22,7 @@ import { UserModule } from './modules/users/users.module';
       isGlobal: true,
       validate,
     }),
+    ScheduleModule.forRoot(),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -45,6 +48,7 @@ import { UserModule } from './modules/users/users.module';
     MediaModule,
     ProjectsModule,
     LicensesModule,
+    DeploymentModule,
   ],
   controllers: [AppController],
   providers: [AppService],

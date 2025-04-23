@@ -1,3 +1,4 @@
+import { EncryptionService } from '@app/shared/encryption/encryption.service';
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -12,6 +13,7 @@ export class ProjectConfigurationService {
   constructor(
     @InjectRepository(ProjectConfiguration)
     private configRepository: Repository<ProjectConfiguration>,
+    private readonly encryptService: EncryptionService,
   ) {}
 
   async findOne(id: string): Promise<ProjectConfiguration> {
@@ -22,6 +24,21 @@ export class ProjectConfigurationService {
     if (!config) {
       throw new NotFoundException(`Project configuration with ID ${id} not found`);
     }
+
+    // Decrypt sensitive data
+    config.githubAccounts = config.githubAccounts.map(githubAccount => ({
+      ...githubAccount,
+      accessToken: this.encryptService.decrypt(githubAccount.accessToken),
+    }));
+    config.deploymentOption.environmentVariables = config.deploymentOption.environmentVariables.map(
+      variable => ({
+        ...variable,
+        defaultValue:
+          variable.isSecret && variable.defaultValue
+            ? this.encryptService.decrypt(variable.defaultValue)
+            : variable.defaultValue,
+      }),
+    );
 
     return config;
   }
@@ -67,9 +84,26 @@ export class ProjectConfigurationService {
 
       try {
         // Create the configuration - environment variables will be processed by entity hooks
+
         const newConfig = this.configRepository.create({
           projectId,
           ...createConfigDto,
+          githubAccounts: createConfigDto.githubAccounts.map(githubAccount => ({
+            ...githubAccount,
+            accessToken: this.encryptService.encrypt(githubAccount.accessToken),
+          })),
+          deploymentOption: {
+            ...createConfigDto.deploymentOption,
+            environmentVariables: createConfigDto.deploymentOption.environmentVariables.map(
+              variable => ({
+                ...variable,
+                defaultValue:
+                  variable.isSecret && variable.defaultValue
+                    ? this.encryptService.encrypt(variable.defaultValue)
+                    : variable.defaultValue,
+              }),
+            ),
+          },
         });
 
         // Save within transaction
@@ -126,10 +160,32 @@ export class ProjectConfigurationService {
 
       try {
         // Update configuration - environment variables will be processed by entity hooks
-        Object.assign(config, updateConfigDto);
+        const upDated = {
+          ...updateConfigDto,
+          githubAccounts: (updateConfigDto?.githubAccounts || config.githubAccounts).map(
+            githubAccount => ({
+              ...githubAccount,
+              accessToken: this.encryptService.encrypt(githubAccount.accessToken),
+            }),
+          ),
+          deploymentOption: {
+            ...updateConfigDto.deploymentOption,
+            environmentVariables: (
+              updateConfigDto?.deploymentOption?.environmentVariables ||
+              config.deploymentOption.environmentVariables
+            ).map(variable => ({
+              ...variable,
+              defaultValue:
+                variable.isSecret && variable.defaultValue
+                  ? this.encryptService.encrypt(variable.defaultValue)
+                  : variable.defaultValue,
+            })),
+          },
+        };
+        Object.assign(config, upDated);
 
         // Save within transaction
-        return await transactionalEntityManager.save(ProjectConfiguration, config);
+        return transactionalEntityManager.save(ProjectConfiguration, config);
       } catch (err) {
         const error = err as Error;
 

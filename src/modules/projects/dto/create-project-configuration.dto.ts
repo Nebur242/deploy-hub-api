@@ -6,7 +6,6 @@ import {
   IsOptional,
   ValidateNested,
   IsBoolean,
-  IsUrl,
   IsNotEmpty,
 } from 'class-validator';
 
@@ -26,7 +25,6 @@ export class EnvironmentVariableDto {
 
   @IsOptional()
   @IsString()
-  @IsUrl()
   video?: string;
 
   @IsNotEmpty()

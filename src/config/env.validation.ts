@@ -128,6 +128,23 @@ export class EnvironmentVariables {
   @IsString()
   @Expose()
   ENCRYPTION_SALT: string;
+
+  @IsNotEmpty()
+  @IsNumber()
+  @Expose()
+  @Transform(item => parseInt(item.value as string, 10))
+  DEPLOYMENT_TRACKER_BATCH_SIZE: number;
+
+  @IsNotEmpty()
+  @IsNumber()
+  @Expose()
+  @Transform(item => parseInt(item.value as string, 10))
+  DEPLOYMENT_MAX_RUNNING_HOURS: number;
+
+  @IsNotEmpty()
+  @IsString()
+  @Expose()
+  API_BASE_URL: string;
 }
 
 export const validate = (config: Record<string, unknown>) => {

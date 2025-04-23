@@ -1,6 +1,7 @@
+import { DeploymentProvider } from '@app/modules/projects/entities/project-configuration.entity';
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
-import { DeploymentProvider, Theme } from '../dto/user-preferences.dto';
+import { Theme } from '../dto/user-preferences.dto';
 
 @Entity('user_preferences')
 export class UserPreferences {
