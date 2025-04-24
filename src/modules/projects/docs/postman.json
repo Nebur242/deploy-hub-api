@@ -554,6 +554,383 @@
         }
       ],
       "description": "Operations related to project license options"
+    },
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "Create Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"licenseId\": \"{{license_id}}\",\n    \"currency\": \"USD\",\n    \"notes\": \"Enterprise license purchase for production use\"\n}"
+            },
+            "url": {
+              "raw": "{{api_url}}/orders",
+              "host": ["{{api_url}}"],
+              "path": ["orders"]
+            },
+            "description": "Create a new order for a license purchase"
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Orders",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/orders?page=1&limit=10&status=PENDING&search=enterprise",
+              "host": ["{{api_url}}"],
+              "path": ["orders"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "status",
+                  "value": "PENDING"
+                },
+                {
+                  "key": "search",
+                  "value": "enterprise"
+                }
+              ]
+            },
+            "description": "Get all orders for the current user with filtering"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Order By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/orders/{{order_id}}",
+              "host": ["{{api_url}}"],
+              "path": ["orders", "{{order_id}}"]
+            },
+            "description": "Get a specific order by ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Admin - Get All Orders",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/orders/admin?page=1&limit=20&status=COMPLETED&licenseId={{license_id}}",
+              "host": ["{{api_url}}"],
+              "path": ["orders", "admin"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "status",
+                  "value": "COMPLETED"
+                },
+                {
+                  "key": "licenseId",
+                  "value": "{{license_id}}"
+                }
+              ]
+            },
+            "description": "Admin endpoint to get all orders with filtering"
+          },
+          "response": []
+        },
+        {
+          "name": "Admin - Get Order By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/orders/admin/{{order_id}}",
+              "host": ["{{api_url}}"],
+              "path": ["orders", "admin", "{{order_id}}"]
+            },
+            "description": "Admin endpoint to get a specific order by ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Admin - Update Order Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"status\": \"COMPLETED\"\n}"
+            },
+            "url": {
+              "raw": "{{api_url}}/orders/{{order_id}}/status",
+              "host": ["{{api_url}}"],
+              "path": ["orders", "{{order_id}}", "status"]
+            },
+            "description": "Admin endpoint to update an order's status"
+          },
+          "response": []
+        }
+      ],
+      "description": "Operations related to order management"
+    },
+    {
+      "name": "Payments",
+      "item": [
+        {
+          "name": "Process Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"orderId\": \"{{order_id}}\",\n    \"amount\": 99.99,\n    \"currency\": \"USD\",\n    \"paymentMethod\": \"CREDIT_CARD\",\n    \"transactionId\": \"tx_123456789\"\n}"
+            },
+            "url": {
+              "raw": "{{api_url}}/payments",
+              "host": ["{{api_url}}"],
+              "path": ["payments"]
+            },
+            "description": "Process a payment for an existing order"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Payment By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/payments/{{payment_id}}",
+              "host": ["{{api_url}}"],
+              "path": ["payments", "{{payment_id}}"]
+            },
+            "description": "Get a payment by its ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Payments By Order ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/payments/order/{{order_id}}",
+              "host": ["{{api_url}}"],
+              "path": ["payments", "order", "{{order_id}}"]
+            },
+            "description": "Get all payments for a specific order"
+          },
+          "response": []
+        },
+        {
+          "name": "Admin - Get Payments By Order ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/payments/admin/order/{{order_id}}",
+              "host": ["{{api_url}}"],
+              "path": ["payments", "admin", "order", "{{order_id}}"]
+            },
+            "description": "Admin endpoint to get all payments for any order"
+          },
+          "response": []
+        },
+        {
+          "name": "Admin - Update Payment Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"status\": \"COMPLETED\"\n}"
+            },
+            "url": {
+              "raw": "{{api_url}}/payments/{{payment_id}}/status",
+              "host": ["{{api_url}}"],
+              "path": ["payments", "{{payment_id}}", "status"]
+            },
+            "description": "Admin endpoint to update a payment's status"
+          },
+          "response": []
+        }
+      ],
+      "description": "Operations related to payment processing"
+    },
+    {
+      "name": "User Licenses",
+      "item": [
+        {
+          "name": "Get Active Licenses",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/user-licenses/active",
+              "host": ["{{api_url}}"],
+              "path": ["user-licenses", "active"]
+            },
+            "description": "Get all active licenses for the current user"
+          },
+          "response": []
+        },
+        {
+          "name": "Check Active License",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/user-licenses/has-active?projectId={{project_id}}",
+              "host": ["{{api_url}}"],
+              "path": ["user-licenses", "has-active"],
+              "query": [
+                {
+                  "key": "projectId",
+                  "value": "{{project_id}}"
+                }
+              ]
+            },
+            "description": "Check if the user has an active license for a project"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Specific Active License",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/user-licenses/active/{{license_id}}",
+              "host": ["{{api_url}}"],
+              "path": ["user-licenses", "active", "{{license_id}}"]
+            },
+            "description": "Get a specific active license for the current user"
+          },
+          "response": []
+        },
+        {
+          "name": "Purchase License",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/licenses/{{license_id}}/purchase",
+              "host": ["{{api_url}}"],
+              "path": ["licenses", "{{license_id}}", "purchase"]
+            },
+            "description": "Purchase a specific license option"
+          },
+          "response": []
+        }
+      ],
+      "description": "Operations related to user license verification and purchase"
     }
   ]
 }

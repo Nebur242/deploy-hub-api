@@ -1,3 +1,109 @@
+# Users Module
+
+## Overview
+
+The Users Module manages user accounts, profiles, and roles within the Deploy Hub API. This module provides functionality for user registration, profile management, and role-based permissions, working closely with the Authentication Module.
+
+## Features
+
+- User account management
+- User profile data
+- Role management (Admin, User, SuperAdmin)
+- User preferences
+- Integration with Auth Module
+
+## Entities
+
+### User
+
+The `User` entity represents a registered user in the system and contains:
+
+- Basic information (name, email)
+- Authentication details
+- Role information
+- Account status
+- Profile preferences
+- Associated licenses and projects
+
+## Services
+
+### UserService
+
+Provides methods for:
+
+- Creating and updating user accounts
+- Finding users by various criteria
+- Managing user roles
+- Validating user access
+- Handling profile information
+
+## Integration Points
+
+The Users Module integrates with:
+
+- **Auth Module**: For authentication and authorization
+- **Licenses Module**: For tracking user license ownership
+- **Projects Module**: For managing user project associations
+- **Payment Module**: For tracking user purchases
+
+## User Roles and Permissions
+
+The module supports different user roles with varying permissions:
+
+1. **User**: Standard user with access to own resources
+2. **Admin**: Administrative user with elevated permissions
+3. **SuperAdmin**: Highest level of access for system management
+
+## Usage
+
+### User Creation
+
+```typescript
+// Example: Creating a new user
+const user = await userService.createUser({
+  email: 'user@example.com',
+  displayName: 'John Doe',
+  firebaseUid: 'firebase-uid',
+  role: Role.USER,
+});
+```
+
+### Finding Users
+
+```typescript
+// Example: Finding a user by email
+const user = await userService.findByEmail('user@example.com');
+
+// Example: Finding a user by ID
+const user = await userService.findById(userId);
+```
+
+### Updating User Information
+
+```typescript
+// Example: Updating a user's profile
+await userService.updateUser(userId, {
+  displayName: 'Jane Doe',
+  avatarUrl: 'https://example.com/avatar.jpg',
+});
+```
+
+### Managing Roles
+
+```typescript
+// Example: Promoting a user to admin (requires SuperAdmin)
+await userService.updateUserRole(userId, Role.ADMIN);
+```
+
+## Error Handling
+
+The module includes error handling for:
+
+- User not found
+- Duplicate user accounts
+- Unauthorized role changes
+- Invalid user data
+
 # User API
 
 This document provides an overview of the User API endpoints available in the `UserController`. All endpoints require authentication as enforced by the `@Authenticated` decorator.

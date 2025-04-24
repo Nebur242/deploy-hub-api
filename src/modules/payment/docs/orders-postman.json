@@ -1,0 +1,181 @@
+{
+  "info": {
+    "name": "Deploy Hub - Orders API",
+    "description": "API collection for Orders management in Deploy Hub",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "Create Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"licenseId\": \"{{license_id}}\",\n    \"currency\": \"USD\",\n    \"notes\": \"Enterprise license purchase for production use\"\n}"
+            },
+            "url": {
+              "raw": "{{api_url}}/orders",
+              "host": ["{{api_url}}"],
+              "path": ["orders"]
+            },
+            "description": "Create a new order for a license purchase"
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Orders",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/orders?page=1&limit=10&status=PENDING&search=enterprise",
+              "host": ["{{api_url}}"],
+              "path": ["orders"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "status",
+                  "value": "PENDING"
+                },
+                {
+                  "key": "search",
+                  "value": "enterprise"
+                }
+              ]
+            },
+            "description": "Get all orders for the current user with filtering"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Order By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/orders/{{order_id}}",
+              "host": ["{{api_url}}"],
+              "path": ["orders", "{{order_id}}"]
+            },
+            "description": "Get a specific order by ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Admin - Get All Orders",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/orders/admin?page=1&limit=20&status=COMPLETED&licenseId={{license_id}}",
+              "host": ["{{api_url}}"],
+              "path": ["orders", "admin"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "status",
+                  "value": "COMPLETED"
+                },
+                {
+                  "key": "licenseId",
+                  "value": "{{license_id}}"
+                }
+              ]
+            },
+            "description": "Admin endpoint to get all orders with filtering"
+          },
+          "response": []
+        },
+        {
+          "name": "Admin - Get Order By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/orders/admin/{{order_id}}",
+              "host": ["{{api_url}}"],
+              "path": ["orders", "admin", "{{order_id}}"]
+            },
+            "description": "Admin endpoint to get a specific order by ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Admin - Update Order Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"status\": \"COMPLETED\"\n}"
+            },
+            "url": {
+              "raw": "{{api_url}}/orders/{{order_id}}/status",
+              "host": ["{{api_url}}"],
+              "path": ["orders", "{{order_id}}", "status"]
+            },
+            "description": "Admin endpoint to update an order's status"
+          },
+          "response": []
+        }
+      ],
+      "description": "Operations related to order management"
+    }
+  ]
+}

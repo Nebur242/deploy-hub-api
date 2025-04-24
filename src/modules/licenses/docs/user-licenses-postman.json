@@ -1,0 +1,151 @@
+{
+  "info": {
+    "name": "Deploy Hub - User Licenses API",
+    "description": "API collection for User License verification and purchase in Deploy Hub",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "User Licenses",
+      "item": [
+        {
+          "name": "Get Active Licenses",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/user-licenses/active",
+              "host": ["{{api_url}}"],
+              "path": ["user-licenses", "active"]
+            },
+            "description": "Get all active licenses for the current user"
+          },
+          "response": []
+        },
+        {
+          "name": "Check Active License",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/user-licenses/has-active?projectId={{project_id}}",
+              "host": ["{{api_url}}"],
+              "path": ["user-licenses", "has-active"],
+              "query": [
+                {
+                  "key": "projectId",
+                  "value": "{{project_id}}"
+                }
+              ]
+            },
+            "description": "Check if the user has an active license for a project"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Specific Active License",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/user-licenses/active/{{license_id}}",
+              "host": ["{{api_url}}"],
+              "path": ["user-licenses", "active", "{{license_id}}"]
+            },
+            "description": "Get a specific active license for the current user"
+          },
+          "response": []
+        },
+        {
+          "name": "Purchase License",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/licenses/{{license_id}}/purchase",
+              "host": ["{{api_url}}"],
+              "path": ["licenses", "{{license_id}}", "purchase"]
+            },
+            "description": "Purchase a specific license option"
+          },
+          "response": []
+        },
+        {
+          "name": "Admin - Get All User Licenses",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/user-licenses/admin/active?userId={{user_id}}",
+              "host": ["{{api_url}}"],
+              "path": ["user-licenses", "admin", "active"],
+              "query": [
+                {
+                  "key": "userId",
+                  "value": "{{user_id}}"
+                }
+              ]
+            },
+            "description": "Admin endpoint to get all active licenses for any user"
+          },
+          "response": []
+        },
+        {
+          "name": "Admin - Check User License",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/user-licenses/admin/has-active?userId={{user_id}}&projectId={{project_id}}",
+              "host": ["{{api_url}}"],
+              "path": ["user-licenses", "admin", "has-active"],
+              "query": [
+                {
+                  "key": "userId",
+                  "value": "{{user_id}}"
+                },
+                {
+                  "key": "projectId",
+                  "value": "{{project_id}}"
+                }
+              ]
+            },
+            "description": "Admin endpoint to check if a user has an active license for a project"
+          },
+          "response": []
+        }
+      ],
+      "description": "Operations related to user license verification and purchase"
+    }
+  ]
+}
