@@ -1,7 +1,20 @@
 import { CurrentUser } from '@app/core/decorators/current-user.decorator';
-import { Admin } from '@app/core/guards/roles-auth.guard';
+import { Admin, Authenticated } from '@app/core/guards/roles-auth.guard';
+import { CreateOrderDto } from '@app/modules/payment/dto';
+import { OrderService } from '@app/modules/payment/services/order.service';
 import { User } from '@app/modules/users/entities/user.entity';
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  Inject,
+  forwardRef,
+} from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -21,7 +34,11 @@ import { LicenseOptionService } from '../services/license-option.service';
 @ApiBearerAuth()
 @Controller('licenses')
 export class LicenseOptionController {
-  constructor(private readonly licenseService: LicenseOptionService) {}
+  constructor(
+    private readonly licenseService: LicenseOptionService,
+    @Inject(forwardRef(() => OrderService))
+    private readonly orderService: OrderService,
+  ) {}
 
   @Post()
   @Admin()
@@ -91,5 +108,20 @@ export class LicenseOptionController {
   @ApiParam({ name: 'id', description: 'License option ID' })
   remove(@CurrentUser() user: User, @Param('id') id: string) {
     return this.licenseService.remove(id, user.id);
+  }
+
+  @Post(':id/purchase')
+  @ApiOperation({ summary: 'Purchase a license' })
+  @ApiResponse({ status: 201, description: 'License purchase initiated' })
+  @ApiResponse({ status: 400, description: 'Invalid input data' })
+  @ApiResponse({ status: 404, description: 'License option not found' })
+  @ApiParam({ name: 'id', description: 'License option ID' })
+  @Authenticated()
+  purchase(@CurrentUser() user: User, @Param('id') id: string) {
+    // Create a simple order for the license
+    const createOrderDto: CreateOrderDto = {
+      licenseId: id,
+    };
+    return this.orderService.create(user.id, createOrderDto);
   }
 }

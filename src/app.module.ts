@@ -8,10 +8,11 @@ import { AppService } from './app.service';
 import { EnvironmentVariables, validate } from './config/env.validation';
 import { AuthModule } from './modules/auth/auth.module';
 import { CategoriesModule } from './modules/categories/categories.module';
-import { DeploymentModule } from './modules/deployment-module/deployment-module.module';
+import { DeploymentModule } from './modules/deployments/deployment-module.module';
 import { FirebaseModule } from './modules/firebase/firebase.module';
 import { LicensesModule } from './modules/licenses/licenses.module';
 import { MediaModule } from './modules/media/media.module';
+import { PaymentModule } from './modules/payment/payment.module';
 import { ProjectsModule } from './modules/projects/projects.module';
 import { TestHelpersModule } from './modules/test-helpers/test-helpers.module';
 import { UserModule } from './modules/users/users.module';
@@ -48,6 +49,7 @@ import { UserModule } from './modules/users/users.module';
     MediaModule,
     ProjectsModule,
     LicensesModule,
+    PaymentModule,
     DeploymentModule,
   ],
   controllers: [AppController],
