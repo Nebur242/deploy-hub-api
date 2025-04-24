@@ -1,5 +1,5 @@
 import { CurrentUser } from '@app/core/decorators/current-user.decorator';
-import { Admin } from '@app/core/guards/roles-auth.guard';
+import { Admin, Authenticated } from '@app/core/guards/roles-auth.guard';
 import { User } from '@app/modules/users/entities/user.entity';
 import { Controller, Get, Param, Query } from '@nestjs/common';
 import {
@@ -16,7 +16,6 @@ import { UserLicenseService } from '../services/user-license.service';
 @ApiTags('user-licenses')
 @ApiBearerAuth()
 @Controller('user-licenses')
-@Admin()
 export class UserLicenseController {
   constructor(private readonly userLicenseService: UserLicenseService) {}
 
@@ -31,6 +30,7 @@ export class UserLicenseController {
   @ApiOperation({ summary: 'Check if the user has an active license for a project' })
   @ApiResponse({ status: 200, description: 'Returns true if user has an active license' })
   @ApiQuery({ name: 'projectId', required: false, description: 'Filter by project ID' })
+  @Authenticated()
   async hasActiveLicense(@CurrentUser() user: User, @Query('projectId') projectId?: string) {
     const hasLicense = await this.userLicenseService.hasActiveLicense(user.id, projectId);
     return { hasActiveLicense: hasLicense };
@@ -40,6 +40,7 @@ export class UserLicenseController {
   @ApiOperation({ summary: 'Get a specific active license for the current user' })
   @ApiResponse({ status: 200, description: 'Returns the active license if found' })
   @ApiParam({ name: 'licenseId', description: 'License ID to check' })
+  @Authenticated()
   getUserActiveLicense(@CurrentUser() user: User, @Param('licenseId') licenseId: string) {
     return this.userLicenseService.getUserActiveLicense(user.id, licenseId);
   }

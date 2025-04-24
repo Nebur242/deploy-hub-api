@@ -1,5 +1,5 @@
 import { CurrentUser } from '@app/core/decorators/current-user.decorator';
-import { Admin } from '@app/core/guards/roles-auth.guard';
+import { Admin, Authenticated } from '@app/core/guards/roles-auth.guard';
 import { CreateOrderDto } from '@app/modules/payment/dto';
 import { OrderService } from '@app/modules/payment/services/order.service';
 import { User } from '@app/modules/users/entities/user.entity';
@@ -111,20 +111,17 @@ export class LicenseOptionController {
   }
 
   @Post(':id/purchase')
-  @Admin()
   @ApiOperation({ summary: 'Purchase a license' })
   @ApiResponse({ status: 201, description: 'License purchase initiated' })
   @ApiResponse({ status: 400, description: 'Invalid input data' })
   @ApiResponse({ status: 404, description: 'License option not found' })
   @ApiParam({ name: 'id', description: 'License option ID' })
+  @Authenticated()
   purchase(@CurrentUser() user: User, @Param('id') id: string) {
     // Create a simple order for the license
     const createOrderDto: CreateOrderDto = {
       licenseId: id,
     };
-
-    console.log('Creating order for license purchase:', createOrderDto, user);
-
     return this.orderService.create(user.id, createOrderDto);
   }
 }
