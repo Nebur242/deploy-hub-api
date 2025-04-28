@@ -181,6 +181,10 @@ export class CategoryFilterDto {
   @IsUUID()
   parentId?: string;
 
+  @ApiPropertyOptional({ description: 'category owner id' })
+  @IsOptional()
+  ownerId: string;
+
   @ApiPropertyOptional({ description: 'Search by name' })
   @IsString()
   @IsOptional()

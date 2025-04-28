@@ -96,6 +96,7 @@ export class DeploymentController {
         {
           ...createDeploymentDto,
           ownerId: user.id,
+          owner: user,
           environmentVariables: createDeploymentDto.environmentVariables.map(env => {
             if (env.key === 'VERCEL_PROJECT_ID') {
               return {

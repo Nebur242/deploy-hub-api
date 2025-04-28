@@ -47,13 +47,8 @@ export class Project {
   @Index()
   slug: string;
 
-  @Column({
-    type: 'enum',
-    enum: TechStack,
-    array: true,
-    default: [],
-  })
-  techStack: TechStack[];
+  @Column({ type: 'text', array: true, default: [] })
+  techStack: string[];
 
   @Column({
     type: 'enum',

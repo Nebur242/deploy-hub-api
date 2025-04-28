@@ -50,8 +50,11 @@ export class MediaController {
     description: 'Return all media records based on query.',
     type: [MediaResponseDto],
   })
-  findAll(@Query() paginationOptionsDto: MediaQueryDto) {
-    return this.mediaService.findAll(paginationOptionsDto);
+  findAll(@Query() paginationOptionsDto: MediaQueryDto, @CurrentUser() user: User) {
+    return this.mediaService.findAll({
+      ...paginationOptionsDto,
+      ownerId: user.id,
+    });
   }
 
   @Get(':id')

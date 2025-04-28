@@ -48,7 +48,7 @@ export class LicenseOptionController {
   @ApiResponse({ status: 404, description: 'Project not found' })
   @ApiParam({ name: 'projectId', description: 'Project ID' })
   create(@CurrentUser() user: User, @Body() createLicenseDto: CreateLicenseOptionDto) {
-    return this.licenseService.create(user.id, createLicenseDto);
+    return this.licenseService.create(user, createLicenseDto);
   }
 
   @Get()
@@ -65,15 +65,22 @@ export class LicenseOptionController {
   })
   @ApiQuery({ name: 'page', required: false, description: 'Page number (1-based)' })
   @ApiQuery({ name: 'limit', required: false, description: 'Items per page' })
-  findAll(@Query() filter: FilterLicenseDto) {
-    const { page = 1, limit = 10 } = filter;
+  @Admin()
+  findAll(@Query() filter: FilterLicenseDto, @CurrentUser() user: User) {
+    const { page = 1, limit = 10, ...rest } = filter;
     const paginationOptions: IPaginationOptions = {
       page,
       limit,
       route: '/licenses',
     };
 
-    return this.licenseService.findAll(filter, paginationOptions);
+    return this.licenseService.findAll(
+      {
+        ...rest,
+        ownerId: user.id,
+      },
+      paginationOptions,
+    );
   }
 
   @Get(':id')

@@ -1,6 +1,7 @@
 import { EnvironmentVariableDto } from '@app/modules/projects/dto/create-project-configuration.dto';
 import { ProjectConfiguration } from '@app/modules/projects/entities/project-configuration.entity';
 import { Project } from '@app/modules/projects/entities/project.entity';
+import { User } from '@app/modules/users/entities/user.entity';
 import {
   Entity,
   Column,
@@ -33,6 +34,10 @@ export class Deployment {
 
   @Column()
   ownerId: string;
+
+  @ManyToOne(() => User, { onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'ownerId' })
+  owner: User;
 
   @Column({ name: 'project_id' })
   projectId: string;

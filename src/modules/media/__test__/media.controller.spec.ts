@@ -1,9 +1,11 @@
 /* eslint-disable @typescript-eslint/unbound-method */
+import { User } from '@app/modules/users/entities/user.entity';
+import { Role } from '@app/shared/enums';
 import { Test, TestingModule } from '@nestjs/testing';
 
 import { CreateMediaDto } from '../dto/create-media.dto';
+import { MediaQueryDto } from '../dto/media-query.dto';
 import { MediaResponseDto } from '../dto/media-response.dto';
-import { PaginationOptionsDto } from '../dto/pagination-options.dto';
 import { UpdateMediaDto } from '../dto/update-media.dto';
 import { MediaType } from '../entities/media.entity';
 import { MediaController } from '../media.controller';
@@ -21,9 +23,15 @@ describe('MediaController', () => {
     remove: jest.fn(),
   };
 
-  const mockUser = {
+  const mockUser: Partial<User> = {
     id: 'user-id-123',
-    email: 'test@example.com',
+    uid: 'firebase-uid-123',
+    firstName: 'Test',
+    lastName: 'User',
+    company: 'Test Company',
+    roles: [Role.USER],
+    createdAt: new Date(),
+    updatedAt: new Date(),
   };
 
   const mockMediaResponse = {
@@ -83,7 +91,7 @@ describe('MediaController', () => {
 
       mockMediaService.create.mockResolvedValue(mockMediaResponse);
 
-      const result = await controller.create(createMediaDto, mockUser as any);
+      const result = await controller.create(createMediaDto, mockUser as User);
 
       expect(service.create).toHaveBeenCalledWith({
         ...createMediaDto,
@@ -95,7 +103,7 @@ describe('MediaController', () => {
 
   describe('findAll', () => {
     it('should return an array of media records', async () => {
-      const paginationOptions: PaginationOptionsDto = {
+      const queryDto: MediaQueryDto = {
         page: 1,
         limit: 10,
       };
@@ -103,9 +111,12 @@ describe('MediaController', () => {
 
       mockMediaService.findAll.mockResolvedValue(mediaList);
 
-      const result = await controller.findAll(paginationOptions);
+      const result = await controller.findAll(queryDto, mockUser as User);
 
-      expect(service.findAll).toHaveBeenCalledWith(paginationOptions);
+      expect(service.findAll).toHaveBeenCalledWith({
+        ...queryDto,
+        ownerId: mockUser.id,
+      });
       expect(result).toEqual(mediaList);
     });
   });
