@@ -9,6 +9,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 
+import { UserNotification } from './user-notification.entity';
 import { UserPreferences } from './user-preferences.entity';
 
 @Entity('users')
@@ -34,6 +35,10 @@ export class User {
   @OneToOne(() => UserPreferences, { cascade: true })
   @JoinColumn()
   preferences: UserPreferences;
+
+  @OneToOne(() => UserNotification, { cascade: true })
+  @JoinColumn()
+  notifications: UserNotification;
 
   @Column({ nullable: false, type: 'enum', enum: Role, default: ['user'], array: true })
   roles: `${Role}`[];

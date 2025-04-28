@@ -4,8 +4,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
+import { UserNotificationDto } from '../dto/user-notification.dto';
 import { UserPreferencesDto } from '../dto/user-preferences.dto';
 import { CreateUserDto, UpdateUserDto } from '../dto/user.dto';
+import { UserNotification } from '../entities/user-notification.entity';
 import { UserPreferences } from '../entities/user-preferences.entity';
 import { User } from '../entities/user.entity';
 import { UsersService } from '../users.service';
@@ -23,10 +25,16 @@ const mockPreferencesRepository = () => ({
   save: jest.fn(),
 });
 
+const mockNotificationRepository = () => ({
+  create: jest.fn(),
+  save: jest.fn(),
+});
+
 describe('UsersService', () => {
   let service: UsersService;
   let userRepository: Repository<User>;
   let preferencesRepository: Repository<UserPreferences>;
+  let notificationRepository: Repository<UserNotification>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -40,12 +48,17 @@ describe('UsersService', () => {
           provide: getRepositoryToken(UserPreferences),
           useFactory: mockPreferencesRepository,
         },
+        {
+          provide: getRepositoryToken(UserNotification),
+          useFactory: mockNotificationRepository,
+        },
       ],
     }).compile();
 
     service = module.get<UsersService>(UsersService);
     userRepository = module.get(getRepositoryToken(User));
     preferencesRepository = module.get(getRepositoryToken(UserPreferences));
+    notificationRepository = module.get(getRepositoryToken(UserNotification));
   });
 
   it('should be defined', () => {
@@ -53,7 +66,7 @@ describe('UsersService', () => {
   });
 
   describe('createUser', () => {
-    it('should create a user with default preferences', async () => {
+    it('should create a user with default preferences and notifications', async () => {
       const createUserDto: CreateUserDto = {
         uid: 'test-uid',
         firstName: 'John',
@@ -62,13 +75,17 @@ describe('UsersService', () => {
       };
 
       const preferences = new UserPreferences();
+      const notifications = new UserNotification();
       const newUser = new User();
       Object.assign(newUser, createUserDto);
       newUser.preferences = preferences;
+      newUser.notifications = notifications;
 
       jest.spyOn(userRepository, 'findOne').mockResolvedValue(null);
       jest.spyOn(preferencesRepository, 'create').mockReturnValue(preferences);
       jest.spyOn(preferencesRepository, 'save').mockResolvedValue(preferences);
+      jest.spyOn(notificationRepository, 'create').mockReturnValue(notifications);
+      jest.spyOn(notificationRepository, 'save').mockResolvedValue(notifications);
       jest.spyOn(userRepository, 'create').mockReturnValue(newUser);
       jest.spyOn(userRepository, 'save').mockResolvedValue(newUser);
 
@@ -76,9 +93,12 @@ describe('UsersService', () => {
 
       expect(preferencesRepository.create).toHaveBeenCalled();
       expect(preferencesRepository.save).toHaveBeenCalledWith(preferences);
+      expect(notificationRepository.create).toHaveBeenCalled();
+      expect(notificationRepository.save).toHaveBeenCalledWith(notifications);
       expect(userRepository.create).toHaveBeenCalledWith({
         ...createUserDto,
         preferences,
+        notifications,
       });
       expect(result).toEqual(newUser);
     });
@@ -110,7 +130,7 @@ describe('UsersService', () => {
 
       expect(await service.findAll()).toBe(result);
       expect(userRepository.find).toHaveBeenCalledWith({
-        relations: ['preferences'],
+        relations: ['preferences', 'notifications'],
       });
     });
   });
@@ -125,7 +145,7 @@ describe('UsersService', () => {
       expect(await service.findOne('test-id')).toBe(user);
       expect(userRepository.findOne).toHaveBeenCalledWith({
         where: { id: 'test-id' },
-        relations: ['preferences'],
+        relations: ['preferences', 'notifications'],
       });
     });
 
@@ -146,7 +166,7 @@ describe('UsersService', () => {
       expect(await service.findByFirebaseUid('test-uid')).toBe(user);
       expect(userRepository.findOne).toHaveBeenCalledWith({
         where: { uid: 'test-uid' },
-        relations: ['preferences'],
+        relations: ['preferences', 'notifications'],
       });
     });
 
@@ -218,6 +238,72 @@ describe('UsersService', () => {
     });
   });
 
+  describe('updateNotifications', () => {
+    it('should update notifications and return user', async () => {
+      const notifications = new UserNotification();
+      notifications.id = 'notify-id';
+
+      const user = new User();
+      user.id = 'test-id';
+      user.notifications = notifications;
+
+      const notificationDto: UserNotificationDto = {
+        marketing: true,
+        projectUpdates: false,
+      };
+
+      const updatedNotifications = new UserNotification();
+      Object.assign(updatedNotifications, notifications, notificationDto);
+
+      const updatedUser = new User();
+      Object.assign(updatedUser, user);
+      updatedUser.notifications = updatedNotifications;
+
+      jest.spyOn(service, 'findOne').mockResolvedValue(user);
+      jest.spyOn(notificationRepository, 'save').mockResolvedValue(updatedNotifications);
+
+      const result = await service.updateNotifications('test-id', notificationDto);
+
+      expect(service.findOne).toHaveBeenCalledWith('test-id');
+      expect(notificationRepository.save).toHaveBeenCalledWith({
+        ...notifications,
+        ...notificationDto,
+      });
+      expect(result).toEqual(updatedUser);
+    });
+
+    it('should create notifications if they do not exist and return user', async () => {
+      const user = new User();
+      user.id = 'test-id';
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      user.notifications = undefined as any;
+
+      const notificationDto: UserNotificationDto = {
+        marketing: true,
+        projectUpdates: false,
+      };
+
+      const createdNotifications = new UserNotification();
+      createdNotifications.id = 'new-notify-id';
+      Object.assign(createdNotifications, notificationDto);
+
+      const updatedUser = new User();
+      Object.assign(updatedUser, user);
+      updatedUser.notifications = createdNotifications;
+
+      jest.spyOn(service, 'findOne').mockResolvedValue(user);
+      jest.spyOn(notificationRepository, 'create').mockReturnValue(createdNotifications);
+      jest.spyOn(notificationRepository, 'save').mockResolvedValue(createdNotifications);
+
+      const result = await service.updateNotifications('test-id', notificationDto);
+
+      expect(service.findOne).toHaveBeenCalledWith('test-id');
+      expect(notificationRepository.create).toHaveBeenCalled();
+      expect(notificationRepository.save).toHaveBeenCalledWith(createdNotifications);
+      expect(result).toEqual(updatedUser);
+    });
+  });
+
   describe('remove', () => {
     it('should remove a user', async () => {
       const user = new User();
@@ -235,6 +321,9 @@ describe('UsersService', () => {
 
   describe('mapToResponseDto', () => {
     it('should map user entity to response DTO', () => {
+      const preferences = new UserPreferences();
+      const notifications = new UserNotification();
+
       const user = new User();
       user.id = 'test-id';
       user.uid = 'test-uid';
@@ -242,6 +331,8 @@ describe('UsersService', () => {
       user.lastName = 'Doe';
       user.company = 'Test Co';
       user.profilePicture = 'profile.jpg';
+      user.preferences = preferences;
+      user.notifications = notifications;
       user.createdAt = new Date();
       user.updatedAt = new Date();
 
@@ -254,6 +345,8 @@ describe('UsersService', () => {
         lastName: user.lastName,
         company: user.company,
         profilePicture: user.profilePicture,
+        preferences: user.preferences,
+        notifications: user.notifications,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
       });

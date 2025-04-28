@@ -3,6 +3,7 @@ import { ForbiddenException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { DecodedIdToken } from 'firebase-admin/auth';
 
+import { UserNotificationDto } from '../dto/user-notification.dto';
 import { UserPreferencesDto } from '../dto/user-preferences.dto';
 import { CreateUserDto, UpdateUserDto, UserResponseDto } from '../dto/user.dto';
 import { User } from '../entities/user.entity';
@@ -15,6 +16,7 @@ const mockUsersService = () => ({
   findByFirebaseUid: jest.fn(),
   update: jest.fn(),
   updatePreferences: jest.fn(),
+  updateNotifications: jest.fn(),
   remove: jest.fn(),
   mapToResponseDto: jest.fn(),
 });
@@ -194,6 +196,38 @@ describe('UserController', () => {
       const result = await controller.updatePreferences(userId, preferencesDto);
 
       expect(usersService.updatePreferences).toHaveBeenCalledWith(userId, preferencesDto);
+      expect(usersService.mapToResponseDto).toHaveBeenCalledWith(updatedUser);
+      expect(result).toEqual(responseDto);
+    });
+  });
+
+  describe('updateNotifications', () => {
+    it('should update user notifications and return the result', async () => {
+      const userId = 'test-id';
+      const notificationDto: UserNotificationDto = {
+        marketing: true,
+        projectUpdates: false,
+      };
+
+      const updatedUser = new User();
+      updatedUser.id = userId;
+
+      const responseDto: UserResponseDto = {
+        id: userId,
+        uid: 'firebase-uid',
+        firstName: 'John',
+        lastName: 'Doe',
+        roles: ['user'],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      jest.spyOn(usersService, 'updateNotifications').mockResolvedValue(updatedUser);
+      jest.spyOn(usersService, 'mapToResponseDto').mockReturnValue(responseDto);
+
+      const result = await controller.updateNotifications(userId, notificationDto);
+
+      expect(usersService.updateNotifications).toHaveBeenCalledWith(userId, notificationDto);
       expect(usersService.mapToResponseDto).toHaveBeenCalledWith(updatedUser);
       expect(result).toEqual(responseDto);
     });

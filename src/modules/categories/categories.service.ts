@@ -64,11 +64,13 @@ export class CategoryService {
   /**
    * Find all categories with optional filtering
    */
-  findAll(filters: CategoryFilterDto = {}): Promise<Pagination<Category>> {
-    const { parentId, search, status, page = 1, limit = 10 } = filters;
+  findAll(filters: CategoryFilterDto): Promise<Pagination<Category>> {
+    const { parentId, search, status, ownerId, page = 1, limit = 10 } = filters;
 
     // Build where conditions
-    const where: FindManyOptions<Category>['where'] = {};
+    const where: FindManyOptions<Category>['where'] = {
+      ownerId,
+    };
 
     if (parentId === 'root') {
       where.parentId = IsNull();
@@ -102,9 +104,9 @@ export class CategoryService {
    */
   findAllPaginated(
     options: IPaginationOptions,
-    filters: CategoryFilterDto = {},
+    filters: CategoryFilterDto,
   ): Promise<Pagination<Category>> {
-    const { parentId, status, search } = filters;
+    const { parentId, status, ownerId, search } = filters;
     const queryBuilder = this.categoryRepository.createQueryBuilder('category');
 
     // Apply filters
@@ -116,6 +118,10 @@ export class CategoryService {
 
     if (status) {
       queryBuilder.andWhere('category.status = :status', { status });
+    }
+
+    if (ownerId) {
+      queryBuilder.andWhere('category.ownerId = :ownerId', { ownerId });
     }
 
     if (search) {
@@ -130,11 +136,13 @@ export class CategoryService {
   /**
    * Build a hierarchical tree of categories
    */
-  async getCategoryTree(filters: CategoryFilterDto = {}): Promise<Category[]> {
+  async getCategoryTree(filters: CategoryFilterDto): Promise<Category[]> {
     const allCategories = await this.findAll(filters);
     // Using underscore prefix to indicate intentionally unused variable
     const _rootCategories = allCategories.items.filter(
-      category => !category.parentId || filters.parentId === category.id,
+      category =>
+        (!category.parentId || filters.parentId === category.id) &&
+        category.ownerId === filters.ownerId,
     );
 
     // Define a type for category with children

@@ -1,4 +1,5 @@
 import { ProjectRepository } from '@app/modules/projects/repositories/project.repository';
+import { User } from '@app/modules/users/entities/user.entity';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IPaginationOptions, paginate, Pagination } from 'nestjs-typeorm-paginate';
@@ -20,7 +21,7 @@ export class LicenseOptionService {
   /**
    * Create a new license option for a project
    */
-  async create(ownerId: string, createLicenseDto: CreateLicenseOptionDto): Promise<LicenseOption> {
+  async create(user: User, createLicenseDto: CreateLicenseOptionDto): Promise<LicenseOption> {
     // Check if all projects exist and user is the owner of each
     const projects = await Promise.all(
       createLicenseDto.projectIds.map(async projectId => {
@@ -30,7 +31,7 @@ export class LicenseOptionService {
           throw new NotFoundException(`Project with ID ${projectId} not found`);
         }
 
-        if (project.ownerId !== ownerId) {
+        if (project.ownerId !== user.id) {
           throw new BadRequestException(
             `You do not have permission to add license to project: ${project.name}`,
           );
@@ -46,6 +47,7 @@ export class LicenseOptionService {
     const savedLicense = await this.licenseRepository.save(newLicense);
 
     savedLicense.projects = projects;
+    savedLicense.owner = user; // Assuming you have a relation to the User entity
     await this.licenseRepository.save(savedLicense);
 
     return savedLicense;
@@ -74,7 +76,7 @@ export class LicenseOptionService {
     filter: FilterLicenseDto,
     paginationOptions: IPaginationOptions,
   ): Promise<Pagination<LicenseOption>> {
-    const { search, currency, sortBy, sortDirection } = filter;
+    const { search, currency, sortBy, sortDirection, ownerId } = filter;
 
     // Build the where conditions
     const whereConditions: Partial<Record<keyof LicenseOption, any>> = {};
@@ -89,6 +91,11 @@ export class LicenseOptionService {
     // Add currency filter if provided
     if (currency) {
       whereConditions.currency = currency;
+    }
+
+    // Add currency filter if provided
+    if (ownerId) {
+      whereConditions.ownerId = ownerId;
     }
 
     // Build the order condition

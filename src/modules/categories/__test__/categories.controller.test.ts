@@ -97,7 +97,7 @@ describe('CategoryController', () => {
       const createCategoryDto: CreateCategoryDto = {
         name: 'Test Category',
         description: 'Test Description',
-        slug: '',
+        slug: 'test-category',
         status: 'pending',
       };
 
@@ -129,24 +129,31 @@ describe('CategoryController', () => {
       const filters: CategoryFilterDto = {
         status: 'active',
         search: 'test',
+        ownerId: 'owner-id',
+        page: 1,
+        limit: 10,
       };
 
-      const result = await controller.findAll(filters);
+      const result = await controller.findAll(filters, mockUser);
 
       expect(result).toEqual(mockPagination);
-      expect(service.findAll).toHaveBeenCalledWith(filters);
+      expect(service.findAll).toHaveBeenCalledWith({ ...filters, ownerId: mockUser.id });
     });
 
     it('should filter by status', async () => {
       const filters: CategoryFilterDto = {
         status: 'inactive',
+        ownerId: 'owner-id',
+        page: 1,
+        limit: 10,
       };
 
-      await controller.findAll(filters);
+      await controller.findAll(filters, mockUser);
 
       expect(service.findAll).toHaveBeenCalledWith(
         expect.objectContaining({
           status: 'inactive',
+          ownerId: mockUser.id,
         }),
       );
     });
@@ -158,6 +165,7 @@ describe('CategoryController', () => {
         page: 1,
         limit: 10,
         status: 'active',
+        ownerId: 'owner-id',
       };
 
       const result = await controller.findAllPaginated(filters);
@@ -165,20 +173,21 @@ describe('CategoryController', () => {
       expect(result).toEqual(mockPagination);
       expect(service.findAllPaginated).toHaveBeenCalledWith(
         { page: 1, limit: 10 },
-        { status: 'active' },
+        { status: 'active', ownerId: 'owner-id' },
       );
     });
 
     it('should use default pagination values', async () => {
       const filters: CategoryFilterDto = {
         status: 'active',
+        ownerId: 'owner-id',
       };
 
       await controller.findAllPaginated(filters);
 
       expect(service.findAllPaginated).toHaveBeenCalledWith(
         { page: 1, limit: 10 },
-        { status: 'active' },
+        { status: 'active', ownerId: 'owner-id' },
       );
     });
 
@@ -187,13 +196,14 @@ describe('CategoryController', () => {
         page: 1,
         limit: 10,
         status: 'pending',
+        ownerId: 'owner-id',
       };
 
       await controller.findAllPaginated(filters);
 
       expect(service.findAllPaginated).toHaveBeenCalledWith(
         { page: 1, limit: 10 },
-        { status: 'pending' },
+        { status: 'pending', ownerId: 'owner-id' },
       );
     });
   });
@@ -202,6 +212,7 @@ describe('CategoryController', () => {
     it('should return category tree', async () => {
       const filters: CategoryFilterDto = {
         parentId: 'root',
+        ownerId: 'owner-id',
       };
 
       const result = await controller.getTree(filters);

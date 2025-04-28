@@ -12,6 +12,10 @@ export class FilterLicenseDto {
   @IsString()
   search?: string;
 
+  @IsOptional()
+  @IsString()
+  ownerId?: string;
+
   @ApiPropertyOptional({
     description: 'Filter by currency',
     enum: Currency,

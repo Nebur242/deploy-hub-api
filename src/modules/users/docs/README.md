@@ -10,6 +10,7 @@ The Users Module manages user accounts, profiles, and roles within the Deploy Hu
 - User profile data
 - Role management (Admin, User, SuperAdmin)
 - User preferences
+- User notifications
 - Integration with Auth Module
 
 ## Entities
@@ -23,6 +24,7 @@ The `User` entity represents a registered user in the system and contains:
 - Role information
 - Account status
 - Profile preferences
+- Notification settings
 - Associated licenses and projects
 
 ## Services
@@ -85,6 +87,12 @@ const user = await userService.findById(userId);
 await userService.updateUser(userId, {
   displayName: 'Jane Doe',
   avatarUrl: 'https://example.com/avatar.jpg',
+});
+
+// Example: Updating user notification settings
+await userService.updateNotifications(userId, {
+  projectUpdates: true,
+  marketing: false,
 });
 ```
 
@@ -199,6 +207,8 @@ This document provides an overview of the User API endpoints available in the `U
   - `firstName` (optional, string): The first name of the user.
   - `lastName` (optional, string): The last name of the user.
   - `company` (optional, string): The company of the user.
+  - `preferences` (optional, object): The user's preferences.
+  - `notifications` (optional, object): The user's notification settings.
   - `roles` (array of strings: user, admin, super_admin): The roles assigned to the user.
   - `createdAt` (Date): The date when the user was created.
   - `updatedAt` (Date): The date when the user was last updated.
@@ -234,6 +244,8 @@ This document provides an overview of the User API endpoints available in the `U
   - `firstName` (optional, string): The first name of the user.
   - `lastName` (optional, string): The last name of the user.
   - `company` (optional, string): The company of the user.
+  - `preferences` (optional, object): The user's preferences.
+  - `notifications` (optional, object): The user's notification settings.
   - `roles` (array of strings: user, admin, super_admin): The roles assigned to the user.
   - `createdAt` (Date): The date when the user was created.
   - `updatedAt` (Date): The date when the user was last updated.
@@ -243,3 +255,43 @@ This document provides an overview of the User API endpoints available in the `U
 - `NotFoundException`: If the user with the specified ID is not found.
 - `UnauthorizedException`: If the requester doesn't have permission to update the user's preferences.
 - `BadRequestException`: If the preferences data is invalid.
+
+### Update User Notifications
+
+**URL:** `/users/:id/notifications`
+
+**Method:** `PATCH`
+
+**Description:** Updates the notification settings of a user identified by its UUID.
+
+**Parameters:**
+
+- `id` (string): The UUID of the user to update.
+
+**Request Body:**
+
+- `notificationDto` - The DTO containing user notification settings to be updated.
+  - `projectUpdates` (optional, boolean): Whether to receive project update notifications.
+  - `deploymentAlerts` (optional, boolean): Whether to receive deployment alert notifications.
+  - `licenseExpiration` (optional, boolean): Whether to receive license expiration notifications.
+  - `marketing` (optional, boolean): Whether to receive marketing notifications.
+
+**Response:**
+
+- `UserResponseDto` - The updated user data in the response DTO format.
+  - `id` (string): The unique identifier of the user.
+  - `uid` (string): The unique identifier of the user.
+  - `firstName` (optional, string): The first name of the user.
+  - `lastName` (optional, string): The last name of the user.
+  - `company` (optional, string): The company of the user.
+  - `preferences` (optional, object): The user's preferences.
+  - `notifications` (optional, object): The user's notification settings.
+  - `roles` (array of strings: user, admin, super_admin): The roles assigned to the user.
+  - `createdAt` (Date): The date when the user was created.
+  - `updatedAt` (Date): The date when the user was last updated.
+
+**Errors:**
+
+- `NotFoundException`: If the user with the specified ID is not found.
+- `UnauthorizedException`: If the requester doesn't have permission to update the user's notifications.
+- `BadRequestException`: If the notification data is invalid.

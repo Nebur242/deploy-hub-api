@@ -13,6 +13,7 @@ import {
 } from '@nestjs/common';
 import { DecodedIdToken } from 'firebase-admin/auth';
 
+import { UserNotificationDto } from './dto/user-notification.dto';
 import { UserPreferencesDto } from './dto/user-preferences.dto';
 import { CreateUserDto, UpdateUserDto, UserResponseDto } from './dto/user.dto';
 import { User } from './entities/user.entity';
@@ -26,6 +27,7 @@ import { UsersService } from './users.service';
  * - Retrieving user information
  * - Updating user details
  * - Updating user preferences
+ * - Updating notification settings
  *
  * All endpoints require authentication as enforced by the @Authenticated decorator.
  */
@@ -110,6 +112,26 @@ export class UserController {
     @Body() preferencesDto: UserPreferencesDto,
   ): Promise<UserResponseDto> {
     const user = await this.userService.updatePreferences(id, preferencesDto);
+    return this.userService.mapToResponseDto(user);
+  }
+
+  /**
+   * Updates the notification settings of a user identified by its UUID.
+   *
+   * @param id - The UUID of the user to update
+   * @param notificationDto - The DTO containing notification settings to be updated
+   * @returns A promise that resolves to the updated user data in the response DTO format
+   *
+   * @throws NotFoundException - If the user with the specified ID is not found
+   * @throws UnauthorizedException - If the requester doesn't have permission to update the user's notifications
+   * @throws BadRequestException - If the notification data is invalid
+   */
+  @Patch(':id/notifications')
+  async updateNotifications(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() notificationDto: UserNotificationDto,
+  ): Promise<UserResponseDto> {
+    const user = await this.userService.updateNotifications(id, notificationDto);
     return this.userService.mapToResponseDto(user);
   }
 }

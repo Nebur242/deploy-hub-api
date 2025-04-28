@@ -18,6 +18,7 @@ import { GithubDeployerService } from './services/github-deployer.service';
 import { GithubWebhookService } from './services/github-webhook.service';
 import { ProjectConfiguration } from '../projects/entities/project-configuration.entity';
 import { Project } from '../projects/entities/project.entity';
+import { User } from '../users/entities/user.entity';
 
 @Injectable()
 export class DeploymentService {
@@ -37,7 +38,7 @@ export class DeploymentService {
    * Create a new deployment using project GitHub accounts
    */
   async createDeployment(
-    serviceCreateDeploymentDto: ServiceCreateDeploymentDto,
+    serviceCreateDeploymentDto: ServiceCreateDeploymentDto & { owner: User },
     project: Project,
     configuration: ProjectConfiguration,
   ): Promise<Deployment> {
@@ -48,6 +49,7 @@ export class DeploymentService {
       configuration,
       project,
       ownerId: serviceCreateDeploymentDto.ownerId,
+      owner: serviceCreateDeploymentDto.owner,
       environment: serviceCreateDeploymentDto.environment,
       branch: serviceCreateDeploymentDto.branch,
       status: DeploymentStatus.PENDING,

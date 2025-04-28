@@ -12,7 +12,7 @@ import {
   IsUrl,
 } from 'class-validator';
 
-import { TechStack, Visibility } from '../entities/project.entity';
+import { Visibility } from '../entities/project.entity';
 
 class CategoryDto {
   @IsUUID()
@@ -40,8 +40,8 @@ export class CreateProjectDto {
   repository: string;
 
   @IsArray()
-  @IsEnum(TechStack, { each: true })
-  techStack: TechStack[];
+  @IsString({ each: true })
+  techStack: string[];
 
   @IsEnum(Visibility)
   @IsOptional()

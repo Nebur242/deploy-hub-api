@@ -71,8 +71,11 @@ export class CategoryController {
     required: false,
     description: 'Include inactive categories',
   })
-  findAll(@Query() filters: CategoryFilterDto): Promise<Pagination<Category>> {
-    return this.categoryService.findAll(filters);
+  findAll(
+    @Query() filters: CategoryFilterDto,
+    @CurrentUser() user: User,
+  ): Promise<Pagination<Category>> {
+    return this.categoryService.findAll({ ...filters, ownerId: user.id });
   }
 
   @Get('paginated')

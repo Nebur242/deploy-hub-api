@@ -68,6 +68,11 @@ Manages communication with users regarding system events.
 - Deployment status updates
 - License expiration warnings
 - Custom notification preferences
+  - Project updates notifications
+  - Deployment alerts
+  - License expiration alerts
+  - Marketing communications
+- User-configurable notification settings
 
 ### 7. Analytics Module
 

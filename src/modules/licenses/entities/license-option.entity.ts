@@ -1,4 +1,5 @@
 import { Project } from '@app/modules/projects/entities/project.entity';
+import { User } from '@app/modules/users/entities/user.entity';
 import { Currency } from '@app/shared/enums';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
@@ -8,6 +9,8 @@ import {
   ManyToMany,
   CreateDateColumn,
   UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 
 @Entity('license_options')
@@ -75,6 +78,21 @@ export class LicenseOption {
   })
   @ManyToMany(() => Project, project => project.licenses)
   projects: Project[];
+
+  @ApiProperty({
+    description: 'Owner ID of the license option',
+    example: '550e8400-e29b-12d3-a456-426614174000',
+  })
+  @Column({ name: 'owner_id', nullable: true })
+  ownerId: string;
+
+  @ApiProperty({
+    description: 'Owner of the license option',
+    type: () => User,
+  })
+  @ManyToOne(() => User, { onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'ownerId' })
+  owner: User;
 
   @ApiProperty({
     description: 'Creation timestamp',
