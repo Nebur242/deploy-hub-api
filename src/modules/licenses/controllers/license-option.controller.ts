@@ -65,7 +65,7 @@ export class LicenseOptionController {
   })
   @ApiQuery({ name: 'page', required: false, description: 'Page number (1-based)' })
   @ApiQuery({ name: 'limit', required: false, description: 'Items per page' })
-  @Admin()
+  @Authenticated()
   findAll(@Query() filter: FilterLicenseDto, @CurrentUser() user: User) {
     const { page = 1, limit = 10, ...rest } = filter;
     const paginationOptions: IPaginationOptions = {

@@ -44,7 +44,7 @@ export class GithubDeployerService {
       const inputs: Record<string, string> = {
         BRANCH: deployment.branch,
         ENVIRONMENT: deployment.environment,
-        ACCESS_TOKEN: githubAccount.accessToken,
+        // ACCESS_TOKEN: githubAccount.accessToken,
       };
 
       // Add environment variables as inputs

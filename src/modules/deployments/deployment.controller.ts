@@ -17,6 +17,7 @@ import { ApiOperation, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Pagination } from 'nestjs-typeorm-paginate';
 import { Repository } from 'typeorm';
+import { v4 as uuidv4 } from 'uuid';
 
 import { DeploymentService } from './deployment.service';
 import { CreateDeploymentDto } from './dto/create-deployment.dto';
@@ -113,8 +114,16 @@ export class DeploymentController {
       );
     }
 
-    throw new BadRequestException(
-      `Deployment provider ${configuration.deploymentOption.provider} is not supported`,
+    return this.deploymentService.createDeployment(
+      {
+        ...createDeploymentDto,
+        ownerId: user.id,
+        owner: user,
+        environmentVariables: createDeploymentDto.environmentVariables,
+        siteId: uuidv4(),
+      },
+      project,
+      configuration,
     );
   }
 

@@ -14,12 +14,16 @@ import { EnvironmentVariableDto } from '../dto/create-project-configuration.dto'
 export enum DeploymentProvider {
   NETLIFY = 'netlify',
   VERCEL = 'vercel',
+  CUSTOM = 'custom',
 }
 
 @Entity('project_configurations')
 export class ProjectConfiguration {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @Column({ length: 100, nullable: true })
+  name: string;
 
   @Column({ name: 'project_id' })
   projectId: string;
