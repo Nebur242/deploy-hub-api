@@ -13,6 +13,13 @@ import {
   JoinColumn,
 } from 'typeorm';
 
+export enum LicenseStatus {
+  DRAFT = 'draft',
+  PUBLIC = 'public',
+  PRIVATE = 'private',
+  ARCHIVED = 'archived',
+}
+
 @Entity('license_options')
 export class LicenseOption {
   @ApiProperty({
@@ -107,4 +114,24 @@ export class LicenseOption {
   })
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @ApiProperty({
+    description: 'Status of the license option',
+    enum: LicenseStatus,
+    example: LicenseStatus.DRAFT,
+  })
+  @Column({
+    type: 'enum',
+    enum: LicenseStatus,
+    default: LicenseStatus.DRAFT,
+  })
+  status: LicenseStatus;
+
+  @ApiProperty({
+    description: 'Indicates if the license is popular',
+    example: false,
+    default: false,
+  })
+  @Column({ default: false })
+  popular: boolean;
 }

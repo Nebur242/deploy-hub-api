@@ -1,7 +1,9 @@
 import { Currency } from '@app/shared/enums';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsEnum, IsOptional, IsString, IsNumber, Min } from 'class-validator';
+import { IsEnum, IsOptional, IsString, IsNumber, Min, IsBoolean } from 'class-validator';
+
+import { LicenseStatus } from '../entities/license-option.entity';
 
 export class FilterLicenseDto {
   @ApiPropertyOptional({
@@ -15,6 +17,15 @@ export class FilterLicenseDto {
   @IsOptional()
   @IsString()
   ownerId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Filter by license status',
+    enum: LicenseStatus,
+    example: LicenseStatus.PUBLIC,
+  })
+  @IsOptional()
+  @IsEnum(LicenseStatus)
+  status?: LicenseStatus;
 
   @ApiPropertyOptional({
     description: 'Filter by currency',
@@ -42,6 +53,15 @@ export class FilterLicenseDto {
   @IsOptional()
   @IsEnum(['ASC', 'DESC'])
   sortDirection?: 'ASC' | 'DESC';
+
+  @ApiPropertyOptional({
+    description: 'Filter by popularity status',
+    example: true,
+  })
+  @IsOptional()
+  @IsBoolean()
+  @Type(() => Boolean)
+  popular?: boolean;
 
   @ApiPropertyOptional({
     description: 'Page number (1-based)',

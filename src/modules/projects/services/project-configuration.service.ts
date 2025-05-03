@@ -5,7 +5,7 @@ import { Repository } from 'typeorm';
 
 import { CreateProjectConfigurationDto } from '../dto/create-project-configuration.dto';
 import { UpdateProjectConfigurationDto } from '../dto/update-project-configuration.dto';
-import { ProjectConfiguration } from '../entities/project-configuration.entity';
+import { DeploymentProvider, ProjectConfiguration } from '../entities/project-configuration.entity';
 import { Project } from '../entities/project.entity';
 
 @Injectable()
@@ -73,7 +73,9 @@ export class ProjectConfigurationService {
       }
 
       const existingConfig = project.configurations.find(
-        config => config.deploymentOption.provider === createConfigDto.deploymentOption.provider,
+        config =>
+          config.deploymentOption.provider === createConfigDto.deploymentOption.provider &&
+          createConfigDto.deploymentOption.provider !== DeploymentProvider.CUSTOM,
       );
 
       if (existingConfig) {
@@ -148,7 +150,8 @@ export class ProjectConfigurationService {
         const existingConfig = project.configurations.find(
           c =>
             c.id !== id &&
-            c.deploymentOption.provider === updateConfigDto?.deploymentOption?.provider,
+            c.deploymentOption.provider === updateConfigDto?.deploymentOption?.provider &&
+            updateConfigDto?.deploymentOption?.provider !== DeploymentProvider.CUSTOM,
         );
 
         if (existingConfig) {

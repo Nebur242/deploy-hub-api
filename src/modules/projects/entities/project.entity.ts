@@ -40,8 +40,11 @@ export class Project {
   @Column({ name: 'owner_id' })
   ownerId: string;
 
-  @Column({ nullable: true })
+  @Column({ nullable: false })
   repository: string;
+
+  @Column({ nullable: true })
+  previewUrl?: string;
 
   @Column({ length: 100, unique: true })
   @Index()

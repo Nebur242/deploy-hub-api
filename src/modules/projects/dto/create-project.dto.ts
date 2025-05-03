@@ -39,6 +39,12 @@ export class CreateProjectDto {
   @IsUrl()
   repository: string;
 
+  @IsOptional()
+  @IsString()
+  @IsUrl()
+  @ApiProperty({ description: 'Preview URL for the project', required: false })
+  previewUrl?: string;
+
   @IsArray()
   @IsString({ each: true })
   techStack: string[];

@@ -47,6 +47,7 @@ export class LicenseOptionService {
     const savedLicense = await this.licenseRepository.save(newLicense);
 
     savedLicense.projects = projects;
+    savedLicense.ownerId = user.id; // Assuming you have a relation to the User entity
     savedLicense.owner = user; // Assuming you have a relation to the User entity
     await this.licenseRepository.save(savedLicense);
 
@@ -76,7 +77,7 @@ export class LicenseOptionService {
     filter: FilterLicenseDto,
     paginationOptions: IPaginationOptions,
   ): Promise<Pagination<LicenseOption>> {
-    const { search, currency, sortBy, sortDirection, ownerId } = filter;
+    const { search, currency, sortBy, sortDirection, ownerId, status } = filter;
 
     // Build the where conditions
     const whereConditions: Partial<Record<keyof LicenseOption, any>> = {};
@@ -93,9 +94,14 @@ export class LicenseOptionService {
       whereConditions.currency = currency;
     }
 
-    // Add currency filter if provided
+    // Add owner filter if provided
     if (ownerId) {
       whereConditions.ownerId = ownerId;
+    }
+
+    // Add status filter if provided
+    if (status) {
+      whereConditions.status = status;
     }
 
     // Build the order condition
@@ -175,31 +181,29 @@ export class LicenseOptionService {
     ownerId: string,
     updateLicenseDto: UpdateLicenseOptionDto,
   ): Promise<LicenseOption> {
-    const license = await this.findOne(id);
-
-    // Get all projects associated with this license
-    const licenseWithProjects = await this.licenseRepository.findOne({
+    // Get license with its associated projects
+    const license = await this.licenseRepository.findOne({
       where: { id },
       relations: ['projects'],
     });
 
-    if (!licenseWithProjects) {
+    if (!license) {
       throw new NotFoundException(`License option with ID ${id} not found`);
     }
 
     // Check if user is the owner of all associated projects
-    for (const project of licenseWithProjects.projects) {
+    for (const project of license.projects) {
       if (project.ownerId !== ownerId) {
         throw new BadRequestException('You do not have permission to update this license option');
       }
     }
 
     // Validate pricing updates if provided
-    if (updateLicenseDto.price && updateLicenseDto.price < 0) {
+    if (updateLicenseDto.price !== undefined && updateLicenseDto.price < 0) {
       throw new BadRequestException('Price cannot be negative');
     }
 
-    if (updateLicenseDto.deploymentLimit && updateLicenseDto.deploymentLimit < 1) {
+    if (updateLicenseDto.deploymentLimit !== undefined && updateLicenseDto.deploymentLimit < 1) {
       throw new BadRequestException('Deployment limit must be at least 1');
     }
 
@@ -214,52 +218,26 @@ export class LicenseOptionService {
             throw new NotFoundException(`Project with ID ${projectId} not found`);
           }
 
+          if (project.ownerId !== ownerId) {
+            throw new BadRequestException(
+              `You do not have permission to add project "${project.name}" to this license`,
+            );
+          }
+
           return project;
         }),
       );
 
-      if (projects.length !== updateLicenseDto.projectIds.length) {
-        throw new NotFoundException('One or more projects not found');
-      }
-
-      // Verify ownership of all projects
-      for (const project of projects) {
-        if (project.ownerId !== ownerId) {
-          throw new BadRequestException(
-            `You do not have permission to add project "${project.name}" to this license`,
-          );
-        }
-      }
-
-      // Update the projects relation
-      licenseWithProjects.projects = projects;
+      license.projects = projects;
     }
 
-    // Update license option fields
-    if (updateLicenseDto.name) {
-      license.name = updateLicenseDto.name;
-    }
-    if (updateLicenseDto.description) {
-      license.description = updateLicenseDto.description;
-    }
-    if (updateLicenseDto.price) {
-      license.price = updateLicenseDto.price;
-    }
-    if (updateLicenseDto.currency) {
-      license.currency = updateLicenseDto.currency;
-    }
-    if (updateLicenseDto.deploymentLimit) {
-      license.deploymentLimit = updateLicenseDto.deploymentLimit;
-    }
-    if (updateLicenseDto.duration) {
-      license.duration = updateLicenseDto.duration;
-    }
-    if (updateLicenseDto.features) {
-      license.features = updateLicenseDto.features;
-    }
+    // Update license option fields by applying all defined properties from DTO
+    const { projectIds: _projectIds, ...licenseUpdates } = updateLicenseDto;
+
+    // Directly apply all updates from the DTO to the license object
+    Object.assign(license, licenseUpdates);
 
     // Save the changes
-    Object.assign(licenseWithProjects, license);
-    return this.licenseRepository.save(licenseWithProjects);
+    return this.licenseRepository.save(license);
   }
 }

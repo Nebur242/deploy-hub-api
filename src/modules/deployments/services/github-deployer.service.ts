@@ -44,23 +44,12 @@ export class GithubDeployerService {
       const inputs: Record<string, string> = {
         BRANCH: deployment.branch,
         ENVIRONMENT: deployment.environment,
-        ACCESS_TOKEN: githubAccount.accessToken,
       };
 
       // Add environment variables as inputs
       deploymentConfig.environmentVariables.forEach(env => {
         inputs[env.key] = env.defaultValue;
       });
-
-      // Add deployment metadata for tracking
-      //   inputs.deployment_id = deployment.id;
-      //   inputs.user_id = deployment.ownerId;
-      //   inputs.project_id = deployment.projectId;
-
-      //   console.log('Inputs:', inputs);
-      //   console.log('Deployment:', workflow.id);
-
-      //   return { workflowRunId: 0 };
 
       // Trigger the workflow
       await octokit.actions.createWorkflowDispatch({

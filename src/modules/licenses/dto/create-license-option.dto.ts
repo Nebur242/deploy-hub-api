@@ -9,7 +9,10 @@ import {
   IsOptional,
   Min,
   IsUUID,
+  IsBoolean,
 } from 'class-validator';
+
+import { LicenseStatus } from '../entities/license-option.entity';
 
 export class CreateLicenseOptionDto {
   @ApiProperty({
@@ -78,6 +81,15 @@ export class CreateLicenseOptionDto {
   @IsOptional()
   features: string[] = [];
 
+  @ApiPropertyOptional({
+    description: 'Indicates if the license is popular',
+    example: false,
+    default: false,
+  })
+  @IsBoolean()
+  @IsOptional()
+  popular: boolean = false;
+
   @ApiProperty({
     description: 'List of project IDs this license applies to',
     example: ['550e8400-e29b-41d4-a456-426614174000'],
@@ -87,4 +99,14 @@ export class CreateLicenseOptionDto {
   @IsArray()
   @IsUUID(undefined, { each: true })
   projectIds: string[] = [];
+
+  @ApiPropertyOptional({
+    description: 'Status of the license option',
+    enum: LicenseStatus,
+    default: LicenseStatus.DRAFT,
+    example: LicenseStatus.DRAFT,
+  })
+  @IsEnum(LicenseStatus)
+  @IsOptional()
+  status?: LicenseStatus = LicenseStatus.DRAFT;
 }

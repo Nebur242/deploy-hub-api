@@ -1,5 +1,5 @@
 import { CurrentUser } from '@app/core/decorators/current-user.decorator';
-import { Admin } from '@app/core/guards/roles-auth.guard';
+import { Authenticated } from '@app/core/guards/roles-auth.guard';
 import { User } from '@app/modules/users/entities/user.entity';
 import {
   Controller,
@@ -24,7 +24,7 @@ import { MediaService } from './media.service';
 
 @ApiTags('media')
 @Controller('media')
-@Admin()
+@Authenticated()
 export class MediaController {
   constructor(private readonly mediaService: MediaService) {}
 

@@ -7,6 +7,7 @@ import {
   ValidateNested,
   IsBoolean,
   IsNotEmpty,
+  IsDefined,
 } from 'class-validator';
 
 import { DeploymentProvider } from '../entities/project-configuration.entity';
@@ -64,6 +65,10 @@ class DeploymentOptionDto {
 }
 
 export class CreateProjectConfigurationDto {
+  @IsDefined()
+  @IsString()
+  name: string;
+
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => GithubAccountDto)

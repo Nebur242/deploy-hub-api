@@ -1,5 +1,5 @@
 import { CurrentUser } from '@app/core/decorators/current-user.decorator';
-import { Admin } from '@app/core/guards/roles-auth.guard';
+import { Admin, Authenticated } from '@app/core/guards/roles-auth.guard';
 import { User } from '@app/modules/users/entities/user.entity';
 import { PaymentStatus } from '@app/shared/enums';
 import { Body, Controller, Get, Param, Patch, Post, UnauthorizedException } from '@nestjs/common';
@@ -11,7 +11,7 @@ import { PaymentService } from '../services/payment.service';
 @ApiTags('payments')
 @ApiBearerAuth()
 @Controller('payments')
-@Admin()
+@Authenticated()
 export class PaymentController {
   constructor(private readonly paymentService: PaymentService) {}
 

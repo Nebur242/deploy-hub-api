@@ -1,5 +1,5 @@
 import { CurrentUser } from '@app/core/decorators/current-user.decorator';
-import { Admin } from '@app/core/guards/roles-auth.guard';
+import { Admin, Authenticated } from '@app/core/guards/roles-auth.guard';
 import { User } from '@app/modules/users/entities/user.entity';
 import { OrderStatus } from '@app/shared/enums';
 import {
@@ -21,7 +21,7 @@ import { OrderService } from '../services/order.service';
 @ApiTags('orders')
 @ApiBearerAuth()
 @Controller('orders')
-@Admin()
+@Authenticated()
 export class OrderController {
   constructor(private readonly orderService: OrderService) {}
 
