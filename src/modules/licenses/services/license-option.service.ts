@@ -232,9 +232,8 @@ export class LicenseOptionService {
     }
 
     // Update license option fields by applying all defined properties from DTO
-    const { projectIds, ...licenseUpdates } = updateLicenseDto;
+    const { projectIds: _projectIds, ...licenseUpdates } = updateLicenseDto;
 
-    console.log(projectIds);
     // Directly apply all updates from the DTO to the license object
     Object.assign(license, licenseUpdates);
 
