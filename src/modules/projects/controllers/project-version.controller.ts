@@ -7,12 +7,12 @@ import { CreateVersionDto } from '../dto/create-version.dto';
 import { UpdateVersionDto } from '../dto/update-version.dto';
 import { ProjectVersionService } from '../services/project-version.service';
 
-@Admin()
 @Controller('projects/:projectId/versions')
 export class ProjectVersionController {
   constructor(private readonly projectVersionService: ProjectVersionService) {}
 
   @Post()
+  @Admin()
   create(
     @CurrentUser() user: User,
     @Param('projectId') projectId: string,
@@ -33,6 +33,7 @@ export class ProjectVersionController {
   }
 
   @Patch(':id')
+  @Admin()
   updateVersion(
     @Param('id') id: string,
     @Body() updateVersionDto: UpdateVersionDto,
@@ -42,11 +43,13 @@ export class ProjectVersionController {
   }
 
   @Post(':id/set-stable')
+  @Admin()
   setAsStable(@CurrentUser() user: User, @Param('id') id: string) {
     return this.projectVersionService.setAsStable(id, user.id);
   }
 
   @Delete(':id')
+  @Admin()
   remove(@CurrentUser() user: User, @Param('id') id: string) {
     return this.projectVersionService.remove(id, user.id);
   }

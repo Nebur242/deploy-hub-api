@@ -48,6 +48,7 @@ export class PaymentService {
     // Create a new payment record
     const payment = this.paymentRepository.create({
       orderId,
+      order,
       amount,
       currency: currency || order.currency,
       paymentMethod,
@@ -72,7 +73,7 @@ export class PaymentService {
   private async simulatePaymentProcessing(payment: Payment) {
     // Simulate payment processing
     // add delay to simulate payment processing
-    const isSuccessful = Math.random() < 0.95;
+    const isSuccessful = true;
 
     // Update payment status
     payment.status = isSuccessful ? PaymentStatus.COMPLETED : PaymentStatus.FAILED;

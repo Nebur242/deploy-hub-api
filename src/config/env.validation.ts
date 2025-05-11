@@ -1,6 +1,7 @@
 import { Environment } from '@app/shared/enums';
 import { Expose, plainToInstance, Transform } from 'class-transformer';
 import {
+  IsBoolean,
   IsEnum,
   IsNotEmpty,
   IsNumber,
@@ -145,6 +146,66 @@ export class EnvironmentVariables {
   @IsString()
   @Expose()
   API_BASE_URL: string;
+
+  @IsNotEmpty()
+  @Expose()
+  @IsString()
+  REDIS_HOST: string;
+
+  @Expose()
+  @IsNumber()
+  REDIS_PORT: number;
+
+  @Expose()
+  @ValidateIf((env: EnvironmentVariables) => env.NODE_ENV !== 'local')
+  REDIS_PASSWORD: string;
+
+  @IsOptional()
+  @IsString()
+  @Expose()
+  SMTP_HOST?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Expose()
+  @Transform(item => parseInt(item.value as string, 10))
+  SMTP_PORT?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  @Expose()
+  @Transform(item => item.value === 'true')
+  SMTP_SECURE?: boolean;
+
+  @IsOptional()
+  @IsString()
+  @Expose()
+  SMTP_USER?: string;
+
+  @IsOptional()
+  @IsString()
+  @Expose()
+  SMTP_PASSWORD?: string;
+
+  @IsOptional()
+  @IsString()
+  @Expose()
+  SMTP_FROM_EMAIL?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  @Expose()
+  @Transform(item => item.value !== 'false')
+  SMTP_REJECT_UNAUTHORIZED?: boolean;
+
+  @IsOptional()
+  @IsString()
+  @Expose()
+  EMAIL_TEMPLATES_DIR?: string;
+
+  @Expose()
+  @IsNumber()
+  REDIS_DB: number;
 }
 
 export const validate = (config: Record<string, unknown>) => {

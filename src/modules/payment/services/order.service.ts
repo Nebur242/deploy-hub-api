@@ -21,7 +21,7 @@ export class OrderService {
    * Create a new order for a license purchase
    */
   async create(userId: string, createOrderDto: CreateOrderDto): Promise<Order> {
-    const { licenseId, currency, notes } = createOrderDto;
+    const { currency, licenseId, ...rest } = createOrderDto;
 
     // Verify the license option exists
     const licenseOption = await this.licenseService.findOne(licenseId);
@@ -31,11 +31,11 @@ export class OrderService {
 
     // Create a new order
     const order = this.orderRepository.create({
-      userId,
+      ...rest,
       licenseId,
+      userId,
       amount: licenseOption.price,
       currency: currency || licenseOption.currency,
-      notes,
       status: OrderStatus.PENDING,
     });
 

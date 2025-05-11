@@ -124,11 +124,16 @@ export class LicenseOptionController {
   @ApiResponse({ status: 404, description: 'License option not found' })
   @ApiParam({ name: 'id', description: 'License option ID' })
   @Authenticated()
-  purchase(@CurrentUser() user: User, @Param('id') id: string) {
+  purchase(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body() createOrderDto: CreateOrderDto,
+  ) {
     // Create a simple order for the license
-    const createOrderDto: CreateOrderDto = {
+    const dto: CreateOrderDto = {
+      ...createOrderDto,
       licenseId: id,
     };
-    return this.orderService.create(user.id, createOrderDto);
+    return this.orderService.create(user.id, dto);
   }
 }

@@ -59,6 +59,19 @@ export class Order {
   @JoinColumn({ name: 'userId' })
   user: User;
 
+  @Column({ type: 'jsonb', nullable: true })
+  billing: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    company?: string;
+    address?: string;
+    city: string;
+    state?: string;
+    postalCode?: string;
+    country: string;
+  };
+
   @ManyToOne(() => LicenseOption)
   @JoinColumn({ name: 'licenseId' })
   license: LicenseOption;

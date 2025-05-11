@@ -7,12 +7,12 @@ import { CreateProjectConfigurationDto } from '../dto/create-project-configurati
 import { UpdateProjectConfigurationDto } from '../dto/update-project-configuration.dto';
 import { ProjectConfigurationService } from '../services/project-configuration.service';
 
-@Admin()
 @Controller('projects/:projectId/configurations')
 export class ProjectConfigurationController {
   constructor(private readonly configService: ProjectConfigurationService) {}
 
   @Post()
+  @Admin()
   create(
     @CurrentUser() user: User,
     @Param('projectId') projectId: string,
@@ -32,6 +32,7 @@ export class ProjectConfigurationController {
   }
 
   @Patch(':id')
+  @Admin()
   update(
     @CurrentUser() user: User,
     @Param('id') id: string,
@@ -41,6 +42,7 @@ export class ProjectConfigurationController {
   }
 
   @Delete(':id')
+  @Admin()
   remove(@CurrentUser() user: User, @Param('id') id: string) {
     return this.configService.remove(id, user.id);
   }
