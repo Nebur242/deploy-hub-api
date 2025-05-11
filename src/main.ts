@@ -11,6 +11,7 @@ import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as Sentry from '@sentry/node';
 import { cert, getApps, initializeApp } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
 import * as fs from 'fs';
 
 import { AppModule } from './app.module';
@@ -18,6 +19,7 @@ import * as packages from '../package.json';
 import { EnvironmentVariables } from './config/env.validation';
 import { TypeOrmErrorsFilter } from './core/filters/typeorm-errors.filter';
 import { SentryInterceptor } from './core/interceptors/sentry.interceptor';
+import { RedisHealthService } from './modules/queue/redis-health.service';
 
 const defaultVersion = '1';
 const globalPrefix = 'api';
@@ -80,6 +82,47 @@ function setupGlobalMiddlewares(app: INestApplication) {
     .enableCors();
 }
 
+// Check Redis health explicitly
+async function checkRedisHealth(app: INestApplication): Promise<boolean> {
+  const logger = new Logger('Bootstrap');
+  logger.log('🔍 Checking Redis health...');
+
+  try {
+    const redisHealthService = app.get(RedisHealthService);
+    const isHealthy = await redisHealthService.isHealthy();
+
+    if (isHealthy) {
+      logger.log('✅ Redis health check passed');
+      return true;
+    } else {
+      logger.error('❌ Redis health check failed - Redis is not responding properly');
+      return false;
+    }
+  } catch (err) {
+    const error = err as Error;
+    logger.error(`❌ Redis health check failed with error: ${error.message}`, error.stack);
+    return false;
+  }
+}
+
+// Check Firebase health explicitly
+async function checkFirebaseHealth(): Promise<boolean> {
+  const logger = new Logger('Bootstrap');
+  logger.log('🔍 Checking Firebase connection...');
+
+  try {
+    const auth = getAuth();
+    await auth.listUsers(1); // Try to list a single user to verify connection
+
+    logger.log('✅ Firebase health check passed');
+    return true;
+  } catch (err) {
+    const error = err as Error;
+    logger.error(`❌ Firebase health check failed with error: ${error.message}`, error.stack);
+    return false;
+  }
+}
+
 const initializeServices = (app: INestApplication) => {
   const configService: ConfigService<EnvironmentVariables, true> = app.get(ConfigService);
 
@@ -100,6 +143,9 @@ const initializeServices = (app: INestApplication) => {
 };
 
 async function bootstrap() {
+  const logger = new Logger('Bootstrap');
+  logger.log('🚀 Starting application...');
+
   const app = await NestFactory.create(AppModule);
   const configService: ConfigService<EnvironmentVariables, true> = app.get(ConfigService);
 
@@ -111,8 +157,7 @@ async function bootstrap() {
 
   setupGlobalMiddlewares(app);
 
-  const port = configService.get<string>('PORT') || 3000;
-
+  // Initialize services (Firebase, Sentry)
   initializeServices(app);
 
   // Create logs directory if it doesn't exist
@@ -120,9 +165,36 @@ async function bootstrap() {
     fs.mkdirSync('./logs');
   }
 
+  // Explicit Redis health check during bootstrap
+  const redisHealthy = await checkRedisHealth(app);
+  if (!redisHealthy) {
+    logger.warn(
+      '⚠️ Application starting with Redis in an unhealthy state. Queue functionality may be affected.',
+    );
+    // Uncomment the line below if you want to prevent the application from starting when Redis is not healthy
+    // throw new Error('Redis health check failed during bootstrap. Application startup aborted.');
+  }
+
+  // Explicit Firebase health check during bootstrap
+  const firebaseHealthy = await checkFirebaseHealth();
+  if (!firebaseHealthy) {
+    logger.warn(
+      '⚠️ Application starting with Firebase in an unhealthy state. Authentication functionality may be affected.',
+    );
+    // Uncomment the line below if you want to prevent the application from starting when Firebase is not healthy
+    // throw new Error('Firebase health check failed during bootstrap. Application startup aborted.');
+  }
+
+  if (!firebaseHealthy || !redisHealthy) {
+    logger.error('❌ Application startup aborted due to Firebase health check failure.');
+    await app.close();
+    return;
+  }
+
+  const port = configService.get<string>('PORT') || 3000;
   await app.listen(port);
 
-  Logger.log(
+  logger.log(
     `🚀 Application is running on: http://localhost:${port}/${globalPrefix}/v${defaultVersion}`,
   );
 }

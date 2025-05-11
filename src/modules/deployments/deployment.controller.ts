@@ -163,11 +163,11 @@ export class DeploymentController {
   @ApiQuery({ name: 'status', required: false, type: String })
   @ApiQuery({ name: 'branch', required: false, type: String })
   @ApiResponse({ status: 200, description: 'Return paginated deployments' })
-  getDeployments(
+  async getDeployments(
     @Query() filterDto: FilterDeploymentDto,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page = 1,
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit = 10,
-    // @CurrentUser() user: User,
+    @CurrentUser() user: User,
   ): Promise<Pagination<Deployment>> {
     // For non-admin users, force filter by their own ID
     // if (!user.isAdmin) {
@@ -175,24 +175,30 @@ export class DeploymentController {
     // }
 
     // Verify project access
-    // const project = await this.projectRepository.findOne({
-    //   where: { id: filterDto.projectId },
-    // });
+    const project = await this.projectRepository.findOne({
+      where: { id: filterDto.projectId },
+    });
 
-    // if (!project) {
-    //   throw new ForbiddenException('Project not found');
-    // }
+    if (!project) {
+      throw new ForbiddenException('Project not found');
+    }
 
     // Non-admin users can only access their own projects
     // if (!user.isAdmin && project.ownerId !== user.id) {
     //   throw new ForbiddenException('You do not have permission to access this project');
     // }
 
-    return this.deploymentService.getDeployments(filterDto, {
-      page,
-      limit,
-      route: 'deployments',
-    });
+    return this.deploymentService.getDeployments(
+      {
+        ...filterDto,
+        ownerId: user.id,
+      },
+      {
+        page,
+        limit,
+        route: 'deployments',
+      },
+    );
   }
 
   @Get(':deploymentId/logs')

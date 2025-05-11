@@ -15,8 +15,7 @@ export class CreatePaymentDto {
 
   @ApiProperty({ description: 'Currency for the payment', enum: Currency, default: Currency.USD })
   @IsEnum(Currency)
-  @IsOptional()
-  currency?: Currency = Currency.USD;
+  currency: Currency;
 
   @ApiProperty({ description: 'Payment method', enum: PaymentMethod })
   @IsEnum(PaymentMethod)

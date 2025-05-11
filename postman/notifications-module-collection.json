@@ -1,0 +1,612 @@
+{
+  "info": {
+    "_postman_id": "5e8dfa2b-1c1d-4f5b-a7d2-52b2e2f898f6",
+    "name": "Deploy Hub API - Notifications Module",
+    "description": "Collection for testing the Notifications Module endpoints in Deploy Hub API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "string",
+      "description": "Base URL for API"
+    },
+    {
+      "key": "auth_token",
+      "value": "your_jwt_token_here",
+      "type": "string",
+      "description": "JWT token for authentication"
+    }
+  ],
+  "item": [
+    {
+      "name": "Notifications",
+      "description": "Endpoints for managing user notifications",
+      "item": [
+        {
+          "name": "Get All Notifications",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/notifications?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["notifications"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "userId",
+                  "value": "",
+                  "description": "Filter by user ID (admin only)",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "description": "Filter by notification status",
+                  "disabled": true
+                },
+                {
+                  "key": "type",
+                  "value": "",
+                  "description": "Filter by notification type",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Retrieves a paginated list of notifications. Regular users can only see their own notifications, while admins can see all notifications."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Unread Notification Count",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/notifications/unread/count",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "unread", "count"]
+            },
+            "description": "Retrieves the count of unread notifications for the current user."
+          },
+          "response": []
+        },
+        {
+          "name": "Mark All Notifications as Read",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/notifications/read/all",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "read", "all"]
+            },
+            "description": "Marks all notifications as read for the current user."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Notification by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/notifications/:id",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "notification_id_here"
+                }
+              ]
+            },
+            "description": "Retrieves a specific notification by ID."
+          },
+          "response": []
+        },
+        {
+          "name": "Mark Notification as Read",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/notifications/:id/read",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", ":id", "read"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "notification_id_here"
+                }
+              ]
+            },
+            "description": "Marks a specific notification as read."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Notification",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/notifications/:id",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "notification_id_here"
+                }
+              ]
+            },
+            "description": "Deletes a specific notification."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Notification (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"user_id_here\",\n  \"title\": \"New notification\",\n  \"content\": \"This is the notification content\",\n  \"type\": \"SYSTEM\",\n  \"metadata\": {\n    \"key1\": \"value1\",\n    \"key2\": \"value2\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/notifications",
+              "host": ["{{base_url}}"],
+              "path": ["notifications"]
+            },
+            "description": "Creates a new notification (admin only)."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Notification",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated notification title\",\n  \"content\": \"Updated notification content\",\n  \"isRead\": true,\n  \"metadata\": {\n    \"key1\": \"updated_value\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/notifications/:id",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "notification_id_here"
+                }
+              ]
+            },
+            "description": "Updates an existing notification."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Notification Tokens",
+      "description": "Endpoints for managing notification tokens",
+      "item": [
+        {
+          "name": "Register Token (Current User)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"fcm_or_device_token_here\",\n  \"platform\": \"web\",\n  \"browser\": \"chrome\",\n  \"deviceModel\": \"browser\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/tokens",
+              "host": ["{{base_url}}"],
+              "path": ["tokens"]
+            },
+            "description": "Registers a notification token for the current user."
+          },
+          "response": []
+        },
+        {
+          "name": "Register Token for User (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"fcm_or_device_token_here\",\n  \"platform\": \"web\",\n  \"browser\": \"chrome\",\n  \"deviceModel\": \"browser\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/tokens/:userId",
+              "host": ["{{base_url}}"],
+              "path": ["tokens", ":userId"],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": "user_id_here"
+                }
+              ]
+            },
+            "description": "Registers a notification token for a specific user (admin only)."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Tokens (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/tokens?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["tokens"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "platform",
+                  "value": "",
+                  "description": "Filter by platform",
+                  "disabled": true
+                },
+                {
+                  "key": "browser",
+                  "value": "",
+                  "description": "Filter by browser",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Retrieves a paginated list of all notification tokens (admin only)."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Current User Tokens",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/tokens/me",
+              "host": ["{{base_url}}"],
+              "path": ["tokens", "me"]
+            },
+            "description": "Retrieves the notification tokens for the current user."
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Tokens (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/tokens/:userId",
+              "host": ["{{base_url}}"],
+              "path": ["tokens", ":userId"],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": "user_id_here"
+                }
+              ]
+            },
+            "description": "Retrieves the notification tokens for a specific user (admin only)."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Current User Tokens",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tokens\": [\n    {\n      \"token\": \"updated_token_value\",\n      \"platform\": \"web\",\n      \"browser\": \"firefox\",\n      \"deviceModel\": \"browser\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/tokens/me",
+              "host": ["{{base_url}}"],
+              "path": ["tokens", "me"]
+            },
+            "description": "Updates the notification tokens for the current user."
+          },
+          "response": []
+        },
+        {
+          "name": "Update User Tokens (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tokens\": [\n    {\n      \"token\": \"updated_token_value\",\n      \"platform\": \"web\",\n      \"browser\": \"firefox\",\n      \"deviceModel\": \"browser\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/tokens/:userId",
+              "host": ["{{base_url}}"],
+              "path": ["tokens", ":userId"],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": "user_id_here"
+                }
+              ]
+            },
+            "description": "Updates the notification tokens for a specific user (admin only)."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete All Current User Tokens",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/tokens/me",
+              "host": ["{{base_url}}"],
+              "path": ["tokens", "me"]
+            },
+            "description": "Deletes all notification tokens for the current user."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete All User Tokens (Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/tokens/:userId",
+              "host": ["{{base_url}}"],
+              "path": ["tokens", ":userId"],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": "user_id_here"
+                }
+              ]
+            },
+            "description": "Deletes all notification tokens for a specific user (admin only)."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Specific Current User Tokens",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "[\"token_1\", \"token_2\"]"
+            },
+            "url": {
+              "raw": "{{base_url}}/tokens/me/tokens",
+              "host": ["{{base_url}}"],
+              "path": ["tokens", "me", "tokens"]
+            },
+            "description": "Deletes specific notification tokens for the current user."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Specific User Tokens (Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "[\"token_1\", \"token_2\"]"
+            },
+            "url": {
+              "raw": "{{base_url}}/tokens/:userId/tokens",
+              "host": ["{{base_url}}"],
+              "path": ["tokens", ":userId", "tokens"],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": "user_id_here"
+                }
+              ]
+            },
+            "description": "Deletes specific notification tokens for a specified user (admin only)."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Token Statistics (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/tokens/statistics",
+              "host": ["{{base_url}}"],
+              "path": ["tokens", "statistics"]
+            },
+            "description": "Retrieves statistics about notification tokens (admin only)."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

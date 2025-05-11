@@ -16,4 +16,17 @@ export class UserPreferences {
 
   @Column({ type: 'simple-array', nullable: true })
   preferredDeploymentProviders: DeploymentProvider[] | null;
+
+  @Column({ type: 'simple-array', nullable: true, default: [] })
+  billings?: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    company: string;
+    address: string;
+    city: string;
+    state: string;
+    postalCode: string;
+    country: string;
+  }[];
 }
