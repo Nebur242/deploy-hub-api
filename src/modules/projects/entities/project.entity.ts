@@ -46,6 +46,9 @@ export class Project {
   @Column({ nullable: true })
   previewUrl?: string;
 
+  @Column({ nullable: true })
+  image?: string;
+
   @Column({ length: 100, unique: true })
   @Index()
   slug: string;

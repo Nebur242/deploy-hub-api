@@ -25,6 +25,19 @@ The `LicenseOption` entity represents a type of license that can be purchased. I
 - Deployment limit
 - Associated projects
 
+### UserLicense
+
+The `UserLicense` entity represents a license assigned to a specific user. It is created when a payment is successfully processed. It contains:
+
+- Owner (user who owns the license)
+- License ID (reference to the purchased license)
+- Expiration date
+- Active status
+- Deployment count and limit
+- List of deployments
+- Trial status
+- Metadata (order and payment references)
+
 ## Controllers
 
 ### LicenseOptionController
@@ -42,9 +55,13 @@ Provides REST endpoints for managing license options:
 
 Provides REST endpoints for managing user licenses:
 
+- `GET /user-licenses` - Get all user licenses for the current user with pagination
+- `GET /user-licenses/:id` - Get a specific user license by ID
 - `GET /user-licenses/active` - Get all active licenses for the current user
+- `GET /user-licenses/active-licenses` - Get all active user licenses (UserLicense entities) for the current user
 - `GET /user-licenses/has-active` - Check if the user has an active license
 - `GET /user-licenses/active/:licenseId` - Get a specific active license for the current user
+- `GET /user-licenses/admin/all` - Admin endpoint to get all user licenses with filtering and pagination
 - `GET /user-licenses/admin/active` - Admin endpoint to get all active licenses for any user
 - `GET /user-licenses/admin/has-active` - Admin endpoint to check if any user has an active license
 

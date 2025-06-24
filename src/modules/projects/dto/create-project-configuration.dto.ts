@@ -12,6 +12,11 @@ import {
 
 import { DeploymentProvider } from '../entities/project-configuration.entity';
 
+export enum EnvironmentVariableType {
+  TEXT = 'text',
+  JSON = 'json',
+}
+
 export class EnvironmentVariableDto {
   @IsNotEmpty()
   @IsString()
@@ -31,6 +36,10 @@ export class EnvironmentVariableDto {
   @IsNotEmpty()
   @IsBoolean()
   isRequired: boolean;
+
+  @IsEnum(EnvironmentVariableType)
+  @IsNotEmpty()
+  type: EnvironmentVariableType;
 
   @IsNotEmpty()
   @IsBoolean()

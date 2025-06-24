@@ -1,5 +1,13 @@
 import { Role } from '@app/shared/enums';
-import { IsEnum, IsNotEmpty, IsOptional, IsString, Length } from 'class-validator';
+import {
+  IsDefined,
+  IsEmail,
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Length,
+} from 'class-validator';
 
 import { UserNotification } from '../entities/user-notification.entity';
 import { UserPreferences } from '../entities/user-preferences.entity';
@@ -32,6 +40,10 @@ export class CreateUserDto {
   @IsOptional()
   @IsString()
   company?: string;
+
+  @IsEmail()
+  @IsDefined()
+  email: string;
 }
 
 export class UpdateUserDto {

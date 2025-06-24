@@ -20,25 +20,19 @@ export class GithubDeployerService {
     githubAccount: GitHubAccount,
     deploymentConfig: ServiceCreateDeploymentDto,
   ): Promise<{ workflowRunId: number }> {
-    // Initialize Octokit with the GitHub token
     try {
       const octokit = new Octokit({ auth: githubAccount.accessToken });
 
-      // Get the workflow ID
-      const workflowPath = `.github/workflows/${githubAccount.workflowFile}`;
+      // Get the workflow ID with improved error handling
+      const workflowId = await this.getWorkflowId(octokit, githubAccount);
 
-      // Find the workflow
-      const { data: workflows } = await octokit.actions.listRepoWorkflows({
-        owner: githubAccount.username,
-        repo: githubAccount.repository,
-      });
-
-      // Find workflow by path or by name "Deploy to Vercel"
-      const workflow = workflows.workflows.find(w => w.path === workflowPath);
-
-      if (!workflow) {
-        throw new NotFoundException(`Workflow not found: ${workflowPath}`);
-      }
+      // Get existing workflow runs BEFORE triggering new one
+      const existingRunIds = await this.getExistingWorkflowRunIds(
+        octokit,
+        githubAccount.username,
+        githubAccount.repository,
+        workflowId,
+      );
 
       // Prepare workflow inputs based on deployment provider
       const inputs: Record<string, string> = {
@@ -51,37 +45,27 @@ export class GithubDeployerService {
         inputs[env.key] = env.defaultValue;
       });
 
+      // Record timestamp before triggering
+      const triggerTime = new Date();
+
       // Trigger the workflow
       await octokit.actions.createWorkflowDispatch({
         owner: githubAccount.username,
         repo: githubAccount.repository,
-        workflow_id: workflow.id,
-        ref: deploymentConfig.branch, // The branch where the workflow file exists
+        workflow_id: workflowId,
+        ref: deploymentConfig.branch,
         inputs,
       });
 
-      // Get the workflow run ID - try multiple times as there can be a delay
-      let runId = await this.getLatestWorkflowRunId(
+      // Get the exact new workflow run ID
+      const runId = await this.getNewWorkflowRunId(
         octokit,
         githubAccount.username,
         githubAccount.repository,
-        workflow.id,
+        workflowId,
+        existingRunIds,
+        triggerTime,
       );
-
-      if (!runId) {
-        // Wait briefly and try again
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        runId = await this.getLatestWorkflowRunId(
-          octokit,
-          githubAccount.username,
-          githubAccount.repository,
-          workflow.id,
-        );
-
-        if (!runId) {
-          throw new Error('Workflow triggered but no run was created');
-        }
-      }
 
       return { workflowRunId: runId };
     } catch (error) {
@@ -89,6 +73,215 @@ export class GithubDeployerService {
       this.logger.error(`Error deploying to GitHub: ${error.message}`);
       throw error;
     }
+  }
+
+  /**
+   * Get workflow ID with multiple fallback strategies
+   */
+  private async getWorkflowId(octokit: Octokit, githubAccount: GitHubAccount): Promise<number> {
+    const { data: workflows } = await octokit.actions.listRepoWorkflows({
+      owner: githubAccount.username,
+      repo: githubAccount.repository,
+    });
+
+    // Strategy 1: Find by exact path match
+    const workflowPath = `.github/workflows/${githubAccount.workflowFile}`;
+    let workflow = workflows.workflows.find(w => w.path === workflowPath);
+
+    if (workflow) {
+      this.logger.log(`Found workflow by path: ${workflowPath}`);
+      return workflow.id;
+    }
+
+    // Strategy 2: Find by filename only (in case path structure differs)
+    workflow = workflows.workflows.find(w => w.path?.endsWith(`/${githubAccount.workflowFile}`));
+
+    if (workflow) {
+      this.logger.log(`Found workflow by filename: ${githubAccount.workflowFile}`);
+      return workflow.id;
+    }
+
+    // Strategy 3: Find by common deployment workflow names
+    const commonDeploymentNames = [
+      'Deploy to Vercel',
+      'Deploy',
+      'Deployment',
+      'CI/CD',
+      'Build and Deploy',
+      'Production Deploy',
+    ];
+
+    for (const name of commonDeploymentNames) {
+      workflow = workflows.workflows.find(w => w.name?.toLowerCase().includes(name.toLowerCase()));
+      if (workflow) {
+        this.logger.log(`Found workflow by name pattern: ${workflow.name}`);
+        return workflow.id;
+      }
+    }
+
+    // Strategy 4: If only one workflow exists, use it
+    if (workflows.workflows.length === 1) {
+      this.logger.log(`Using single available workflow: ${workflows.workflows[0].name}`);
+      return workflows.workflows[0].id;
+    }
+
+    // Strategy 5: Look for workflows with 'workflow_dispatch' trigger
+    const dispatchableWorkflows = workflows.workflows.filter(w => {
+      // This would require fetching individual workflow content,
+      // but we can make an educated guess based on common patterns
+      return w.name?.toLowerCase().includes('deploy') || w.name?.toLowerCase().includes('dispatch');
+    });
+
+    if (dispatchableWorkflows.length === 1) {
+      this.logger.log(`Found dispatchable workflow: ${dispatchableWorkflows[0].name}`);
+      return dispatchableWorkflows[0].id;
+    }
+
+    // Strategy 6: Cache and store workflow ID for future use
+    // You might want to implement a caching mechanism here
+
+    // If all strategies fail, provide detailed error information
+    const availableWorkflows = workflows.workflows.map(w => ({
+      id: w.id,
+      name: w.name,
+      path: w.path,
+      state: w.state,
+    }));
+
+    this.logger.error(`Available workflows: ${JSON.stringify(availableWorkflows, null, 2)}`);
+
+    throw new NotFoundException(
+      `Workflow not found. Searched for: ${workflowPath}. ` +
+        `Available workflows: ${availableWorkflows.map(w => w.name || w.path).join(', ')}`,
+    );
+  }
+
+  /**
+   * Get existing workflow run IDs before triggering a new one
+   */
+  private async getExistingWorkflowRunIds(
+    octokit: Octokit,
+    owner: string,
+    repo: string,
+    workflowId: number,
+  ): Promise<Set<number>> {
+    try {
+      const { data: runs } = await octokit.actions.listWorkflowRuns({
+        owner,
+        repo,
+        workflow_id: workflowId,
+        per_page: 50, // Get enough to avoid missing any recent runs
+        event: 'workflow_dispatch',
+      });
+
+      return new Set(runs.workflow_runs.map(run => run.id));
+    } catch (error) {
+      this.logger.warn(`Error getting existing workflow runs: ${error.message}`);
+      return new Set(); // Return empty set if we can't get existing runs
+    }
+  }
+
+  /**
+   * Get the new workflow run ID that was just created
+   */
+  private async getNewWorkflowRunId(
+    octokit: Octokit,
+    owner: string,
+    repo: string,
+    workflowId: number,
+    existingRunIds: Set<number>,
+    triggerTime: Date,
+  ): Promise<number> {
+    const maxAttempts = 10;
+    const baseDelay = 1000; // 1 second
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        const { data: runs } = await octokit.actions.listWorkflowRuns({
+          owner,
+          repo,
+          workflow_id: workflowId,
+          per_page: 20,
+          event: 'workflow_dispatch',
+        });
+
+        // Find runs that:
+        // 1. Don't exist in our pre-trigger set
+        // 2. Were created after our trigger time (with some buffer for clock skew)
+        const bufferTime = new Date(triggerTime.getTime() - 30000); // 30 second buffer
+
+        const newRuns = runs.workflow_runs.filter(run => {
+          const runCreatedAt = new Date(run.created_at);
+          return !existingRunIds.has(run.id) && runCreatedAt >= bufferTime;
+        });
+
+        if (newRuns.length > 0) {
+          // Sort by creation time to get the most recent
+          newRuns.sort(
+            (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+          );
+
+          const selectedRun = newRuns[0];
+          this.logger.log(
+            `Found new workflow run ${selectedRun.id} created at ${selectedRun.created_at} ` +
+              `(trigger time: ${triggerTime.toISOString()})`,
+          );
+
+          return selectedRun.id;
+        }
+
+        // If no new run found, wait with exponential backoff
+        if (attempt < maxAttempts) {
+          const delay = Math.min(baseDelay * Math.pow(1.5, attempt - 1), 8000); // Max 8 seconds
+          this.logger.log(
+            `No new workflow run found, retrying in ${delay}ms (attempt ${attempt}/${maxAttempts})`,
+          );
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      } catch (error) {
+        lastError = error;
+        if (attempt < maxAttempts) {
+          const delay = Math.min(baseDelay * Math.pow(1.5, attempt - 1), 8000);
+          this.logger.warn(
+            `Error checking for new workflow run, retrying in ${delay}ms: ${error.message}`,
+          );
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+
+    // Fallback: If we still can't find the exact run, try to get the most recent one
+    // that was created after our trigger time
+    try {
+      const { data: runs } = await octokit.actions.listWorkflowRuns({
+        owner,
+        repo,
+        workflow_id: workflowId,
+        per_page: 10,
+        event: 'workflow_dispatch',
+      });
+
+      const recentRuns = runs.workflow_runs.filter(
+        run => new Date(run.created_at) >= new Date(triggerTime.getTime() - 60000), // 1 minute buffer
+      );
+
+      if (recentRuns.length > 0) {
+        const fallbackRun = recentRuns[0];
+        this.logger.warn(
+          `Using fallback workflow run ${fallbackRun.id} created at ${fallbackRun.created_at}`,
+        );
+        return fallbackRun.id;
+      }
+    } catch (fallbackError) {
+      this.logger.error(`Fallback strategy failed: ${fallbackError.message}`);
+    }
+
+    throw new Error(
+      `Failed to identify the triggered workflow run after ${maxAttempts} attempts. ` +
+        `Trigger time: ${triggerTime.toISOString()}. ` +
+        `Last error: ${lastError?.message || 'No matching workflow run found'}`,
+    );
   }
 
   /**
@@ -106,26 +299,66 @@ export class GithubDeployerService {
         owner,
         repo,
         workflow_id: workflowId,
-        per_page: 1,
+        per_page: 10, // Get more runs to find the most recent one
+        event: 'workflow_dispatch', // Only get manually triggered runs
       });
 
       if (runs.workflow_runs.length === 0) {
         if (retries > 0) {
-          // Wait briefly and try again
           await new Promise(resolve => setTimeout(resolve, 1000));
           return this.getLatestWorkflowRunId(octokit, owner, repo, workflowId, retries - 1);
         }
         return null;
       }
 
-      return runs.workflow_runs[0].id;
+      // Sort by created_at to ensure we get the most recent
+      const sortedRuns = runs.workflow_runs.sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+      );
+
+      return sortedRuns[0].id;
     } catch (error) {
       if (retries > 0) {
-        // Wait and retry on error
         await new Promise(resolve => setTimeout(resolve, 1000));
         return this.getLatestWorkflowRunId(octokit, owner, repo, workflowId, retries - 1);
       }
       throw error;
+    }
+  }
+
+  /**
+   * Validate that a workflow can be dispatched
+   */
+  async validateWorkflowDispatchable(
+    githubAccount: GitHubAccount,
+  ): Promise<{ valid: boolean; workflowId?: number; error?: string }> {
+    try {
+      const octokit = new Octokit({ auth: githubAccount.accessToken });
+      const workflowId = await this.getWorkflowId(octokit, githubAccount);
+
+      // Try to get workflow details to ensure it exists and is accessible
+      const { data: workflow } = await octokit.actions.getWorkflow({
+        owner: githubAccount.username,
+        repo: githubAccount.repository,
+        workflow_id: workflowId,
+      });
+
+      if (workflow.state !== 'active') {
+        return {
+          valid: false,
+          error: `Workflow is not active (state: ${workflow.state})`,
+        };
+      }
+
+      return {
+        valid: true,
+        workflowId: workflowId,
+      };
+    } catch (error) {
+      return {
+        valid: false,
+        error: error.message,
+      };
     }
   }
 

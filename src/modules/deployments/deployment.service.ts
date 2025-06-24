@@ -10,14 +10,16 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { IPaginationOptions, paginate, Pagination } from 'nestjs-typeorm-paginate';
 import { Repository } from 'typeorm';
 
+import { DeploymentEntities } from './deployment.controller';
 import { ServiceCreateDeploymentDto } from './dto/create-deployment.dto';
 import { FilterDeploymentDto } from './dto/filter.dto';
 import { GitHubAccount } from './dto/github-account.dto';
 import { Deployment, DeploymentStatus } from './entities/deployment.entity';
 import { GithubDeployerService } from './services/github-deployer.service';
 import { GithubWebhookService } from './services/github-webhook.service';
+import { DeploymentUrlExtractorService } from './services/url-extractor.service';
+import { UserLicense } from '../licenses/entities/user-license.entity';
 import { ProjectConfiguration } from '../projects/entities/project-configuration.entity';
-import { Project } from '../projects/entities/project.entity';
 import { User } from '../users/entities/user.entity';
 
 @Injectable()
@@ -32,6 +34,9 @@ export class DeploymentService {
     private readonly webhookService: GithubWebhookService,
     @InjectRepository(ProjectConfiguration)
     private projectConfigurationRepository: Repository<ProjectConfiguration>,
+    private readonly deploymentUrlExtractorService: DeploymentUrlExtractorService,
+    @InjectRepository(UserLicense)
+    private userLicenseRepository: Repository<UserLicense>,
   ) {}
 
   /**
@@ -39,14 +44,17 @@ export class DeploymentService {
    */
   async createDeployment(
     serviceCreateDeploymentDto: ServiceCreateDeploymentDto & { owner: User },
-    project: Project,
-    configuration: ProjectConfiguration,
+    entities: DeploymentEntities,
   ): Promise<Deployment> {
     // Create deployment record
+
+    const { project, configuration, license, userLicense } = entities;
+
     const deployment = this.deploymentRepository.create({
       projectId: serviceCreateDeploymentDto.projectId,
       configurationId: serviceCreateDeploymentDto.configurationId,
       configuration,
+      deploymentUrl: serviceCreateDeploymentDto?.deploymentUrl || '',
       project,
       ownerId: serviceCreateDeploymentDto.ownerId,
       owner: serviceCreateDeploymentDto.owner,
@@ -55,6 +63,10 @@ export class DeploymentService {
       status: DeploymentStatus.PENDING,
       environmentVariables: serviceCreateDeploymentDto.environmentVariables,
       siteId: serviceCreateDeploymentDto.siteId || undefined,
+      licenseId: serviceCreateDeploymentDto.licenseId,
+      license,
+      userLicense,
+      userLicenseId: userLicense.id,
     });
 
     await this.deploymentRepository.save(deployment);
@@ -248,6 +260,7 @@ export class DeploymentService {
     if (!configuration) {
       throw new Error(`Configuration with ID "${deployment.configurationId}" not found`);
     }
+
     // Get all GitHub accounts for the project
     const githubAccounts = configuration.githubAccounts.map(account => ({
       ...account,
@@ -286,6 +299,8 @@ export class DeploymentService {
       })),
       ownerId: deployment.ownerId,
       siteId: deployment.siteId,
+      licenseId: deployment.licenseId,
+      userLicenseId: deployment.userLicenseId,
     };
 
     // Trigger deployment with reordered accounts
@@ -340,6 +355,21 @@ export class DeploymentService {
 
     if (!deployment) {
       throw new Error(`Deployment with ID "${deploymentId}" not found`);
+    }
+
+    if (!deployment.deploymentUrl) {
+      const { logs } = await this.getDeploymentLogs(deployment);
+
+      if (logs) {
+        const url = this.deploymentUrlExtractorService.extractUrlFromLogs(logs, deployment);
+
+        if (url) {
+          deployment.deploymentUrl = url;
+          await this.deploymentRepository.save(deployment);
+        } else {
+          this.logger.warn(`No deployment URL found in logs for deployment ${deploymentId}`);
+        }
+      }
     }
 
     return deployment;
@@ -406,12 +436,11 @@ export class DeploymentService {
 
     return paginate<Deployment>(queryBuilder, options);
   }
+
   /**
    * Get logs for a deployment
    */
-  async getDeploymentLogs(deploymentId: string): Promise<{ logs: string }> {
-    const deployment = await this.getDeployment(deploymentId);
-
+  async getDeploymentLogs(deployment: Deployment): Promise<{ logs: string }> {
     if (!deployment.githubAccount || !deployment.workflowRunId) {
       return { logs: 'No workflow information available for this deployment' };
     }
@@ -429,7 +458,7 @@ export class DeploymentService {
       return { logs };
     } catch (err) {
       const error = err as Error;
-      this.logger.error(`Error fetching logs for deployment ${deploymentId}: ${error.message}`);
+      this.logger.error(`Error fetching logs for deployment ${deployment.id}: ${error.message}`);
       return { logs: `Error fetching logs: ${error.message}` };
     }
   }
@@ -471,6 +500,21 @@ export class DeploymentService {
           deployment.deploymentUrl = status.deploymentUrl;
           deployment.completedAt = new Date();
           completedDeployment = true;
+
+          // Update UserLicense count instead of DeploymentCount
+          const userLicense = await this.userLicenseRepository.findOne({
+            where: {
+              licenseId: deployment.licenseId,
+              ownerId: deployment.ownerId,
+              active: true,
+            },
+          });
+
+          if (userLicense) {
+            userLicense.count = userLicense.count + 1;
+            userLicense.deployments = [...userLicense.deployments, deployment.id];
+            await this.userLicenseRepository.save(userLicense);
+          }
         } else if (status.conclusion === 'failure' || status.conclusion === 'cancelled') {
           deployment.status = DeploymentStatus.FAILED;
           deployment.errorMessage = `GitHub workflow ${status.conclusion}`;
@@ -531,5 +575,65 @@ export class DeploymentService {
         error.stack,
       );
     }
+  }
+
+  /**
+   * Get user licenses with pagination and filters (replaces getDeploymentCounts)
+   * @param filterDto Filter parameters
+   * @param options Pagination options
+   * @returns Paginated user licenses
+   */
+  getUserLicenses(
+    filterDto: {
+      licenseId?: string;
+      ownerId?: string;
+      createdFrom?: string;
+      createdTo?: string;
+      minCount?: number;
+    },
+    options: IPaginationOptions,
+  ): Promise<Pagination<UserLicense>> {
+    const queryBuilder = this.userLicenseRepository.createQueryBuilder('userLicense');
+
+    // Apply filters
+    if (filterDto.licenseId) {
+      queryBuilder.andWhere('userLicense.licenseId = :licenseId', {
+        licenseId: filterDto.licenseId,
+      });
+    }
+
+    if (filterDto.ownerId) {
+      queryBuilder.andWhere('userLicense.ownerId = :ownerId', {
+        ownerId: filterDto.ownerId,
+      });
+    }
+
+    // Date range filters
+    if (filterDto.createdFrom) {
+      queryBuilder.andWhere('userLicense.createdAt >= :createdFrom', {
+        createdFrom: filterDto.createdFrom,
+      });
+    }
+
+    if (filterDto.createdTo) {
+      queryBuilder.andWhere('userLicense.createdAt <= :createdTo', {
+        createdTo: filterDto.createdTo,
+      });
+    }
+
+    // Count filter
+    if (filterDto.minCount !== undefined) {
+      queryBuilder.andWhere('userLicense.count >= :minCount', {
+        minCount: filterDto.minCount,
+      });
+    }
+
+    // Add relations
+    queryBuilder.leftJoinAndSelect('userLicense.owner', 'owner');
+
+    // Order by creation date (newest first)
+    queryBuilder.orderBy('userLicense.createdAt', 'DESC');
+
+    return paginate<UserLicense>(queryBuilder, options);
   }
 }

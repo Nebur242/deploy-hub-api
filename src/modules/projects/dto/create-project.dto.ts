@@ -45,6 +45,11 @@ export class CreateProjectDto {
   @ApiProperty({ description: 'Preview URL for the project', required: false })
   previewUrl?: string;
 
+  @IsOptional()
+  @IsString()
+  @ApiProperty({ description: 'Image URL for the project', required: false })
+  image?: string;
+
   @IsArray()
   @IsString({ each: true })
   techStack: string[];

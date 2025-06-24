@@ -1,3 +1,5 @@
+import { LicenseOption } from '@app/modules/licenses/entities/license-option.entity';
+import { UserLicense } from '@app/modules/licenses/entities/user-license.entity';
 import { EnvironmentVariableDto } from '@app/modules/projects/dto/create-project-configuration.dto';
 import { ProjectConfiguration } from '@app/modules/projects/entities/project-configuration.entity';
 import { Project } from '@app/modules/projects/entities/project.entity';
@@ -48,6 +50,21 @@ export class Deployment {
   })
   @JoinColumn({ name: 'project_id' })
   project: Project;
+
+  @Column({ name: 'license_id' })
+  licenseId: string;
+
+  @ManyToOne(() => LicenseOption, license => license.id, {
+    onDelete: 'SET NULL',
+    onUpdate: 'CASCADE',
+  })
+  license: LicenseOption;
+
+  @Column({ name: 'user_license_id', nullable: true })
+  userLicenseId: string;
+
+  @ManyToOne(() => UserLicense)
+  userLicense: UserLicense;
 
   @Column({ name: 'configuration_id' })
   configurationId: string;

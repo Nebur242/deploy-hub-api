@@ -77,6 +77,7 @@ export class EmailService {
    */
   async sendEmail(options: EmailOptions) {
     this.logger.debug(`Sending email to: ${options.to}, subject: ${options.subject}`);
+    console.log(`Email options: ${JSON.stringify(options)}`);
 
     try {
       let html = options.html;
@@ -152,6 +153,7 @@ export class EmailService {
     try {
       // Try to load the template file
       const templatePath = path.join(this.templateDir, `${templateName}.hbs`);
+      console.log(`Loading template from: ${templatePath}`);
       const templateContent = await fs.readFile(templatePath, 'utf-8');
 
       // Compile and render the template

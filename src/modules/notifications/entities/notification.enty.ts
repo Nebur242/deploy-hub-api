@@ -18,6 +18,7 @@ export enum NotificationScope {
   PAYMENT = 'PAYMENT',
   PROJECTS = 'PROJECTS',
   LICENCES = 'LICENSES',
+  WELCOME = 'WELCOME',
 }
 
 export const NotificationHbsTemplate = {
@@ -25,6 +26,7 @@ export const NotificationHbsTemplate = {
   [NotificationScope.PAYMENT]: 'payment-notification',
   [NotificationScope.PROJECTS]: 'project-notification',
   [NotificationScope.LICENCES]: 'license-notification',
+  [NotificationScope.WELCOME]: 'welcome',
 };
 
 @Entity('notifications')

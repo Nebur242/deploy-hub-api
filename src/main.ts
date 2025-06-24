@@ -48,6 +48,7 @@ function setupGlobalMiddlewares(app: INestApplication) {
         forbidNonWhitelisted: true,
         transform: true,
         exceptionFactory(err) {
+          console.log('Validation error:', err);
           const errors = err.reduce((acc: string[], e) => {
             if (e.constraints) {
               Object.values(e.constraints).forEach(constraint => acc.push(constraint));

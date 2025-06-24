@@ -1,3 +1,4 @@
+import { UserLicense } from '@app/modules/licenses/entities/user-license.entity';
 import { OrderStatus, PaymentStatus } from '@app/shared/enums';
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -5,7 +6,6 @@ import { Repository } from 'typeorm';
 
 import { OrderService } from './order.service';
 import { CreatePaymentDto } from '../dto/create-payment.dto';
-import { Order } from '../entities/order.entity';
 import { Payment } from '../entities/payment.entity';
 
 @Injectable()
@@ -13,8 +13,8 @@ export class PaymentService {
   constructor(
     @InjectRepository(Payment)
     private readonly paymentRepository: Repository<Payment>,
-    @InjectRepository(Order)
-    private readonly orderRepository: Repository<Order>,
+    @InjectRepository(UserLicense)
+    private readonly userLicenseRepository: Repository<UserLicense>,
     private readonly orderService: OrderService,
   ) {}
 
@@ -84,6 +84,7 @@ export class PaymentService {
     // Update order status based on payment result
     if (isSuccessful) {
       await this.orderService.updateStatus(payment.orderId, OrderStatus.COMPLETED);
+      await this.createUserLicense(payment, false);
     } else {
       await this.orderService.updateStatus(payment.orderId, OrderStatus.FAILED);
     }
@@ -123,6 +124,38 @@ export class PaymentService {
   }
 
   /**
+   * Create a user license from a completed order
+   */
+  private async createUserLicense(
+    payment: Payment,
+    isAdminManaged: boolean = false,
+  ): Promise<void> {
+    // Fetch the complete order with license information
+    const order = await this.orderService.findOne(payment.orderId);
+
+    // Create a new UserLicense instance
+    const userLicense = this.userLicenseRepository.create({
+      ownerId: order.userId,
+      licenseId: order.licenseId,
+      expiresAt: order.expiresAt,
+      active: true,
+      count: 0,
+      maxDeployments: order.license.deploymentLimit,
+      deployments: [],
+      trial: false,
+      metadata: {
+        orderReference: order.referenceNumber,
+        paymentId: payment.id,
+        paymentDate: payment.processedAt,
+        adminAssigned: isAdminManaged,
+      },
+    });
+
+    // Save the user license
+    await this.userLicenseRepository.save(userLicense);
+  }
+
+  /**
    * Update payment status manually (admin only)
    */
   async updatePaymentStatus(id: string, status: PaymentStatus): Promise<Payment> {
@@ -133,9 +166,10 @@ export class PaymentService {
 
     const savedPayment = await this.paymentRepository.save(payment);
 
-    // If payment is completed, update the order
+    // If payment is completed, update the order and create a user license
     if (status === PaymentStatus.COMPLETED) {
       await this.orderService.updateStatus(payment.orderId, OrderStatus.COMPLETED);
+      await this.createUserLicense(savedPayment, true);
     } else if (status === PaymentStatus.FAILED) {
       await this.orderService.updateStatus(payment.orderId, OrderStatus.FAILED);
     }

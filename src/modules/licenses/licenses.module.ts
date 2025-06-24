@@ -8,13 +8,14 @@ import { LicenseOptionController } from './controllers/license-option.controller
 import { PublicLicenseController } from './controllers/public-license.controller';
 import { UserLicenseController } from './controllers/user-license.controller';
 import { LicenseOption } from './entities/license-option.entity';
+import { UserLicense } from './entities/user-license.entity';
 import { LicenseOptionService } from './services/license-option.service';
 import { UserLicenseService } from './services/user-license.service';
 
 @Module({
   imports: [
     ProjectsModule,
-    TypeOrmModule.forFeature([LicenseOption, Order]),
+    TypeOrmModule.forFeature([LicenseOption, Order, UserLicense]),
     forwardRef(() => PaymentModule), // Using forwardRef to break circular dependency
   ],
   providers: [LicenseOptionService, UserLicenseService],

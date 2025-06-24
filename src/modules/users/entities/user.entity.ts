@@ -20,6 +20,9 @@ export class User {
   @Column({ unique: true })
   uid: string;
 
+  @Column({ nullable: false, unique: true })
+  email: string;
+
   @Column({ length: 50, nullable: true })
   firstName?: string;
 
