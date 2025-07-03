@@ -468,8 +468,29 @@ const proLicenses = await fetch('/api/v1/user-licenses/admin/all?licenseId=pro-l
 }).then(res => res.json());
 ```
 
-## Changelog
+### 4. Redeploy Existing Deployment
 
-- **v1.0.0** - Initial release with basic UserLicense management
-- **v1.1.0** - Added deployment tracking integration
-- **v1.2.0** - Added admin endpoints for license management
+```javascript
+// Redeploy with same configuration
+const redeployment = await fetch(`/api/v1/deployments/${deploymentId}/redeploy`, {
+  method: 'POST',
+  headers: {
+    Authorization: `Bearer ${token}`,
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({}), // Empty body uses original configuration
+});
+
+// Redeploy with environment override
+const redeployment = await fetch(`/api/v1/deployments/${deploymentId}/redeploy`, {
+  method: 'POST',
+  headers: {
+    Authorization: `Bearer ${token}`,
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    environment: 'production',
+    branch: 'release-v2.0',
+  }),
+});
+```

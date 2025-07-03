@@ -8,17 +8,18 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IPaginationOptions, paginate, Pagination } from 'nestjs-typeorm-paginate';
-import { Repository } from 'typeorm';
+import { DeepPartial, Repository } from 'typeorm';
 
 import { DeploymentEntities } from './deployment.controller';
 import { ServiceCreateDeploymentDto } from './dto/create-deployment.dto';
 import { FilterDeploymentDto } from './dto/filter.dto';
 import { GitHubAccount } from './dto/github-account.dto';
-import { Deployment, DeploymentStatus } from './entities/deployment.entity';
+import { Deployment, DeploymentStatus, DeplomentEnvironment } from './entities/deployment.entity';
 import { GithubDeployerService } from './services/github-deployer.service';
 import { GithubWebhookService } from './services/github-webhook.service';
 import { DeploymentUrlExtractorService } from './services/url-extractor.service';
 import { UserLicense } from '../licenses/entities/user-license.entity';
+import { EnvironmentVariableDto } from '../projects/dto/create-project-configuration.dto';
 import { ProjectConfiguration } from '../projects/entities/project-configuration.entity';
 import { User } from '../users/entities/user.entity';
 
@@ -50,6 +51,15 @@ export class DeploymentService {
 
     const { project, configuration, license, userLicense } = entities;
 
+    // Check if user is project owner - project owners can deploy without a user license
+    const isProjectOwner = project.ownerId === serviceCreateDeploymentDto.ownerId;
+
+    if (isProjectOwner) {
+      this.logger.log(
+        `User ${serviceCreateDeploymentDto.ownerId} is the project owner for project ${project.id}. Creating deployment without user license validation.`,
+      );
+    }
+
     const deployment = this.deploymentRepository.create({
       projectId: serviceCreateDeploymentDto.projectId,
       configurationId: serviceCreateDeploymentDto.configurationId,
@@ -65,9 +75,9 @@ export class DeploymentService {
       siteId: serviceCreateDeploymentDto.siteId || undefined,
       licenseId: serviceCreateDeploymentDto.licenseId,
       license,
-      userLicense,
-      userLicenseId: userLicense.id,
-    });
+      userLicense: isProjectOwner ? null : userLicense, // Project owners don't need user license
+      userLicenseId: isProjectOwner ? null : userLicense?.id,
+    } as DeepPartial<Deployment>);
 
     await this.deploymentRepository.save(deployment);
 
@@ -635,5 +645,89 @@ export class DeploymentService {
     queryBuilder.orderBy('userLicense.createdAt', 'DESC');
 
     return paginate<UserLicense>(queryBuilder, options);
+  }
+
+  /**
+   * Redeploy an existing deployment with optional overrides
+   * Creates a new deployment based on an existing deployment's configuration
+   */
+  async redeployDeployment(
+    originalDeploymentId: string,
+    overrides: {
+      environment?: `${DeplomentEnvironment}`;
+      branch?: string;
+      environmentVariables?: EnvironmentVariableDto[];
+    } = {},
+    user: User,
+  ): Promise<Deployment> {
+    // Get the original deployment with all its related data
+    const originalDeployment = await this.deploymentRepository.findOne({
+      where: { id: originalDeploymentId },
+      relations: ['project', 'configuration', 'license', 'userLicense'],
+    });
+
+    if (!originalDeployment) {
+      throw new NotFoundException(`Deployment with ID "${originalDeploymentId}" not found`);
+    }
+
+    // Verify ownership
+    if (originalDeployment.ownerId !== user.id) {
+      throw new BadRequestException('You can only redeploy your own deployments');
+    }
+
+    // Verify the user license is still active and has available deployments
+    const userLicense = await this.userLicenseRepository.findOne({
+      where: {
+        id: originalDeployment.userLicenseId,
+        active: true,
+      },
+    });
+
+    if (!userLicense) {
+      throw new BadRequestException('User license is no longer active');
+    }
+
+    if (userLicense.count >= userLicense.maxDeployments) {
+      throw new BadRequestException(
+        `Deployment limit reached. Used ${userLicense.count}/${userLicense.maxDeployments} deployments.`,
+      );
+    }
+
+    // Prepare the deployment configuration for redeployment
+    // Decrypt environment variables from the original deployment
+    const originalEnvVars = originalDeployment.environmentVariables.map(env => ({
+      ...env,
+      defaultValue: env.isSecret && env.defaultValue ? env.defaultValue : env.defaultValue,
+    }));
+
+    // Create deployment data using original deployment as base with optional overrides
+    const deploymentData: ServiceCreateDeploymentDto & { owner: User } = {
+      projectId: originalDeployment.projectId,
+      licenseId: originalDeployment.licenseId,
+      userLicenseId: originalDeployment.userLicenseId,
+      configurationId: originalDeployment.configurationId,
+      environment: overrides.environment || originalDeployment.environment,
+      branch: overrides.branch || originalDeployment.branch,
+      environmentVariables: overrides.environmentVariables || originalEnvVars,
+      deploymentUrl: originalDeployment.deploymentUrl,
+      ownerId: user.id,
+      siteId: originalDeployment.siteId,
+      owner: user,
+    };
+
+    // Create the entities object required for deployment
+    const entities: DeploymentEntities = {
+      project: originalDeployment.project,
+      configuration: originalDeployment.configuration,
+      license: originalDeployment.license,
+      userLicense: originalDeployment.userLicense,
+    };
+
+    this.logger.log(
+      `Creating redeployment for deployment ${originalDeploymentId} by user ${user.id}`,
+    );
+
+    // Create the new deployment using the existing createDeployment method
+    return this.createDeployment(deploymentData, entities);
   }
 }

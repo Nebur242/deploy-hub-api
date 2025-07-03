@@ -24,6 +24,7 @@ import { DeploymentService } from './deployment.service';
 import { CreateDeploymentDto, ServiceCreateDeploymentDto } from './dto/create-deployment.dto';
 import { FilterDeploymentCountDto } from './dto/filter-deployment-count.dto';
 import { FilterDeploymentDto } from './dto/filter.dto';
+import { RedeployDeploymentDto } from './dto/redeploy-deployment.dto';
 import { Deployment } from './entities/deployment.entity';
 import { NetlifyService } from './services/netlify.service';
 import { VercelService } from './services/vercel.service';
@@ -136,9 +137,18 @@ export class DeploymentController {
 
   /**
    * Validate deployment limits for the user
+   * Project owners bypass all license limitations
    */
   private async validateDeploymentLimits(context: CreateDeploymentContext): Promise<void> {
-    const { dto, user } = context;
+    const { dto, user, entities } = context;
+
+    // Check if the user is the project owner
+    if (entities.project.ownerId === user.id) {
+      this.logger.log(
+        `User ${user.id} is the project owner for project ${entities.project.id}. Bypassing license validation.`,
+      );
+      return; // Skip all license validation for project owners
+    }
 
     // Find active UserLicense for this user and license
     const userLicense = await this.userLicenseRepository.findOne({
@@ -362,6 +372,41 @@ export class DeploymentController {
     }
 
     return this.deploymentService.retryDeployment(deploymentId);
+  }
+
+  @Post(':deploymentId/redeploy')
+  @ApiOperation({ summary: 'Redeploy an existing deployment with optional overrides' })
+  @ApiResponse({
+    status: 201,
+    description: 'Redeployment created successfully',
+    type: Deployment,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request - Invalid input or license limits exceeded',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Not authorized to redeploy this deployment',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Not found - Original deployment not found',
+  })
+  redeployDeployment(
+    @Param('deploymentId') deploymentId: string,
+    @Body() redeployDto: RedeployDeploymentDto,
+    @CurrentUser() user: User,
+  ) {
+    return this.deploymentService.redeployDeployment(
+      deploymentId,
+      {
+        environment: redeployDto.environment,
+        branch: redeployDto.branch,
+        environmentVariables: redeployDto.environmentVariables,
+      },
+      user,
+    );
   }
 
   @Get()

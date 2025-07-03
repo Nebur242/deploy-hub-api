@@ -51,6 +51,7 @@ Provides REST endpoints for managing deployments:
 - `DELETE /deployments/:id` - Cancel a deployment
 - `GET /deployments/licenses` - Get user licenses with deployment tracking (replaces `/deployments/count`)
 - `POST /deployments/:id/retry` - Retry a failed deployment
+- `POST /deployments/:id/redeploy` - Redeploy an existing deployment with optional overrides
 - `GET /deployments/:id/logs` - Get logs for a specific deployment
 
 ### WebhookController
@@ -140,6 +141,45 @@ await deploymentService.processWebhookUpdate(providerId, {
   logs: ['Build successful', 'Deployment complete'],
   url: 'https://example.com',
 });
+```
+
+### Redeploying an Existing Deployment
+
+```typescript
+// Example: Redeploy with same configuration
+const redeployment = await deploymentService.redeployDeployment(
+  'original-deployment-id',
+  {}, // No overrides, use original configuration
+  user,
+);
+
+// Example: Redeploy to different environment
+const redeployment = await deploymentService.redeployDeployment(
+  'original-deployment-id',
+  {
+    environment: 'production', // Override environment
+    branch: 'release-v2.0', // Override branch
+  },
+  user,
+);
+
+// Example: Redeploy with updated environment variables
+const redeployment = await deploymentService.redeployDeployment(
+  'original-deployment-id',
+  {
+    environmentVariables: [
+      {
+        key: 'API_VERSION',
+        defaultValue: 'v2',
+        description: 'API version to use',
+        isRequired: true,
+        isSecret: false,
+        type: 'text',
+      },
+    ],
+  },
+  user,
+);
 ```
 
 ## License Validation
