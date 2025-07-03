@@ -43,9 +43,25 @@ export class ProjectConfigurationService {
     return config;
   }
 
-  findByProject(projectId: string): Promise<ProjectConfiguration[]> {
-    return this.configRepository.find({
+  async findByProject(projectId: string): Promise<ProjectConfiguration[]> {
+    const configs = await this.configRepository.find({
       where: { projectId },
+    });
+    return configs.map(config => {
+      // Decrypt sensitive data
+      config.githubAccounts = config.githubAccounts.map(githubAccount => ({
+        ...githubAccount,
+        accessToken: this.encryptService.decrypt(githubAccount.accessToken),
+      }));
+      config.deploymentOption.environmentVariables =
+        config.deploymentOption.environmentVariables.map(variable => ({
+          ...variable,
+          defaultValue:
+            variable.isSecret && variable.defaultValue
+              ? this.encryptService.decrypt(variable.defaultValue)
+              : variable.defaultValue,
+        }));
+      return config;
     });
   }
 

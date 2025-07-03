@@ -357,6 +357,36 @@ Updates the status of an order (admin only).
 - 403 - Forbidden: User does not have admin privileges
 - 404 - Not Found: Order not found
 
+## Payment Processing Flow
+
+The payment system follows this general flow:
+
+1. An order is created for a license purchase (`POST /orders`)
+2. Payment is initiated for the order (`POST /payments`)
+3. If payment is successful:
+   - Order status is updated to `COMPLETED`
+   - A `UserLicense` record is automatically created for the user
+   - The license becomes active and can be used by the user
+
+### UserLicense Creation
+
+When a payment is successfully processed, a `UserLicense` record is automatically created with the following properties:
+
+- `ownerId`: The ID of the user who purchased the license
+- `licenseId`: The ID of the purchased license
+- `expiresAt`: Expiration date (same as the order's expiresAt)
+- `active`: Set to true
+- `count`: Set to 0 initially (tracks deployment usage)
+- `maxDeployments`: Set to the license's deployment limit
+- `deployments`: Empty array initially (will track deployment IDs)
+- `trial`: Set to false for paid licenses
+- `metadata`: Contains references to the order and payment
+
+This happens in two scenarios:
+
+1. When a payment is automatically processed via the API
+2. When an admin manually updates a payment status to `COMPLETED`
+
 ## Payment Endpoints
 
 ### Process Payment

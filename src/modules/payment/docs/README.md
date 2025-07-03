@@ -11,6 +11,7 @@ The Payment module is responsible for handling license purchases, payment proces
 - Order status tracking
 - Payment history
 - Integration with Licenses module
+- Automatic UserLicense creation on successful payments
 
 ## Entities
 
@@ -34,6 +35,16 @@ The `Payment` entity represents individual payment transactions related to an or
 - Payment status (pending, completed, failed, refunded, cancelled)
 - Payment method (credit card, PayPal, bank transfer, etc.)
 - Transaction ID and payment gateway response
+
+### UserLicense
+
+When a payment is successfully completed, a `UserLicense` entity is automatically created. This entity:
+
+- Links a user to a specific license
+- Tracks deployment counts and limits
+- Controls access to licensed features
+- Contains metadata about the associated order and payment
+- Manages license expiration
 
 ## Controllers
 

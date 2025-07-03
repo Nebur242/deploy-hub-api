@@ -21,11 +21,10 @@ export class VercelService {
     });
 
     const name = uuidv4();
-    const slug = name.replace(/-/g, '');
 
     return vercel.projects.createProject({
       teamId: orgId,
-      slug,
+      slug: name,
       requestBody: {
         name,
         framework: 'nextjs',

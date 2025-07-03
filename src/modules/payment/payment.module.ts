@@ -1,6 +1,7 @@
 import { forwardRef, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
+import { UserLicense } from '../licenses/entities/user-license.entity';
 import { LicensesModule } from '../licenses/licenses.module';
 import { UserModule } from '../users/users.module';
 import { OrderController } from './controllers/order.controller';
@@ -12,7 +13,7 @@ import { PaymentService } from './services/payment.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Order, Payment]),
+    TypeOrmModule.forFeature([Order, Payment, UserLicense]),
     forwardRef(() => LicensesModule), // Using forwardRef to break circular dependency
     UserModule,
   ],

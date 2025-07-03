@@ -1,65 +1,92 @@
 import { Order } from '@app/modules/payment/entities/order.entity';
-import { OrderStatus } from '@app/shared/enums';
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { IPaginationOptions, paginate, Pagination } from 'nestjs-typeorm-paginate';
 import { Repository } from 'typeorm';
+
+import { UserLicense } from '../entities/user-license.entity';
 
 @Injectable()
 export class UserLicenseService {
   constructor(
     @InjectRepository(Order)
     private readonly orderRepository: Repository<Order>,
+    @InjectRepository(UserLicense)
+    private readonly userLicenseRepository: Repository<UserLicense>,
   ) {}
 
   /**
-   * Check if a user has an active license
+   * Get UserLicense by ID
    */
-  async hasActiveLicense(userId: string, projectId?: string): Promise<boolean> {
-    const query = this.orderRepository
-      .createQueryBuilder('order')
-      .leftJoinAndSelect('order.license', 'license')
-      .leftJoin('license.projects', 'project')
-      .where('order.userId = :userId', { userId })
-      .andWhere('order.status = :status', { status: OrderStatus.COMPLETED })
-      .andWhere('order.isActive = :isActive', { isActive: true })
-      .andWhere('order.expiresAt IS NULL OR order.expiresAt > :now', { now: new Date() });
+  async getUserLicenseById(id: string): Promise<UserLicense> {
+    const userLicense = await this.userLicenseRepository.findOne({
+      where: { id },
+      relations: ['owner'],
+    });
 
-    // If projectId is specified, filter by project
-    if (projectId) {
-      query.andWhere('project.id = :projectId', { projectId });
+    if (!userLicense) {
+      throw new NotFoundException(`User license with ID ${id} not found`);
     }
 
-    const activeOrder = await query.getOne();
-    return !!activeOrder;
+    return userLicense;
   }
 
   /**
-   * Get all active licenses for a user
+   * Get all UserLicenses for a specific user
    */
-  getUserActiveLicenses(userId: string) {
-    return this.orderRepository
-      .createQueryBuilder('order')
-      .leftJoinAndSelect('order.license', 'license')
-      .leftJoinAndSelect('license.projects', 'project')
-      .where('order.userId = :userId', { userId })
-      .andWhere('order.status = :status', { status: OrderStatus.COMPLETED })
-      .andWhere('order.isActive = :isActive', { isActive: true })
-      .andWhere('order.expiresAt IS NULL OR order.expiresAt > :now', { now: new Date() })
-      .getMany();
+  getUserLicenses(ownerId: string, options: IPaginationOptions): Promise<Pagination<UserLicense>> {
+    const queryBuilder = this.userLicenseRepository
+      .createQueryBuilder('userLicense')
+      .leftJoinAndSelect('userLicense.owner', 'owner')
+      .leftJoinAndSelect('userLicense.license', 'license')
+      .where('userLicense.ownerId = :ownerId', { ownerId })
+      .orderBy('userLicense.createdAt', 'DESC');
+
+    return paginate<UserLicense>(queryBuilder, options);
   }
 
   /**
-   * Get a specific active license for a user
+   * Get all active UserLicenses for a specific user
    */
-  getUserActiveLicense(userId: string, licenseId: string) {
-    return this.orderRepository
-      .createQueryBuilder('order')
-      .leftJoinAndSelect('order.license', 'license')
-      .where('order.userId = :userId', { userId })
-      .andWhere('order.licenseId = :licenseId', { licenseId })
-      .andWhere('order.status = :status', { status: OrderStatus.COMPLETED })
-      .andWhere('order.isActive = :isActive', { isActive: true })
-      .andWhere('order.expiresAt IS NULL OR order.expiresAt > :now', { now: new Date() })
-      .getOne();
+  getActiveUserLicenses(ownerId: string): Promise<UserLicense[]> {
+    return this.userLicenseRepository.find({
+      where: {
+        ownerId,
+        active: true,
+      },
+      relations: ['owner', 'license'],
+      order: {
+        createdAt: 'DESC',
+      },
+    });
+  }
+
+  /**
+   * Get all UserLicenses (admin only)
+   */
+  getAllUserLicenses(
+    options: IPaginationOptions,
+    filters?: { ownerId?: string; active?: boolean; licenseId?: string },
+  ): Promise<Pagination<UserLicense>> {
+    const queryBuilder = this.userLicenseRepository
+      .createQueryBuilder('userLicense')
+      .leftJoinAndSelect('userLicense.owner', 'owner');
+
+    // Apply filters if provided
+    if (filters?.ownerId) {
+      queryBuilder.andWhere('userLicense.ownerId = :ownerId', { ownerId: filters.ownerId });
+    }
+
+    if (filters?.active !== undefined) {
+      queryBuilder.andWhere('userLicense.active = :active', { active: filters.active });
+    }
+
+    if (filters?.licenseId) {
+      queryBuilder.andWhere('userLicense.licenseId = :licenseId', { licenseId: filters.licenseId });
+    }
+
+    queryBuilder.orderBy('userLicense.createdAt', 'DESC');
+
+    return paginate<UserLicense>(queryBuilder, options);
   }
 }

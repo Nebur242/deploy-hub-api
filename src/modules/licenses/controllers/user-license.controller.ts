@@ -1,70 +1,208 @@
 import { CurrentUser } from '@app/core/decorators/current-user.decorator';
 import { Admin, Authenticated } from '@app/core/guards/roles-auth.guard';
 import { User } from '@app/modules/users/entities/user.entity';
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Controller, Get, Param, Query, NotFoundException, ParseUUIDPipe } from '@nestjs/common';
 import {
-  ApiBearerAuth,
+  ApiTags,
   ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
   ApiParam,
   ApiQuery,
-  ApiResponse,
-  ApiTags,
 } from '@nestjs/swagger';
+import { IPaginationOptions, Pagination } from 'nestjs-typeorm-paginate';
 
+import { UserLicense } from '../entities/user-license.entity';
 import { UserLicenseService } from '../services/user-license.service';
 
+/**
+ * Controller handling user license operations.
+ *
+ * This controller provides endpoints for managing user licenses, including:
+ * - Getting all licenses for the current user
+ * - Getting specific license by ID
+ * - Getting active licenses for a user
+ * - Admin access to all user licenses
+ *
+ * All endpoints require authentication as enforced by the @Authenticated decorator.
+ */
 @ApiTags('user-licenses')
 @ApiBearerAuth()
 @Controller('user-licenses')
+@Authenticated()
 export class UserLicenseController {
   constructor(private readonly userLicenseService: UserLicenseService) {}
 
-  @Get('active')
-  @ApiOperation({ summary: 'Get all active licenses for the current user' })
-  @ApiResponse({ status: 200, description: 'Returns list of active licenses' })
-  getUserActiveLicenses(@CurrentUser() user: User) {
-    return this.userLicenseService.getUserActiveLicenses(user.id);
+  /**
+   * Get all user licenses for the current authenticated user with pagination
+   *
+   * @param user - The currently authenticated user
+   * @param page - Page number for pagination (default: 1)
+   * @param limit - Number of items per page (default: 10)
+   * @returns A paginated list of user licenses
+   */
+  @Get()
+  @ApiOperation({ summary: 'Get all user licenses for the current user' })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns a paginated list of user licenses',
+  })
+  @ApiQuery({
+    name: 'page',
+    type: Number,
+    required: false,
+    description: 'Page number for pagination',
+  })
+  @ApiQuery({
+    name: 'limit',
+    type: Number,
+    required: false,
+    description: 'Number of items per page',
+  })
+  getUserLicenses(
+    @CurrentUser() user: User,
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+  ): Promise<Pagination<UserLicense>> {
+    const options: IPaginationOptions = {
+      page,
+      limit,
+      route: 'user-licenses',
+    };
+    return this.userLicenseService.getUserLicenses(user.id, options);
   }
 
-  @Get('has-active')
-  @ApiOperation({ summary: 'Check if the user has an active license for a project' })
-  @ApiResponse({ status: 200, description: 'Returns true if user has an active license' })
-  @ApiQuery({ name: 'projectId', required: false, description: 'Filter by project ID' })
-  @Authenticated()
-  async hasActiveLicense(@CurrentUser() user: User, @Query('projectId') projectId?: string) {
-    const hasLicense = await this.userLicenseService.hasActiveLicense(user.id, projectId);
-    return { hasActiveLicense: hasLicense };
+  /**
+   * Get all active licenses for the current authenticated user
+   *
+   * @param user - The currently authenticated user
+   * @returns An array of active user licenses
+   */
+  @Get('active-licenses')
+  @ApiOperation({ summary: 'Get all active user licenses for the current user' })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns an array of active user licenses',
+  })
+  getActiveUserLicenses(@CurrentUser() user: User): Promise<UserLicense[]> {
+    return this.userLicenseService.getActiveUserLicenses(user.id);
   }
 
-  @Get('active/:licenseId')
-  @ApiOperation({ summary: 'Get a specific active license for the current user' })
-  @ApiResponse({ status: 200, description: 'Returns the active license if found' })
-  @ApiParam({ name: 'licenseId', description: 'License ID to check' })
-  @Authenticated()
-  getUserActiveLicense(@CurrentUser() user: User, @Param('licenseId') licenseId: string) {
-    return this.userLicenseService.getUserActiveLicense(user.id, licenseId);
+  /**
+   * Get a specific user license by ID
+   *
+   * @param id - The UUID of the user license to retrieve
+   * @returns The user license with the specified ID
+   * @throws NotFoundException if the user license is not found
+   */
+  @Get(':id')
+  @ApiOperation({ summary: 'Get a specific user license by ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns the user license with the specified ID',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'User license not found',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'User license ID (UUID)',
+    type: String,
+  })
+  getUserLicenseById(@Param('id', new ParseUUIDPipe()) id: string): Promise<UserLicense> {
+    return this.userLicenseService.getUserLicenseById(id);
   }
 
+  /**
+   * Get all user licenses (admin only) with filtering and pagination
+   *
+   * @param page - Page number for pagination (default: 1)
+   * @param limit - Number of items per page (default: 10)
+   * @param ownerId - Optional filter by owner ID
+   * @param active - Optional filter by active status
+   * @param licenseId - Optional filter by license ID
+   * @returns A paginated list of all user licenses
+   */
+  @Get('admin/all')
+  @Admin()
+  @ApiOperation({ summary: 'Get all user licenses (admin only)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns a paginated list of all user licenses',
+  })
+  @ApiQuery({
+    name: 'page',
+    type: Number,
+    required: false,
+    description: 'Page number for pagination',
+  })
+  @ApiQuery({
+    name: 'limit',
+    type: Number,
+    required: false,
+    description: 'Number of items per page',
+  })
+  @ApiQuery({
+    name: 'ownerId',
+    type: String,
+    required: false,
+    description: 'Filter by owner ID',
+  })
+  @ApiQuery({
+    name: 'active',
+    type: Boolean,
+    required: false,
+    description: 'Filter by active status',
+  })
+  @ApiQuery({
+    name: 'licenseId',
+    type: String,
+    required: false,
+    description: 'Filter by license ID',
+  })
+  getAllUserLicenses(
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+    @Query('ownerId') ownerId?: string,
+    @Query('active') active?: boolean,
+    @Query('licenseId') licenseId?: string,
+  ): Promise<Pagination<UserLicense>> {
+    const options: IPaginationOptions = {
+      page,
+      limit,
+      route: 'user-licenses/admin/all',
+    };
+    return this.userLicenseService.getAllUserLicenses(options, {
+      ownerId,
+      active,
+      licenseId,
+    });
+  }
+
+  /**
+   * Get all active user licenses for a specific user (admin only)
+   *
+   * @param userId - The ID of the user to retrieve licenses for
+   * @returns An array of active user licenses
+   */
   @Get('admin/active')
   @Admin()
-  @ApiOperation({ summary: 'Admin - Get all active licenses for a user' })
-  @ApiResponse({ status: 200, description: 'Returns list of active licenses for the user' })
-  @ApiQuery({ name: 'userId', required: true, description: 'User ID to check' })
-  getAdminUserActiveLicenses(@Query('userId') userId: string) {
-    return this.userLicenseService.getUserActiveLicenses(userId);
-  }
-
-  @Get('admin/has-active')
-  @Admin()
-  @ApiOperation({ summary: 'Admin - Check if a user has an active license for a project' })
-  @ApiResponse({ status: 200, description: 'Returns true if user has an active license' })
-  @ApiQuery({ name: 'userId', required: true, description: 'User ID to check' })
-  @ApiQuery({ name: 'projectId', required: false, description: 'Filter by project ID' })
-  async adminHasActiveLicense(
-    @Query('userId') userId: string,
-    @Query('projectId') projectId?: string,
-  ) {
-    const hasLicense = await this.userLicenseService.hasActiveLicense(userId, projectId);
-    return { hasActiveLicense: hasLicense };
+  @ApiOperation({ summary: 'Get all active licenses for any user (admin only)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns an array of active user licenses',
+  })
+  @ApiQuery({
+    name: 'userId',
+    type: String,
+    required: true,
+    description: 'User ID to get active licenses for',
+  })
+  getAdminActiveUserLicenses(@Query('userId') userId: string): Promise<UserLicense[]> {
+    if (!userId) {
+      throw new NotFoundException('User ID is required');
+    }
+    return this.userLicenseService.getActiveUserLicenses(userId);
   }
 }

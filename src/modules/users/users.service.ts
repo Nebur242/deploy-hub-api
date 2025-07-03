@@ -1,13 +1,21 @@
+import { OrderStatus } from '@app/shared/enums';
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { IPaginationMeta, Pagination, paginate } from 'nestjs-typeorm-paginate';
 import { Repository } from 'typeorm';
 
+import { LicensedProjectsQueryDto } from './dto/licensed-projects.dto';
 import { UserNotificationDto } from './dto/user-notification.dto';
 import { UserPreferencesDto } from './dto/user-preferences.dto';
 import { CreateUserDto, UpdateUserDto, UserResponseDto } from './dto/user.dto';
 import { UserNotification } from './entities/user-notification.entity';
 import { UserPreferences } from './entities/user-preferences.entity';
 import { User } from './entities/user.entity';
+import { NotificationScope } from '../notifications/entities/notification.enty';
+import { NotificationType } from '../notifications/enums/notification-type.enum';
+import { NotificationService } from '../notifications/services/notification.service';
+import { Order } from '../payment/entities/order.entity';
+import { Project } from '../projects/entities/project.entity';
 
 @Injectable()
 export class UsersService {
@@ -18,6 +26,11 @@ export class UsersService {
     private preferencesRepository: Repository<UserPreferences>,
     @InjectRepository(UserNotification)
     private notificationRepository: Repository<UserNotification>,
+    @InjectRepository(Order)
+    private orderRepository: Repository<Order>,
+    @InjectRepository(Project)
+    private projectRepository: Repository<Project>,
+    private readonly notificationService: NotificationService,
   ) {}
 
   async createUser(createUserDto: CreateUserDto): Promise<User> {
@@ -45,7 +58,9 @@ export class UsersService {
       notifications,
     });
 
-    return this.userRepository.save(user);
+    const savedUser = await this.userRepository.save(user);
+
+    return savedUser;
   }
 
   findAll(): Promise<User[]> {
@@ -129,5 +144,123 @@ export class UsersService {
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };
+  }
+
+  /**
+   * Get projects that the user has access to via purchased licenses
+   * @param userId The user's ID
+   * @param query Query parameters for filtering and pagination
+   * @returns Paginated list of projects the user has access to through licenses
+   */
+  async getLicensedProjects(
+    userId: string,
+    query: LicensedProjectsQueryDto,
+  ): Promise<Pagination<Project, IPaginationMeta>> {
+    const { page = 1, limit = 10, visibility, search, licenseId } = query;
+
+    // First get project IDs from user's active licenses
+    const projectQuery = this.orderRepository
+      .createQueryBuilder('order')
+      .select('DISTINCT project.id', 'id')
+      .innerJoin('order.license', 'license')
+      .innerJoin('license.projects', 'project')
+      .where('order.userId = :userId', { userId })
+      .andWhere('order.status = :status', { status: OrderStatus.COMPLETED })
+      .andWhere('order.isActive = :isActive', { isActive: true })
+      .andWhere('(order.expiresAt IS NULL OR order.expiresAt > :now)', { now: new Date() });
+
+    // Apply optional filters
+    if (visibility) {
+      projectQuery.andWhere('project.visibility = :visibility', { visibility });
+    }
+
+    if (search) {
+      projectQuery.andWhere('(project.name ILIKE :search OR project.description ILIKE :search)', {
+        search: `%${search}%`,
+      });
+    }
+
+    if (licenseId) {
+      projectQuery.andWhere('license.id = :licenseId', { licenseId });
+    }
+
+    // Get only the IDs first to use in the next query
+    const projectIdsResult = await projectQuery.getRawMany<{ id: string | number }>();
+    const projectIds: string[] = projectIdsResult.map(item =>
+      typeof item.id === 'string' ? item.id : String(item.id),
+    );
+
+    // If no projects found, return empty response
+    if (!projectIds.length) {
+      return {
+        items: [],
+        meta: {
+          totalItems: 0,
+          itemCount: 0,
+          itemsPerPage: limit,
+          totalPages: 0,
+          currentPage: page,
+        },
+        links: {
+          first: '',
+          previous: '',
+          next: '',
+          last: '',
+        },
+      };
+    }
+
+    // Now get the complete project data with their licenses and configurations
+    const projectDataQuery = this.projectRepository
+      .createQueryBuilder('project')
+      .leftJoinAndSelect('project.licenses', 'licenses')
+      .leftJoinAndSelect('project.configurations', 'configurations')
+      .where('project.id IN (:...projectIds)', { projectIds });
+
+    // Create pagination options
+    const paginationOptions = {
+      page,
+      limit,
+    };
+
+    // Execute the paginated query
+    const paginatedProjects = await paginate<Project>(projectDataQuery, paginationOptions);
+
+    // Map projects to response DTO format
+
+    // Return paginated response
+    return {
+      items: paginatedProjects.items,
+      meta: paginatedProjects.meta,
+      links: paginatedProjects.links,
+    };
+  }
+
+  /**
+   * Sends a welcome email notification to a newly created user.
+   *
+   * @param user - The user to send the welcome email to
+   * @returns A promise resolving to void
+   */
+  async sendWelcomeEmailNotification(user: User & { email: string }): Promise<void> {
+    const firstName = user.firstName || 'User';
+
+    await this.notificationService.create({
+      type: NotificationType.EMAIL,
+      userId: user.id,
+      recipient: user.email,
+      subject: 'Welcome to Deploy Hub!',
+      message: `Welcome to Deploy Hub, ${firstName}! We're excited to have you on board.`,
+      scope: NotificationScope.WELCOME, // Enum value for template
+      data: {
+        firstName: firstName,
+        logoUrl: process.env.LOGO_URL || 'https://deployhub.app/logo.png',
+        dashboardUrl: process.env.DASHBOARD_URL || 'https://deployhub.app/dashboard',
+        docsUrl: process.env.DOCS_URL || 'https://deployhub.app/docs',
+        supportUrl: process.env.SUPPORT_URL || 'https://deployhub.app/support',
+        contactUrl: process.env.CONTACT_URL || 'https://deployhub.app/contact',
+        year: new Date().getFullYear(),
+      },
+    });
   }
 }
