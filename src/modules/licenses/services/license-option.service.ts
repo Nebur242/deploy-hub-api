@@ -77,10 +77,10 @@ export class LicenseOptionService {
     filter: FilterLicenseDto,
     paginationOptions: IPaginationOptions,
   ): Promise<Pagination<LicenseOption>> {
-    const { search, currency, sortBy, sortDirection, ownerId, status } = filter;
+    const { search, currency, sortBy, sortDirection, ownerId, status, projectId } = filter;
 
     // Build the where conditions
-    const whereConditions: Partial<Record<keyof LicenseOption, any>> = {};
+    const whereConditions: Record<string, unknown> = {};
 
     // Add search condition if provided
     if (search) {
@@ -113,18 +113,41 @@ export class LicenseOptionService {
       orderCondition = { createdAt: 'DESC' };
     }
 
-    // If we need to search in multiple columns, we need to use queryBuilder
-    if (search) {
+    // If we need to search in multiple columns or filter by projectId, we need to use queryBuilder
+    if (search || projectId) {
       const queryBuilder = this.licenseRepository
         .createQueryBuilder('license')
-        .leftJoinAndSelect('license.projects', 'projects')
-        .where('license.name ILIKE :search OR license.description ILIKE :search', {
+        .leftJoinAndSelect('license.projects', 'projects');
+
+      // Add search condition if provided
+      if (search) {
+        queryBuilder.where('license.name ILIKE :search OR license.description ILIKE :search', {
           search: `%${search}%`,
         });
+      }
+
+      // Add projectId filter if provided
+      if (projectId) {
+        if (search) {
+          queryBuilder.andWhere('projects.id = :projectId', { projectId });
+        } else {
+          queryBuilder.where('projects.id = :projectId', { projectId });
+        }
+      }
 
       // Add currency filter if provided
       if (currency) {
         queryBuilder.andWhere('license.currency = :currency', { currency });
+      }
+
+      // Add owner filter if provided
+      if (ownerId) {
+        queryBuilder.andWhere('license.ownerId = :ownerId', { ownerId });
+      }
+
+      // Add status filter if provided
+      if (status) {
+        queryBuilder.andWhere('license.status = :status', { status });
       }
 
       // Add sorting

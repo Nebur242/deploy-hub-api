@@ -21,6 +21,7 @@ export class PublicLicenseController {
   })
   @ApiQuery({ name: 'search', required: false, description: 'Search term for name or description' })
   @ApiQuery({ name: 'currency', required: false, description: 'Filter by currency' })
+  @ApiQuery({ name: 'projectId', required: false, description: 'Filter by project ID' })
   @ApiQuery({ name: 'sortBy', required: false, description: 'Field to sort by' })
   @ApiQuery({
     name: 'sortDirection',

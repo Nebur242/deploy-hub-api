@@ -1,0 +1,453 @@
+{
+  "info": {
+    "name": "License Module API",
+    "description": "Complete API collection for the License Module including License Options, User Licenses, and Public Licenses",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "BASE_URI",
+      "value": "http://localhost:3000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "ACCESS_TOKEN",
+      "value": "",
+      "type": "string",
+      "description": "Bearer token for authenticated requests"
+    },
+    {
+      "key": "LICENSE_ID",
+      "value": "",
+      "type": "string",
+      "description": "License ID for testing"
+    },
+    {
+      "key": "USER_LICENSE_ID",
+      "value": "",
+      "type": "string",
+      "description": "User License ID for testing"
+    },
+    {
+      "key": "PROJECT_ID",
+      "value": "",
+      "type": "string",
+      "description": "Project ID for testing"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{ACCESS_TOKEN}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Public Licenses",
+      "description": "Public license endpoints (no authentication required)",
+      "item": [
+        {
+          "name": "Get All Public Licenses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URI}}/public/licenses?page=1&limit=10&search=&currency=USD&projectId={{PROJECT_ID}}&sortBy=name&sortDirection=ASC",
+              "host": ["{{BASE_URI}}"],
+              "path": ["public", "licenses"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (1-based)"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Items per page"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search term for name or description"
+                },
+                {
+                  "key": "currency",
+                  "value": "USD",
+                  "description": "Filter by currency"
+                },
+                {
+                  "key": "projectId",
+                  "value": "{{PROJECT_ID}}",
+                  "description": "Filter by project ID"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "name",
+                  "description": "Field to sort by"
+                },
+                {
+                  "key": "sortDirection",
+                  "value": "ASC",
+                  "description": "Sort direction"
+                }
+              ]
+            },
+            "description": "Get all public license options with filtering and pagination"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Public License by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URI}}/public/licenses/{{LICENSE_ID}}",
+              "host": ["{{BASE_URI}}"],
+              "path": ["public", "licenses", "{{LICENSE_ID}}"]
+            },
+            "description": "Get a specific public license option by ID"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "License Options",
+      "description": "License option management endpoints (requires authentication)",
+      "item": [
+        {
+          "name": "Create License Option",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Premium License\",\n  \"description\": \"Full featured premium license with unlimited deployments\",\n  \"price\": 99.99,\n  \"currency\": \"USD\",\n  \"maxDeployments\": 100,\n  \"popular\": true,\n  \"status\": \"PUBLIC\",\n  \"projectIds\": [\"{{PROJECT_ID}}\"]\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URI}}/licenses",
+              "host": ["{{BASE_URI}}"],
+              "path": ["licenses"]
+            },
+            "description": "Create a new license option (Admin only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get All License Options",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URI}}/licenses?page=1&limit=10&search=&currency=USD&sortBy=name&sortDirection=ASC",
+              "host": ["{{BASE_URI}}"],
+              "path": ["licenses"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (1-based)"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Items per page"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search term for name or description"
+                },
+                {
+                  "key": "currency",
+                  "value": "USD",
+                  "description": "Filter by currency"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "name",
+                  "description": "Field to sort by"
+                },
+                {
+                  "key": "sortDirection",
+                  "value": "ASC",
+                  "description": "Sort direction"
+                }
+              ]
+            },
+            "description": "Get all license options for the authenticated user"
+          },
+          "response": []
+        },
+        {
+          "name": "Get License Option by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URI}}/licenses/{{LICENSE_ID}}",
+              "host": ["{{BASE_URI}}"],
+              "path": ["licenses", "{{LICENSE_ID}}"]
+            },
+            "description": "Get a specific license option by ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Update License Option",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Premium License\",\n  \"description\": \"Updated premium license with enhanced features\",\n  \"price\": 129.99,\n  \"maxDeployments\": 150,\n  \"popular\": true\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URI}}/licenses/{{LICENSE_ID}}",
+              "host": ["{{BASE_URI}}"],
+              "path": ["licenses", "{{LICENSE_ID}}"]
+            },
+            "description": "Update a license option (Admin only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete License Option",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URI}}/licenses/{{LICENSE_ID}}",
+              "host": ["{{BASE_URI}}"],
+              "path": ["licenses", "{{LICENSE_ID}}"]
+            },
+            "description": "Delete a license option (Admin only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Purchase License",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currency\": \"USD\",\n  \"paymentMethod\": \"stripe\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URI}}/licenses/{{LICENSE_ID}}/purchase",
+              "host": ["{{BASE_URI}}"],
+              "path": ["licenses", "{{LICENSE_ID}}", "purchase"]
+            },
+            "description": "Purchase a license option"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "User Licenses",
+      "description": "User license management endpoints (requires authentication)",
+      "item": [
+        {
+          "name": "Get User Licenses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URI}}/user-licenses?page=1&limit=10",
+              "host": ["{{BASE_URI}}"],
+              "path": ["user-licenses"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number for pagination"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of items per page"
+                }
+              ]
+            },
+            "description": "Get all user licenses for the current authenticated user"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Active User Licenses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URI}}/user-licenses/active-licenses",
+              "host": ["{{BASE_URI}}"],
+              "path": ["user-licenses", "active-licenses"]
+            },
+            "description": "Get all active user licenses for the current user"
+          },
+          "response": []
+        },
+        {
+          "name": "Get User License by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URI}}/user-licenses/{{USER_LICENSE_ID}}",
+              "host": ["{{BASE_URI}}"],
+              "path": ["user-licenses", "{{USER_LICENSE_ID}}"]
+            },
+            "description": "Get a specific user license by ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Admin - Get All User Licenses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URI}}/user-licenses/admin/all?page=1&limit=10&ownerId=&active=true&licenseId={{LICENSE_ID}}",
+              "host": ["{{BASE_URI}}"],
+              "path": ["user-licenses", "admin", "all"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number for pagination"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of items per page"
+                },
+                {
+                  "key": "ownerId",
+                  "value": "",
+                  "description": "Filter by owner ID"
+                },
+                {
+                  "key": "active",
+                  "value": "true",
+                  "description": "Filter by active status"
+                },
+                {
+                  "key": "licenseId",
+                  "value": "{{LICENSE_ID}}",
+                  "description": "Filter by license ID"
+                }
+              ]
+            },
+            "description": "Get all user licenses with filtering (Admin only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Admin - Get Active User Licenses for User",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URI}}/user-licenses/admin/active?userId=USER_ID_HERE",
+              "host": ["{{BASE_URI}}"],
+              "path": ["user-licenses", "admin", "active"],
+              "query": [
+                {
+                  "key": "userId",
+                  "value": "USER_ID_HERE",
+                  "description": "User ID to get active licenses for"
+                }
+              ]
+            },
+            "description": "Get all active licenses for any user (Admin only)"
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Pre-request script to check if authentication token is set",
+          "if (!pm.environment.get('ACCESS_TOKEN') && !pm.globals.get('ACCESS_TOKEN') && !pm.collectionVariables.get('ACCESS_TOKEN')) {",
+          "    console.log('Warning: ACCESS_TOKEN is not set. Please set it in environment variables or collection variables for authenticated endpoints.');",
+          "}"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Common test script for all requests",
+          "pm.test('Response time is less than 5000ms', function () {",
+          "    pm.expect(pm.response.responseTime).to.be.below(5000);",
+          "});",
+          "",
+          "pm.test('Response has proper headers', function () {",
+          "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+          "});",
+          "",
+          "// Auto-extract IDs from successful responses",
+          "if (pm.response.code === 200 || pm.response.code === 201) {",
+          "    try {",
+          "        const responseJson = pm.response.json();",
+          "        ",
+          "        // Extract license ID if present",
+          "        if (responseJson.id && pm.request.url.toString().includes('/licenses')) {",
+          "            pm.collectionVariables.set('LICENSE_ID', responseJson.id);",
+          "            console.log('Set LICENSE_ID to:', responseJson.id);",
+          "        }",
+          "        ",
+          "        // Extract user license ID if present",
+          "        if (responseJson.id && pm.request.url.toString().includes('/user-licenses')) {",
+          "            pm.collectionVariables.set('USER_LICENSE_ID', responseJson.id);",
+          "            console.log('Set USER_LICENSE_ID to:', responseJson.id);",
+          "        }",
+          "        ",
+          "        // Extract from paginated responses",
+          "        if (responseJson.data && Array.isArray(responseJson.data) && responseJson.data.length > 0) {",
+          "            const firstItem = responseJson.data[0];",
+          "            if (firstItem.id && pm.request.url.toString().includes('/licenses')) {",
+          "                pm.collectionVariables.set('LICENSE_ID', firstItem.id);",
+          "                console.log('Set LICENSE_ID from paginated response to:', firstItem.id);",
+          "            }",
+          "        }",
+          "    } catch (e) {",
+          "        console.log('Could not parse response JSON:', e);",
+          "    }",
+          "}"
+        ]
+      }
+    }
+  ]
+}

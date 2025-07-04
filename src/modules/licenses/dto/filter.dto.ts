@@ -14,9 +14,21 @@ export class FilterLicenseDto {
   @IsString()
   search?: string;
 
+  @ApiPropertyOptional({
+    description: 'Filter by owner ID',
+    example: 'user-uuid-here',
+  })
   @IsOptional()
   @IsString()
   ownerId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Filter by project ID',
+    example: 'project-uuid-here',
+  })
+  @IsOptional()
+  @IsString()
+  projectId?: string;
 
   @ApiPropertyOptional({
     description: 'Filter by license status',
