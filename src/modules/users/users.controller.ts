@@ -55,7 +55,34 @@ export class UserController {
     @Body() createUserDto: CreateUserDto,
     @CurrentFirebaseUser() currentUser: DecodedIdToken,
   ): Promise<UserResponseDto> {
-    const user = await this.userService.createUser({
+    // Use the new method that automatically assigns free tier
+    const user = await this.userService.createUserWithFreeTier({
+      ...createUserDto,
+      uid: currentUser.uid,
+    });
+    if (currentUser.email) {
+      await this.userService.sendWelcomeEmailNotification({
+        ...user,
+        email: currentUser.email,
+      });
+    }
+    return this.userService.mapToResponseDto(user);
+  }
+
+  /**
+   * Creates a new user with automatic free tier subscription assignment
+   */
+  @Post('with-subscription')
+  @ApiOperation({ summary: 'Create user with free tier subscription' })
+  @ApiResponse({
+    status: 201,
+    description: 'User created successfully with free tier subscription',
+  })
+  async createWithSubscription(
+    @Body() createUserDto: CreateUserDto,
+    @CurrentFirebaseUser() currentUser: DecodedIdToken,
+  ): Promise<UserResponseDto> {
+    const user = await this.userService.createUserWithFreeTier({
       ...createUserDto,
       uid: currentUser.uid,
     });

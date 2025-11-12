@@ -1,4 +1,4 @@
-import { OrderStatus } from '@app/shared/enums';
+import { OrderStatus, Role } from '@app/shared/enums';
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IPaginationMeta, Pagination, paginate } from 'nestjs-typeorm-paginate';
@@ -16,6 +16,7 @@ import { NotificationType } from '../notifications/enums/notification-type.enum'
 import { NotificationService } from '../notifications/services/notification.service';
 import { Order } from '../payment/entities/order.entity';
 import { Project } from '../projects/entities/project.entity';
+import { UserSubscriptionService } from '../subscriptions/services/user-subscription.service';
 
 @Injectable()
 export class UsersService {
@@ -31,6 +32,7 @@ export class UsersService {
     @InjectRepository(Project)
     private projectRepository: Repository<Project>,
     private readonly notificationService: NotificationService,
+    private readonly userSubscriptionService: UserSubscriptionService,
   ) {}
 
   async createUser(createUserDto: CreateUserDto): Promise<User> {
@@ -59,6 +61,54 @@ export class UsersService {
     });
 
     const savedUser = await this.userRepository.save(user);
+
+    // Assign free tier subscription for admin users
+    if (savedUser.roles.includes(Role.ADMIN)) {
+      try {
+        await this.userSubscriptionService.assignFreeTierToUser(savedUser);
+      } catch (error) {
+        // Log the error but don't fail user creation
+        console.error('Failed to assign free tier to admin user:', error);
+      }
+    }
+
+    return savedUser;
+  }
+
+  /**
+   * Create user with automatic free tier assignment for any user
+   */
+  async createUserWithFreeTier(createUserDto: CreateUserDto): Promise<User> {
+    // Check if user with firebase UID already exists
+    const existingUser = await this.userRepository.findOne({
+      where: { uid: createUserDto.uid },
+    });
+
+    if (existingUser) {
+      throw new ConflictException('User already exists');
+    }
+
+    // Create default preferences
+    const preferences = this.preferencesRepository.create();
+    await this.preferencesRepository.save(preferences);
+
+    // Create default notifications
+    const notifications = this.notificationRepository.create();
+    await this.notificationRepository.save(notifications);
+
+    // Create the user
+    const user = this.userRepository.create({
+      ...createUserDto,
+      preferences,
+      notifications,
+    });
+
+    const savedUser = await this.userRepository.save(user);
+
+    if (savedUser.roles.includes(Role.ADMIN)) {
+      // Assign free tier subscription to all new users
+      await this.userSubscriptionService.assignFreeTierToUser(savedUser);
+    }
 
     return savedUser;
   }

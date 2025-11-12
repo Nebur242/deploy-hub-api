@@ -5,6 +5,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IPaginationOptions, paginate, Pagination } from 'nestjs-typeorm-paginate';
@@ -21,6 +22,7 @@ import { DeploymentUrlExtractorService } from './services/url-extractor.service'
 import { UserLicense } from '../licenses/entities/user-license.entity';
 import { EnvironmentVariableDto } from '../projects/dto/create-project-configuration.dto';
 import { ProjectConfiguration } from '../projects/entities/project-configuration.entity';
+import { UserSubscriptionService } from '../subscriptions/services/user-subscription.service';
 import { User } from '../users/entities/user.entity';
 
 @Injectable()
@@ -38,6 +40,7 @@ export class DeploymentService {
     private readonly deploymentUrlExtractorService: DeploymentUrlExtractorService,
     @InjectRepository(UserLicense)
     private userLicenseRepository: Repository<UserLicense>,
+    private readonly userSubscriptionService: UserSubscriptionService,
   ) {}
 
   /**
@@ -50,6 +53,18 @@ export class DeploymentService {
     // Create deployment record
 
     const { project, configuration, license, userLicense } = entities;
+
+    // Check subscription limits for deployment creation
+    const canCreateDeployment = await this.userSubscriptionService.canPerformAction(
+      serviceCreateDeploymentDto.ownerId,
+      'create_deployment',
+    );
+
+    if (!canCreateDeployment) {
+      throw new ForbiddenException(
+        'You have reached your deployment limit. Please upgrade your subscription to create more deployments.',
+      );
+    }
 
     // Check if user is project owner - project owners can deploy without a user license
     const isProjectOwner = project.ownerId === serviceCreateDeploymentDto.ownerId;

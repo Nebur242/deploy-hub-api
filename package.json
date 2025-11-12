@@ -19,6 +19,7 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
+    "seed:db": "ts-node -r tsconfig-paths/register src/scripts/seed-database.ts",
     "prepare": "husky install"
   },
   "dependencies": {
@@ -35,6 +36,7 @@
     "@nestjs/typeorm": "^11.0.0",
     "@octokit/rest": "^21.1.1",
     "@sentry/node": "^9.8.0",
+    "@types/stripe": "^8.0.416",
     "@vercel/sdk": "^1.6.3",
     "axios": "^1.8.4",
     "bullmq": "^5.52.1",
@@ -50,6 +52,7 @@
     "pg": "^8.14.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
+    "stripe": "^18.3.0",
     "typeorm": "^0.3.21",
     "uuid": "^11.1.0"
   },

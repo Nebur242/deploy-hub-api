@@ -15,9 +15,13 @@ import { ProjectVersionService } from './services/project-version.service';
 import { ProjectService } from './services/project.service';
 import { PublicProjectService } from './services/public-project.service';
 import { Category } from '../categories/entities/category.entity';
+import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Project, ProjectVersion, ProjectConfiguration, Category])],
+  imports: [
+    TypeOrmModule.forFeature([Project, ProjectVersion, ProjectConfiguration, Category]),
+    SubscriptionsModule,
+  ],
   providers: [
     ProjectRepository,
     ProjectService,

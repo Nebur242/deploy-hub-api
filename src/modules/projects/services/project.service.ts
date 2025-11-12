@@ -1,9 +1,15 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IPaginationOptions, Pagination } from 'nestjs-typeorm-paginate';
 import { In, Repository } from 'typeorm';
 
 import { Category } from '../../categories/entities/category.entity';
+import { UserSubscriptionService } from '../../subscriptions/services/user-subscription.service';
 import { CreateProjectDto } from '../dto/create-project.dto';
 import { ProjectSearchDto } from '../dto/project-search.dto';
 import { UpdateProjectDto } from '../dto/update-project.dto';
@@ -16,6 +22,7 @@ export class ProjectService {
     private projectRepository: ProjectRepository,
     @InjectRepository(Category)
     private categoryRepository: Repository<Category>,
+    private readonly userSubscriptionService: UserSubscriptionService,
   ) {}
 
   findAll(
@@ -46,6 +53,18 @@ export class ProjectService {
   }
 
   async create(ownerId: string, createProjectDto: CreateProjectDto): Promise<Project> {
+    // Check subscription limits for project creation
+    const canCreateProject = await this.userSubscriptionService.canPerformAction(
+      ownerId,
+      'create_project',
+    );
+
+    if (!canCreateProject) {
+      throw new ForbiddenException(
+        'You have reached your project limit. Please upgrade your subscription to create more projects.',
+      );
+    }
+
     // Validate categories if they exist
     let categories: Category[] = [];
     if (createProjectDto.categories && createProjectDto.categories.length > 0) {

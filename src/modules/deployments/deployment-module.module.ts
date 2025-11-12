@@ -16,6 +16,7 @@ import { LicenseOption } from '../licenses/entities/license-option.entity';
 import { UserLicense } from '../licenses/entities/user-license.entity';
 import { ProjectConfiguration } from '../projects/entities/project-configuration.entity';
 import { Project } from '../projects/entities/project.entity';
+import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { Project } from '../projects/entities/project.entity';
       LicenseOption,
       UserLicense,
     ]),
+    SubscriptionsModule,
   ],
   controllers: [DeploymentController, GithubWebhookController],
   providers: [

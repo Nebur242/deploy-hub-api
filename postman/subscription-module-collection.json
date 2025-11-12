@@ -1,0 +1,755 @@
+{
+  "info": {
+    "name": "Subscription Module API with Stripe Integration",
+    "description": "Complete API collection for the Subscription Module including Subscription Plans, User Subscriptions, and Stripe Payment Integration with webhooks and billing portal support",
+    "version": "2.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "BASE_URI",
+      "value": "http://localhost:3000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "ACCESS_TOKEN",
+      "value": "",
+      "type": "string",
+      "description": "Bearer token for authenticated requests"
+    },
+    {
+      "key": "PLAN_ID",
+      "value": "",
+      "type": "string",
+      "description": "Subscription Plan ID for testing"
+    },
+    {
+      "key": "SUBSCRIPTION_ID",
+      "value": "",
+      "type": "string",
+      "description": "User Subscription ID for testing"
+    },
+    {
+      "key": "STRIPE_CUSTOMER_ID",
+      "value": "",
+      "type": "string",
+      "description": "Stripe Customer ID for testing"
+    },
+    {
+      "key": "PAYMENT_METHOD_ID",
+      "value": "",
+      "type": "string",
+      "description": "Stripe Payment Method ID for testing"
+    },
+    {
+      "key": "STRIPE_SUBSCRIPTION_ID",
+      "value": "",
+      "type": "string",
+      "description": "Stripe Subscription ID for testing"
+    },
+    {
+      "key": "SETUP_INTENT_ID",
+      "value": "",
+      "type": "string",
+      "description": "Stripe Setup Intent ID for testing"
+    },
+    {
+      "key": "CLIENT_SECRET",
+      "value": "",
+      "type": "string",
+      "description": "Client Secret for Stripe operations"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{ACCESS_TOKEN}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Subscription Plans",
+      "description": "Subscription plan management endpoints",
+      "item": [
+        {
+          "name": "Get Public Plans",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URI}}/subscription-plans/public",
+              "host": ["{{BASE_URI}}"],
+              "path": ["subscription-plans", "public"]
+            },
+            "description": "Get active subscription plans (public endpoint - no auth required)"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Plan (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Pro Monthly\",\n  \"description\": \"Professional plan with unlimited projects and deployments\",\n  \"price\": 20,\n  \"currency\": \"USD\",\n  \"type\": \"monthly\",\n  \"maxProjects\": 0,\n  \"maxDeployments\": 0,\n  \"maxTeamMembers\": 5,\n  \"features\": [\n    \"unlimited_projects\",\n    \"unlimited_deployments\",\n    \"custom_domains\",\n    \"priority_support\"\n  ],\n  \"popular\": true,\n  \"sortOrder\": 1\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URI}}/subscription-plans",
+              "host": ["{{BASE_URI}}"],
+              "path": ["subscription-plans"]
+            },
+            "description": "Create a new subscription plan (Admin only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Plans (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URI}}/subscription-plans?page=1&limit=10&search=&type=monthly&status=active&popular=true&feature=unlimited_projects&sortBy=sortOrder&sortDirection=ASC",
+              "host": ["{{BASE_URI}}"],
+              "path": ["subscription-plans"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (1-based)"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Items per page"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search term for name or description"
+                },
+                {
+                  "key": "type",
+                  "value": "monthly",
+                  "description": "Filter by plan type"
+                },
+                {
+                  "key": "status",
+                  "value": "active",
+                  "description": "Filter by plan status"
+                },
+                {
+                  "key": "popular",
+                  "value": "true",
+                  "description": "Filter by popularity"
+                },
+                {
+                  "key": "feature",
+                  "value": "unlimited_projects",
+                  "description": "Filter by feature"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "sortOrder",
+                  "description": "Field to sort by"
+                },
+                {
+                  "key": "sortDirection",
+                  "value": "ASC",
+                  "description": "Sort direction"
+                }
+              ]
+            },
+            "description": "Get all subscription plans with filtering (Admin only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Plan by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URI}}/subscription-plans/{{PLAN_ID}}",
+              "host": ["{{BASE_URI}}"],
+              "path": ["subscription-plans", "{{PLAN_ID}}"]
+            },
+            "description": "Get a specific subscription plan by ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Plan (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Pro Monthly Updated\",\n  \"description\": \"Updated professional plan with enhanced features\",\n  \"price\": 25,\n  \"popular\": false\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URI}}/subscription-plans/{{PLAN_ID}}",
+              "host": ["{{BASE_URI}}"],
+              "path": ["subscription-plans", "{{PLAN_ID}}"]
+            },
+            "description": "Update a subscription plan (Admin only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Plan (Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URI}}/subscription-plans/{{PLAN_ID}}",
+              "host": ["{{BASE_URI}}"],
+              "path": ["subscription-plans", "{{PLAN_ID}}"]
+            },
+            "description": "Delete a subscription plan (Admin only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Plan Statistics (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URI}}/subscription-plans/statistics",
+              "host": ["{{BASE_URI}}"],
+              "path": ["subscription-plans", "statistics"]
+            },
+            "description": "Get subscription plan statistics (Admin only)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "User Subscriptions",
+      "description": "User subscription management endpoints",
+      "item": [
+        {
+          "name": "Create Subscription",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"planId\": \"{{PLAN_ID}}\",\n  \"paymentMethodId\": \"pm_stripe_payment_method_id\",\n  \"autoRenew\": true,\n  \"metadata\": {\n    \"source\": \"web\",\n    \"campaign\": \"spring2024\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URI}}/user-subscriptions",
+              "host": ["{{BASE_URI}}"],
+              "path": ["user-subscriptions"]
+            },
+            "description": "Create a new subscription for the current user"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Current Subscription",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URI}}/user-subscriptions/current",
+              "host": ["{{BASE_URI}}"],
+              "path": ["user-subscriptions", "current"]
+            },
+            "description": "Get current active subscription for the user"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Subscription Limits",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URI}}/user-subscriptions/limits",
+              "host": ["{{BASE_URI}}"],
+              "path": ["user-subscriptions", "limits"]
+            },
+            "description": "Get subscription limits and features for the user"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Subscription History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URI}}/user-subscriptions/history?page=1&limit=10",
+              "host": ["{{BASE_URI}}"],
+              "path": ["user-subscriptions", "history"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (1-based)"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Items per page"
+                }
+              ]
+            },
+            "description": "Get subscription history for the current user"
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Subscription",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URI}}/user-subscriptions/{{SUBSCRIPTION_ID}}/cancel",
+              "host": ["{{BASE_URI}}"],
+              "path": ["user-subscriptions", "{{SUBSCRIPTION_ID}}", "cancel"]
+            },
+            "description": "Cancel a subscription"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Upgrade Options",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URI}}/user-subscriptions/upgrade-options",
+              "host": ["{{BASE_URI}}"],
+              "path": ["user-subscriptions", "upgrade-options"]
+            },
+            "description": "Get available upgrade options for the current user"
+          },
+          "response": []
+        },
+        {
+          "name": "Upgrade Plan",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"metadata\": {\n    \"source\": \"dashboard\",\n    \"campaign\": \"upgrade-2024\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URI}}/user-subscriptions/upgrade/{{PLAN_ID}}",
+              "host": ["{{BASE_URI}}"],
+              "path": ["user-subscriptions", "upgrade", "{{PLAN_ID}}"]
+            },
+            "description": "Upgrade current subscription to a new plan"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Upgrade Pricing",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URI}}/user-subscriptions/upgrade-pricing/{{PLAN_ID}}",
+              "host": ["{{BASE_URI}}"],
+              "path": ["user-subscriptions", "upgrade-pricing", "{{PLAN_ID}}"]
+            },
+            "description": "Calculate upgrade pricing for a specific plan"
+          },
+          "response": []
+        },
+        {
+          "name": "Schedule Upgrade",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"metadata\": {\n    \"source\": \"scheduled\",\n    \"reason\": \"end-of-billing-cycle\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URI}}/user-subscriptions/schedule-upgrade/{{PLAN_ID}}",
+              "host": ["{{BASE_URI}}"],
+              "path": ["user-subscriptions", "schedule-upgrade", "{{PLAN_ID}}"]
+            },
+            "description": "Schedule an upgrade for the next billing cycle"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Subscription Analytics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URI}}/user-subscriptions/analytics",
+              "host": ["{{BASE_URI}}"],
+              "path": ["user-subscriptions", "analytics"]
+            },
+            "description": "Get subscription analytics for the current user"
+          },
+          "response": []
+        },
+        {
+          "name": "Can Downgrade",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URI}}/user-subscriptions/can-downgrade/{{PLAN_ID}}",
+              "host": ["{{BASE_URI}}"],
+              "path": ["user-subscriptions", "can-downgrade", "{{PLAN_ID}}"]
+            },
+            "description": "Check if user can downgrade to a specific plan"
+          },
+          "response": []
+        },
+        {
+          "name": "Admin - Process Scheduled Upgrades",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URI}}/user-subscriptions/admin/process-scheduled-upgrades",
+              "host": ["{{BASE_URI}}"],
+              "path": ["user-subscriptions", "admin", "process-scheduled-upgrades"]
+            },
+            "description": "Process all scheduled upgrades (Admin only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Admin - Get All Subscriptions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URI}}/user-subscriptions/admin/all?page=1&limit=10&userId=&status=active&planId={{PLAN_ID}}",
+              "host": ["{{BASE_URI}}"],
+              "path": ["user-subscriptions", "admin", "all"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (1-based)"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Items per page"
+                },
+                {
+                  "key": "userId",
+                  "value": "",
+                  "description": "Filter by user ID"
+                },
+                {
+                  "key": "status",
+                  "value": "active",
+                  "description": "Filter by subscription status"
+                },
+                {
+                  "key": "planId",
+                  "value": "{{PLAN_ID}}",
+                  "description": "Filter by plan ID"
+                }
+              ]
+            },
+            "description": "Get all user subscriptions with filtering (Admin only)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Stripe Integration",
+      "description": "Stripe payment and webhook endpoints",
+      "item": [
+        {
+          "name": "Create Setup Intent",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": \"{{STRIPE_CUSTOMER_ID}}\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URI}}/payments/setup-intent",
+              "host": ["{{BASE_URI}}"],
+              "path": ["payments", "setup-intent"]
+            },
+            "description": "Create a setup intent for saving payment methods"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Payment Methods",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URI}}/payments/methods?customerId={{STRIPE_CUSTOMER_ID}}",
+              "host": ["{{BASE_URI}}"],
+              "path": ["payments", "methods"],
+              "query": [
+                {
+                  "key": "customerId",
+                  "value": "{{STRIPE_CUSTOMER_ID}}",
+                  "description": "Stripe Customer ID"
+                }
+              ]
+            },
+            "description": "Get customer's saved payment methods"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Payment Intent",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 20.00,\n  \"currency\": \"usd\",\n  \"customerId\": \"{{STRIPE_CUSTOMER_ID}}\",\n  \"metadata\": {\n    \"type\": \"subscription_upgrade\",\n    \"planId\": \"{{PLAN_ID}}\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URI}}/payments/intent",
+              "host": ["{{BASE_URI}}"],
+              "path": ["payments", "intent"]
+            },
+            "description": "Create a payment intent for one-time payments"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Billing Portal Session",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"returnUrl\": \"https://yourapp.com/dashboard/billing\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URI}}/user-subscriptions/billing-portal",
+              "host": ["{{BASE_URI}}"],
+              "path": ["user-subscriptions", "billing-portal"]
+            },
+            "description": "Create a Stripe billing portal session for customer self-service"
+          },
+          "response": []
+        },
+        {
+          "name": "Stripe Webhook - Test Event",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Stripe-Signature",
+                "value": "t=1234567890,v1=test_signature_here",
+                "description": "Stripe webhook signature (for testing)"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"evt_test_webhook\",\n  \"object\": \"event\",\n  \"api_version\": \"2020-08-27\",\n  \"created\": 1234567890,\n  \"data\": {\n    \"object\": {\n      \"id\": \"sub_test_subscription\",\n      \"object\": \"subscription\",\n      \"status\": \"active\",\n      \"customer\": \"cus_test_customer\",\n      \"items\": {\n        \"data\": [\n          {\n            \"price\": {\n              \"id\": \"price_test_price\"\n            }\n          }\n        ]\n      },\n      \"metadata\": {\n        \"userId\": \"test-user-id\",\n        \"planId\": \"test-plan-id\"\n      }\n    }\n  },\n  \"livemode\": false,\n  \"pending_webhooks\": 1,\n  \"request\": {\n    \"id\": \"req_test_request\",\n    \"idempotency_key\": null\n  },\n  \"type\": \"customer.subscription.created\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URI}}/webhooks/stripe",
+              "host": ["{{BASE_URI}}"],
+              "path": ["webhooks", "stripe"]
+            },
+            "description": "Test webhook endpoint (for development only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Subscription with Stripe - Create",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"planId\": \"{{PLAN_ID}}\",\n  \"paymentMethodId\": \"{{PAYMENT_METHOD_ID}}\",\n  \"autoRenew\": true,\n  \"metadata\": {\n    \"source\": \"web\",\n    \"campaign\": \"stripe-integration\",\n    \"paymentProvider\": \"stripe\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URI}}/user-subscriptions",
+              "host": ["{{BASE_URI}}"],
+              "path": ["user-subscriptions"]
+            },
+            "description": "Create a subscription with Stripe payment method"
+          },
+          "response": []
+        },
+        {
+          "name": "Subscription with Stripe - Upgrade",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"metadata\": {\n    \"source\": \"dashboard\",\n    \"upgradeReason\": \"more-features\",\n    \"paymentProvider\": \"stripe\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URI}}/user-subscriptions/upgrade/{{PLAN_ID}}",
+              "host": ["{{BASE_URI}}"],
+              "path": ["user-subscriptions", "upgrade", "{{PLAN_ID}}"]
+            },
+            "description": "Upgrade subscription with Stripe proration"
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Pre-request script to check if authentication token is set",
+          "if (!pm.environment.get('ACCESS_TOKEN') && !pm.globals.get('ACCESS_TOKEN') && !pm.collectionVariables.get('ACCESS_TOKEN')) {",
+          "    console.log('Warning: ACCESS_TOKEN is not set. Please set it in environment variables or collection variables for authenticated endpoints.');",
+          "}"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Common test script for all requests",
+          "pm.test('Response time is less than 5000ms', function () {",
+          "    pm.expect(pm.response.responseTime).to.be.below(5000);",
+          "});",
+          "",
+          "pm.test('Response has proper headers', function () {",
+          "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+          "});",
+          "",
+          "// Auto-extract IDs from successful responses",
+          "if (pm.response.code === 200 || pm.response.code === 201) {",
+          "    try {",
+          "        const responseJson = pm.response.json();",
+          "        ",
+          "        // Extract plan ID if present",
+          "        if (responseJson.id && pm.request.url.toString().includes('/subscription-plans')) {",
+          "            pm.collectionVariables.set('PLAN_ID', responseJson.id);",
+          "            console.log('Set PLAN_ID to:', responseJson.id);",
+          "        }",
+          "        ",
+          "        // Extract subscription ID if present",
+          "        if (responseJson.id && pm.request.url.toString().includes('/user-subscriptions')) {",
+          "            pm.collectionVariables.set('SUBSCRIPTION_ID', responseJson.id);",
+          "            console.log('Set SUBSCRIPTION_ID to:', responseJson.id);",
+          "        }",
+          "        ",
+          "        // Extract Stripe-related IDs",
+          "        if (responseJson.stripeCustomerId) {",
+          "            pm.collectionVariables.set('STRIPE_CUSTOMER_ID', responseJson.stripeCustomerId);",
+          "            console.log('Set STRIPE_CUSTOMER_ID to:', responseJson.stripeCustomerId);",
+          "        }",
+          "        if (responseJson.stripeSubscriptionId) {",
+          "            pm.collectionVariables.set('STRIPE_SUBSCRIPTION_ID', responseJson.stripeSubscriptionId);",
+          "            console.log('Set STRIPE_SUBSCRIPTION_ID to:', responseJson.stripeSubscriptionId);",
+          "        }",
+          "        if (responseJson.paymentMethodId) {",
+          "            pm.collectionVariables.set('PAYMENT_METHOD_ID', responseJson.paymentMethodId);",
+          "            console.log('Set PAYMENT_METHOD_ID to:', responseJson.paymentMethodId);",
+          "        }",
+          "        // Extract from setup intent response",
+          "        if (responseJson.setupIntentId) {",
+          "            pm.collectionVariables.set('SETUP_INTENT_ID', responseJson.setupIntentId);",
+          "            console.log('Set SETUP_INTENT_ID to:', responseJson.setupIntentId);",
+          "        }",
+          "        if (responseJson.clientSecret) {",
+          "            pm.collectionVariables.set('CLIENT_SECRET', responseJson.clientSecret);",
+          "            console.log('Set CLIENT_SECRET to:', responseJson.clientSecret);",
+          "        }",
+          "        ",
+          "        // Extract from paginated responses",
+          "        if (responseJson.data && Array.isArray(responseJson.data) && responseJson.data.length > 0) {",
+          "            const firstItem = responseJson.data[0];",
+          "            if (firstItem.id && pm.request.url.toString().includes('/subscription-plans')) {",
+          "                pm.collectionVariables.set('PLAN_ID', firstItem.id);",
+          "                console.log('Set PLAN_ID from paginated response to:', firstItem.id);",
+          "            }",
+          "            if (firstItem.id && pm.request.url.toString().includes('/user-subscriptions')) {",
+          "                pm.collectionVariables.set('SUBSCRIPTION_ID', firstItem.id);",
+          "                console.log('Set SUBSCRIPTION_ID from paginated response to:', firstItem.id);",
+          "            }",
+          "        }",
+          "    } catch (e) {",
+          "        console.log('Could not parse response JSON:', e);",
+          "    }",
+          "}"
+        ]
+      }
+    }
+  ]
+}
