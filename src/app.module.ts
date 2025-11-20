@@ -6,6 +6,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { EnvironmentVariables, validate } from './config/env.validation';
+import { CoreModule } from './core/core.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { DeploymentModule } from './modules/deployments/deployment-module.module';
@@ -26,6 +27,7 @@ import { UserModule } from './modules/users/users.module';
       validate,
     }),
     ScheduleModule.forRoot(),
+    CoreModule,
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

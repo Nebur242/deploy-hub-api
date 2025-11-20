@@ -1,11 +1,4 @@
-import { TransformInterceptor } from '@core/interceptors/transform.interceptor';
-import {
-  BadRequestException,
-  INestApplication,
-  Logger,
-  ValidationPipe,
-  VersioningType,
-} from '@nestjs/common';
+import { INestApplication, Logger, ValidationPipe, VersioningType } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
@@ -18,6 +11,7 @@ import { AppModule } from './app.module';
 import * as packages from '../package.json';
 import { EnvironmentVariables } from './config/env.validation';
 import { TypeOrmErrorsFilter } from './core/filters/typeorm-errors.filter';
+import { LoggingInterceptor } from './core/interceptors/logging.interceptor';
 import { SentryInterceptor } from './core/interceptors/sentry.interceptor';
 import { RedisHealthService } from './modules/queue/redis-health.service';
 
@@ -47,32 +41,11 @@ function setupGlobalMiddlewares(app: INestApplication) {
         whitelist: true,
         forbidNonWhitelisted: true,
         transform: true,
-        exceptionFactory(err) {
-          console.log('Validation error:', err);
-          const errors = err.reduce((acc: string[], e) => {
-            if (e.constraints) {
-              Object.values(e.constraints).forEach(constraint => acc.push(constraint));
-            }
-            if (e.children && e.children.length > 0) {
-              e.children.forEach(child => {
-                if (child.constraints) {
-                  Object.values(child.constraints).forEach(constraint => acc.push(constraint));
-                }
-              });
-            }
-            return acc;
-          }, []);
-          return new BadRequestException({
-            statusCode: 400,
-            message: `Validation failed: ${errors.join(', ') || 'Invalid data'}`,
-            error: 'Bad Request',
-          });
-        },
       }),
     )
     .useGlobalInterceptors(
-      new TransformInterceptor(),
       new SentryInterceptor(configService.get('NODE_ENV')),
+      new LoggingInterceptor(configService.get('NODE_ENV')),
     )
     .useGlobalFilters(new TypeOrmErrorsFilter())
     .setGlobalPrefix(globalPrefix)
