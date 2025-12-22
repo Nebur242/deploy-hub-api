@@ -8,9 +8,9 @@ describe('MediaQueryDto', () => {
   it('should pass validation with valid data', async () => {
     const dto = plainToClass(MediaQueryDto, {
       type: MediaType.IMAGE,
-      ownerId: '123',
+      owner_id: '123',
       tags: ['tag1', 'tag2'],
-      isPublic: true,
+      is_public: true,
       search: 'test',
       page: 1,
       limit: 10,
@@ -36,9 +36,9 @@ describe('MediaQueryDto', () => {
     expect(errors[0].constraints).toHaveProperty('isEnum');
   });
 
-  it('should fail validation with invalid ownerId', async () => {
+  it('should fail validation with invalid owner_id', async () => {
     const dto = plainToClass(MediaQueryDto, {
-      ownerId: 123, // number instead of string
+      owner_id: 123, // number instead of string
     });
 
     const errors = await validate(dto);
@@ -48,17 +48,17 @@ describe('MediaQueryDto', () => {
 
   it('should transform string "true" to boolean true', () => {
     const dto = plainToClass(MediaQueryDto, {
-      isPublic: true,
+      is_public: true,
     });
 
-    expect(dto.isPublic).toBe(true);
+    expect(dto.is_public).toBe(true);
   });
 
   it('should transform string "false" to boolean false', () => {
     const dto = plainToClass(MediaQueryDto, {
-      isPublic: false,
+      is_public: false,
     });
 
-    expect(dto.isPublic).toBe(false);
+    expect(dto.is_public).toBe(false);
   });
 });

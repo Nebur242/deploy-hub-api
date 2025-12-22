@@ -23,7 +23,7 @@ export class EnvironmentVariableDto {
   key: string;
 
   @IsString()
-  defaultValue: string;
+  default_value: string;
 
   @IsNotEmpty()
   @IsString()
@@ -35,7 +35,7 @@ export class EnvironmentVariableDto {
 
   @IsNotEmpty()
   @IsBoolean()
-  isRequired: boolean;
+  is_required: boolean;
 
   @IsEnum(EnvironmentVariableType)
   @IsNotEmpty()
@@ -43,7 +43,7 @@ export class EnvironmentVariableDto {
 
   @IsNotEmpty()
   @IsBoolean()
-  isSecret: boolean;
+  is_secret: boolean;
 }
 
 class GithubAccountDto {
@@ -53,7 +53,7 @@ class GithubAccountDto {
 
   @IsNotEmpty()
   @IsString()
-  accessToken: string;
+  access_token: string;
 
   @IsNotEmpty()
   @IsString()
@@ -61,7 +61,7 @@ class GithubAccountDto {
 
   @IsNotEmpty()
   @IsString()
-  workflowFile: string;
+  workflow_file: string;
 }
 
 class DeploymentOptionDto {
@@ -70,7 +70,7 @@ class DeploymentOptionDto {
 
   @ValidateNested({ each: true })
   @Type(() => EnvironmentVariableDto)
-  environmentVariables: EnvironmentVariableDto[];
+  environment_variables: EnvironmentVariableDto[];
 }
 
 export class CreateProjectConfigurationDto {
@@ -82,10 +82,10 @@ export class CreateProjectConfigurationDto {
   @ValidateNested({ each: true })
   @Type(() => GithubAccountDto)
   @IsNotEmpty({ each: true })
-  githubAccounts: GithubAccountDto[];
+  github_accounts: GithubAccountDto[];
 
   @IsNotEmpty()
   @ValidateNested()
   @Type(() => DeploymentOptionDto)
-  deploymentOption: DeploymentOptionDto;
+  deployment_option: DeploymentOptionDto;
 }

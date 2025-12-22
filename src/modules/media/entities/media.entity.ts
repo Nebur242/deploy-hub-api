@@ -29,10 +29,10 @@ export class Media {
   filename: string;
 
   @Column()
-  originalFilename: string;
+  original_filename: string;
 
   @Column()
-  mimeType: string;
+  mime_type: string;
 
   @Column({ type: 'enum', enum: MediaType, default: MediaType.OTHER })
   type: MediaType;
@@ -44,7 +44,7 @@ export class Media {
   url: string;
 
   @Column({ nullable: true })
-  thumbnailUrl: string;
+  thumbnail_url: string;
 
   @Column({ nullable: true })
   width: number;
@@ -62,22 +62,22 @@ export class Media {
   metadata: Record<string, string>;
 
   @Column({ default: true })
-  isPublic: boolean;
+  is_public: boolean;
 
   @Column({ nullable: true })
   @Index()
-  ownerId: string;
+  owner_id: string;
 
   @ManyToOne(() => User, { onDelete: 'SET NULL' })
-  @JoinColumn({ name: 'ownerId' })
+  @JoinColumn({ name: 'owner_id' })
   owner: User;
 
   @Column('text', { array: true, default: [] })
   tags: string[];
 
   @CreateDateColumn()
-  createdAt: Date;
+  created_at: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updated_at: Date;
 }

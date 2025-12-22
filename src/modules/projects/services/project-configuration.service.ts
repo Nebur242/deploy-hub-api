@@ -26,40 +26,39 @@ export class ProjectConfigurationService {
     }
 
     // Decrypt sensitive data
-    config.githubAccounts = config.githubAccounts.map(githubAccount => ({
+    config.github_accounts = config.github_accounts.map(githubAccount => ({
       ...githubAccount,
-      accessToken: this.encryptService.decrypt(githubAccount.accessToken),
+      access_token: this.encryptService.decrypt(githubAccount.access_token),
     }));
-    config.deploymentOption.environmentVariables = config.deploymentOption.environmentVariables.map(
-      variable => ({
+    config.deployment_option.environment_variables =
+      config.deployment_option.environment_variables.map(variable => ({
         ...variable,
-        defaultValue:
-          variable.isSecret && variable.defaultValue
-            ? this.encryptService.decrypt(variable.defaultValue)
-            : variable.defaultValue,
-      }),
-    );
+        default_value:
+          variable.is_secret && variable.default_value
+            ? this.encryptService.decrypt(variable.default_value)
+            : variable.default_value,
+      }));
 
     return config;
   }
 
   async findByProject(projectId: string): Promise<ProjectConfiguration[]> {
     const configs = await this.configRepository.find({
-      where: { projectId },
+      where: { project_id: projectId },
     });
     return configs.map(config => {
       // Decrypt sensitive data
-      config.githubAccounts = config.githubAccounts.map(githubAccount => ({
+      config.github_accounts = config.github_accounts.map(githubAccount => ({
         ...githubAccount,
-        accessToken: this.encryptService.decrypt(githubAccount.accessToken),
+        access_token: this.encryptService.decrypt(githubAccount.access_token),
       }));
-      config.deploymentOption.environmentVariables =
-        config.deploymentOption.environmentVariables.map(variable => ({
+      config.deployment_option.environment_variables =
+        config.deployment_option.environment_variables.map(variable => ({
           ...variable,
-          defaultValue:
-            variable.isSecret && variable.defaultValue
-              ? this.encryptService.decrypt(variable.defaultValue)
-              : variable.defaultValue,
+          default_value:
+            variable.is_secret && variable.default_value
+              ? this.encryptService.decrypt(variable.default_value)
+              : variable.default_value,
         }));
       return config;
     });
@@ -82,7 +81,7 @@ export class ProjectConfigurationService {
         throw new NotFoundException(`Project with ID ${projectId} not found`);
       }
 
-      if (project.ownerId !== ownerId) {
+      if (project.owner_id !== ownerId) {
         throw new BadRequestException(
           'You do not have permission to add configurations to this project',
         );
@@ -90,13 +89,13 @@ export class ProjectConfigurationService {
 
       const existingConfig = project.configurations.find(
         config =>
-          config.deploymentOption.provider === createConfigDto.deploymentOption.provider &&
-          createConfigDto.deploymentOption.provider !== DeploymentProvider.CUSTOM,
+          config.deployment_option.provider === createConfigDto.deployment_option.provider &&
+          createConfigDto.deployment_option.provider !== DeploymentProvider.CUSTOM,
       );
 
       if (existingConfig) {
         throw new BadRequestException(
-          `A configuration with this provider: ${createConfigDto.deploymentOption.provider} already exists for this project`,
+          `A configuration with this provider: ${createConfigDto.deployment_option.provider} already exists for this project`,
         );
       }
 
@@ -104,21 +103,21 @@ export class ProjectConfigurationService {
         // Create the configuration - environment variables will be processed by entity hooks
 
         const newConfig = this.configRepository.create({
-          projectId,
+          project_id: projectId,
           ...createConfigDto,
-          githubAccounts: createConfigDto.githubAccounts.map(githubAccount => ({
+          github_accounts: createConfigDto.github_accounts.map(githubAccount => ({
             ...githubAccount,
-            accessToken: this.encryptService.encrypt(githubAccount.accessToken),
+            access_token: this.encryptService.encrypt(githubAccount.access_token),
           })),
-          deploymentOption: {
-            ...createConfigDto.deploymentOption,
-            environmentVariables: createConfigDto.deploymentOption.environmentVariables.map(
+          deployment_option: {
+            ...createConfigDto.deployment_option,
+            environment_variables: createConfigDto.deployment_option.environment_variables.map(
               variable => ({
                 ...variable,
-                defaultValue:
-                  variable.isSecret && variable.defaultValue
-                    ? this.encryptService.encrypt(variable.defaultValue)
-                    : variable.defaultValue,
+                default_value:
+                  variable.is_secret && variable.default_value
+                    ? this.encryptService.encrypt(variable.default_value)
+                    : variable.default_value,
               }),
             ),
           },
@@ -147,32 +146,32 @@ export class ProjectConfigurationService {
 
       // Check if user is the owner of the project
       const project = await transactionalEntityManager.findOne(Project, {
-        where: { id: config.projectId },
+        where: { id: config.project_id },
         relations: ['configurations'],
       });
 
       if (!project) {
-        throw new NotFoundException(`Project with ID ${config.projectId} not found`);
+        throw new NotFoundException(`Project with ID ${config.project_id} not found`);
       }
 
-      if (project.ownerId !== ownerId) {
+      if (project.owner_id !== ownerId) {
         throw new BadRequestException(
           'You do not have permission to update this project configuration',
         );
       }
 
       // Check for provider uniqueness if provider is being updated
-      if (updateConfigDto.deploymentOption?.provider) {
+      if (updateConfigDto.deployment_option?.provider) {
         const existingConfig = project.configurations.find(
           c =>
             c.id !== id &&
-            c.deploymentOption.provider === updateConfigDto?.deploymentOption?.provider &&
-            updateConfigDto?.deploymentOption?.provider !== DeploymentProvider.CUSTOM,
+            c.deployment_option.provider === updateConfigDto?.deployment_option?.provider &&
+            updateConfigDto?.deployment_option?.provider !== DeploymentProvider.CUSTOM,
         );
 
         if (existingConfig) {
           throw new BadRequestException(
-            `A configuration with this provider: ${updateConfigDto.deploymentOption.provider} already exists for this project`,
+            `A configuration with this provider: ${updateConfigDto.deployment_option.provider} already exists for this project`,
           );
         }
       }
@@ -181,23 +180,23 @@ export class ProjectConfigurationService {
         // Update configuration - environment variables will be processed by entity hooks
         const upDated = {
           ...updateConfigDto,
-          githubAccounts: (updateConfigDto?.githubAccounts || config.githubAccounts).map(
+          github_accounts: (updateConfigDto?.github_accounts || config.github_accounts).map(
             githubAccount => ({
               ...githubAccount,
-              accessToken: this.encryptService.encrypt(githubAccount.accessToken),
+              access_token: this.encryptService.encrypt(githubAccount.access_token),
             }),
           ),
-          deploymentOption: {
-            ...updateConfigDto.deploymentOption,
-            environmentVariables: (
-              updateConfigDto?.deploymentOption?.environmentVariables ||
-              config.deploymentOption.environmentVariables
+          deployment_option: {
+            ...updateConfigDto.deployment_option,
+            environment_variables: (
+              updateConfigDto?.deployment_option?.environment_variables ||
+              config.deployment_option.environment_variables
             ).map(variable => ({
               ...variable,
-              defaultValue:
-                variable.isSecret && variable.defaultValue
-                  ? this.encryptService.encrypt(variable.defaultValue)
-                  : variable.defaultValue,
+              default_value:
+                variable.is_secret && variable.default_value
+                  ? this.encryptService.encrypt(variable.default_value)
+                  : variable.default_value,
             })),
           },
         };
@@ -222,14 +221,14 @@ export class ProjectConfigurationService {
 
       // Check if user is the owner of the project
       const project = await transactionalEntityManager.findOne(Project, {
-        where: { id: config.projectId },
+        where: { id: config.project_id },
       });
 
       if (!project) {
-        throw new NotFoundException(`Project with ID ${config.projectId} not found`);
+        throw new NotFoundException(`Project with ID ${config.project_id} not found`);
       }
 
-      if (project.ownerId !== ownerId) {
+      if (project.owner_id !== ownerId) {
         throw new BadRequestException(
           'You do not have permission to delete this project configuration',
         );

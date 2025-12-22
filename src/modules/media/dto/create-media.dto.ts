@@ -22,11 +22,11 @@ export class CreateMediaDto {
 
   @ApiProperty({ description: 'Original filename', example: 'profile-photo.jpg' })
   @IsString()
-  readonly originalFilename: string;
+  readonly original_filename: string;
 
   @ApiProperty({ description: 'MIME type', example: 'image/jpeg' })
   @IsString()
-  readonly mimeType: string;
+  readonly mime_type: string;
 
   @ApiProperty({ enum: MediaType, description: 'Media type', example: MediaType.IMAGE })
   @IsEnum(MediaType)
@@ -46,7 +46,7 @@ export class CreateMediaDto {
   })
   @IsString()
   @IsOptional()
-  readonly thumbnailUrl?: string;
+  readonly thumbnail_url?: string;
 
   @ApiPropertyOptional({ description: 'Width (for images/videos)', example: 1920 })
   @IsNumber()
@@ -77,7 +77,7 @@ export class CreateMediaDto {
   @IsBoolean()
   @IsOptional()
   @Transform(({ value }) => value === 'true' || value === true)
-  readonly isPublic?: boolean = true;
+  readonly is_public?: boolean = true;
 
   @ApiPropertyOptional({ description: 'Tags', example: ['profile', 'avatar'] })
   @IsArray()

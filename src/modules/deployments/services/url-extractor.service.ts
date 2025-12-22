@@ -6,7 +6,7 @@ import { Deployment } from '../entities/deployment.entity';
 @Injectable()
 export class DeploymentUrlExtractorService {
   extractUrlFromLogs(logs: string, deployment: Deployment) {
-    switch (deployment.configuration.deploymentOption.provider) {
+    switch (deployment.configuration.deployment_option.provider) {
       case DeploymentProvider.VERCEL: {
         return this.extractVercelUrl(logs);
       }

@@ -47,13 +47,13 @@ describe('MediaService', () => {
 
   describe('create', () => {
     it('should create a new media item', async () => {
-      const createMediaDto: CreateMediaDto & { ownerId: string } = {
+      const createMediaDto: CreateMediaDto & { owner_id: string } = {
         url: 'http://example.com/test.jpg',
         type: 'image' as MediaType.IMAGE,
-        ownerId: 'user-123',
+        owner_id: 'user-123',
         filename: 'test.jpg',
-        originalFilename: 'original-test.jpg',
-        mimeType: 'image/jpeg',
+        original_filename: 'original-test.jpg',
+        mime_type: 'image/jpeg',
         size: 1024,
       };
       const mediaEntity = { id: 'media-123', ...createMediaDto } as Media;
@@ -87,7 +87,7 @@ describe('MediaService', () => {
           limit: 10,
           route: '/media',
         },
-        { where: {}, order: { createdAt: 'DESC' } },
+        { where: {}, order: { created_at: 'DESC' } },
       );
       expect(result).toEqual(paginationResult);
     });
@@ -110,7 +110,7 @@ describe('MediaService', () => {
           limit: 20,
           route: '/media',
         },
-        { where: {}, order: { createdAt: 'DESC' } },
+        { where: {}, order: { created_at: 'DESC' } },
       );
       expect(result).toEqual(paginationResult);
     });

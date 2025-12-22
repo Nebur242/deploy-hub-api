@@ -44,7 +44,7 @@ export class ProjectController {
   @Get(':id')
   async findOne(@Param('id') id: string, @CurrentUser() user: User) {
     const project = await this.projectService.findOne(id);
-    if (project.ownerId !== user.id) {
+    if (project.owner_id !== user.id) {
       throw new ForbiddenException('You do not have permission to access this project');
     }
     return project;

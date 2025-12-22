@@ -16,19 +16,22 @@ export class CreateUserDto {
   @IsOptional()
   @IsNotEmpty()
   @IsString()
+  @IsString()
   @Length(2, 50)
-  firstName?: string;
+  first_name?: string;
 
   @IsOptional()
   @IsNotEmpty()
   @IsString()
+  @IsString()
   @Length(2, 50)
-  lastName?: string;
+  last_name?: string;
 
   @IsOptional()
   @IsNotEmpty()
   @IsString()
-  profilePicture?: string;
+  @IsString()
+  profile_picture?: string;
 
   @IsNotEmpty()
   @IsString()
@@ -50,17 +53,19 @@ export class UpdateUserDto {
   @IsOptional()
   @IsString()
   @Length(2, 50)
-  firstName?: string;
+  first_name?: string;
 
   @IsOptional()
   @IsString()
   @Length(2, 50)
-  lastName?: string;
+  @Length(2, 50)
+  last_name?: string;
 
   @IsOptional()
   @IsNotEmpty()
   @IsString()
-  profilePicture?: string;
+  @IsString()
+  profile_picture?: string;
 
   @IsOptional()
   @IsString()
@@ -70,13 +75,13 @@ export class UpdateUserDto {
 export class UserResponseDto {
   id: string;
   uid: string;
-  firstName?: string;
-  lastName?: string;
+  first_name?: string;
+  last_name?: string;
   company?: string;
-  profilePicture?: string;
+  profile_picture?: string;
   preferences?: UserPreferences;
   notifications?: UserNotification;
   roles: `${Role}`[];
-  createdAt: Date;
-  updatedAt: Date;
+  created_at: Date;
+  updated_at: Date;
 }

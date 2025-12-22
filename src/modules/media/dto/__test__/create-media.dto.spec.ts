@@ -10,18 +10,18 @@ describe('CreateMediaDto', () => {
   beforeEach(() => {
     validDto = {
       filename: 'my profile photo',
-      originalFilename: 'profile-photo.jpg',
-      mimeType: 'image/jpeg',
+      original_filename: 'profile-photo.jpg',
+      mime_type: 'image/jpeg',
       type: MediaType.IMAGE,
       size: 1024,
       url: 'https://example.com/image.jpg',
-      thumbnailUrl: 'https://example.com/thumbnail.jpg',
+      thumbnail_url: 'https://example.com/thumbnail.jpg',
       width: 1920,
       height: 1080,
       duration: 120,
       alt: 'Profile photo',
       metadata: { author: 'John Doe' },
-      isPublic: true,
+      is_public: true,
       tags: ['profile', 'avatar'],
     };
   });
@@ -62,10 +62,10 @@ describe('CreateMediaDto', () => {
     expect(errors.length).toBeGreaterThan(0);
   });
 
-  it('should transform isPublic string "true" to boolean true', () => {
-    const dto = { ...validDto, isPublic: 'true' };
+  it('should transform is_public string "true" to boolean true', () => {
+    const dto = { ...validDto, is_public: 'true' };
     const dtoObj = plainToInstance(CreateMediaDto, dto);
-    expect(dtoObj.isPublic).toBe(true);
+    expect(dtoObj.is_public).toBe(true);
   });
 
   it('should fail when tags is not an array of strings', async () => {
@@ -78,8 +78,8 @@ describe('CreateMediaDto', () => {
   it('should pass with optional fields omitted', async () => {
     const minimalDto = {
       filename: 'my profile photo',
-      originalFilename: 'profile-photo.jpg',
-      mimeType: 'image/jpeg',
+      original_filename: 'profile-photo.jpg',
+      mime_type: 'image/jpeg',
       type: MediaType.IMAGE,
       size: 1024,
       url: 'https://example.com/image.jpg',

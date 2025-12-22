@@ -18,8 +18,8 @@ export class ProjectVersionService {
 
   findAll(projectId: string): Promise<ProjectVersion[]> {
     return this.projectVersionRepository.find({
-      where: { projectId },
-      order: { createdAt: 'DESC' },
+      where: { project_id: projectId },
+      order: { created_at: 'DESC' },
     });
   }
 
@@ -50,7 +50,7 @@ export class ProjectVersionService {
       throw new NotFoundException(`Project with ID ${projectId} not found`);
     }
 
-    if (project.ownerId !== ownerId) {
+    if (project.owner_id !== ownerId) {
       throw new BadRequestException('You do not have permission to add versions to this project');
     }
 
@@ -63,7 +63,7 @@ export class ProjectVersionService {
 
     // Check if version already exists
     const existingVersion = await this.projectVersionRepository.findOne({
-      where: { projectId, version: versionData.version },
+      where: { project_id: projectId, version: versionData.version },
     });
 
     if (existingVersion) {
@@ -75,16 +75,16 @@ export class ProjectVersionService {
     // Set all other versions as not latest
     if (project.versions && project.versions.length > 0) {
       await this.projectVersionRepository.update(
-        { projectId, isLatest: true },
-        { isLatest: false },
+        { project_id: projectId, is_latest: true },
+        { is_latest: false },
       );
     }
 
     // Create new version
     const newVersion = this.projectVersionRepository.create({
-      projectId,
+      project_id: projectId,
       ...versionData,
-      isLatest: true,
+      is_latest: true,
     });
 
     return this.projectVersionRepository.save(newVersion);
@@ -99,14 +99,14 @@ export class ProjectVersionService {
 
     // Check if user has permission to update this version
     const project = await this.projectRepository.findOne({
-      where: { id: version.projectId },
+      where: { id: version.project_id },
     });
 
     if (!project) {
-      throw new NotFoundException(`Project with ID ${version.projectId} not found`);
+      throw new NotFoundException(`Project with ID ${version.project_id} not found`);
     }
 
-    if (project.ownerId !== ownerId) {
+    if (project.owner_id !== ownerId) {
       throw new BadRequestException('You do not have permission to update this project version');
     }
 
@@ -121,39 +121,39 @@ export class ProjectVersionService {
   async setAsStable(id: string, ownerId: string): Promise<ProjectVersion> {
     const version = await this.findOne(id);
     const project = await this.projectRepository.findOne({
-      where: { id: version.projectId },
+      where: { id: version.project_id },
     });
 
     if (!project) {
-      throw new NotFoundException(`Project with ID ${version.projectId} not found`);
+      throw new NotFoundException(`Project with ID ${version.project_id} not found`);
     }
 
-    if (project.ownerId !== ownerId) {
+    if (project.owner_id !== ownerId) {
       throw new BadRequestException('You do not have permission to modify this project version');
     }
 
     // Set all versions as not stable
     await this.projectVersionRepository.update(
-      { projectId: version.projectId },
-      { isStable: false },
+      { project_id: version.project_id },
+      { is_stable: false },
     );
 
     // Set this version as stable
-    version.isStable = true;
+    version.is_stable = true;
     return this.projectVersionRepository.save(version);
   }
 
   async remove(id: string, ownerId: string): Promise<void> {
     const version = await this.findOne(id);
     const project = await this.projectRepository.findOne({
-      where: { id: version.projectId },
+      where: { id: version.project_id },
     });
 
     if (!project) {
-      throw new NotFoundException(`Project with ID ${version.projectId} not found`);
+      throw new NotFoundException(`Project with ID ${version.project_id} not found`);
     }
 
-    if (project.ownerId !== ownerId) {
+    if (project.owner_id !== ownerId) {
       throw new BadRequestException('You do not have permission to delete this project version');
     }
 
@@ -167,16 +167,16 @@ export class ProjectVersionService {
 
       // Find the newest remaining version
       const versions = await transactionalEntityManager.find(ProjectVersion, {
-        where: { projectId: version.projectId },
-        order: { createdAt: 'DESC' },
+        where: { project_id: version.project_id },
+        order: { created_at: 'DESC' },
       });
 
       // Set the newest version as latest if any versions remain
       if (versions.length > 0) {
         await transactionalEntityManager.update(
           ProjectVersion,
-          { projectId: version.projectId, id: versions[0].id },
-          { isLatest: true },
+          { project_id: version.project_id, id: versions[0].id },
+          { is_latest: true },
         );
       }
     });

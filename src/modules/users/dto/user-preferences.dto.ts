@@ -14,9 +14,10 @@ export class UserPreferencesDto {
 
   @IsOptional()
   @IsBoolean()
-  emailNotifications?: boolean;
+  @IsBoolean()
+  email_notifications?: boolean;
 
   @IsOptional()
   @IsEnum(DeploymentProvider, { each: true })
-  preferredDeploymentProviders?: DeploymentProvider[];
+  preferred_deployment_providers?: DeploymentProvider[];
 }

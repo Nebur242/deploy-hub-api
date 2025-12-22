@@ -12,21 +12,21 @@ export class UserPreferences {
   theme: Theme;
 
   @Column({ default: true })
-  emailNotifications: boolean;
+  email_notifications: boolean;
 
   @Column({ type: 'simple-array', nullable: true })
-  preferredDeploymentProviders: DeploymentProvider[] | null;
+  preferred_deployment_providers: DeploymentProvider[] | null;
 
   @Column({ type: 'simple-array', nullable: true, default: [] })
   billings?: {
-    firstName: string;
-    lastName: string;
+    first_name: string;
+    last_name: string;
     email: string;
     company: string;
     address: string;
     city: string;
     state: string;
-    postalCode: string;
+    postal_code: string;
     country: string;
   }[];
 }

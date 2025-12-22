@@ -143,7 +143,7 @@ export class DeploymentController {
     const { dto, user, entities } = context;
 
     // Check if the user is the project owner
-    if (entities.project.ownerId === user.id) {
+    if (entities.project.owner_id === user.id) {
       this.logger.log(
         `User ${user.id} is the project owner for project ${entities.project.id}. Bypassing license validation.`,
       );
@@ -173,7 +173,7 @@ export class DeploymentController {
    */
   private processDeploymentByProvider(context: CreateDeploymentContext) {
     const { entities } = context;
-    const provider = entities.configuration.deploymentOption.provider;
+    const provider = entities.configuration.deployment_option.provider;
 
     switch (provider) {
       case DeploymentProvider.VERCEL:
@@ -200,8 +200,8 @@ export class DeploymentController {
     try {
       // Create Vercel project
       const vercelProject = await this.vercelService.createProject({
-        orgId: orgIdVar.defaultValue,
-        token: tokenVar.defaultValue,
+        orgId: orgIdVar.default_value,
+        token: tokenVar.default_value,
       });
 
       if (!vercelProject) {
@@ -238,7 +238,7 @@ export class DeploymentController {
     try {
       // Create Netlify site
       const netlifySite = await this.netlifyService.createSite({
-        token: tokenVar.defaultValue,
+        token: tokenVar.default_value,
       });
 
       if (!netlifySite) {
@@ -318,7 +318,7 @@ export class DeploymentController {
    * Update existing environment variable value
    */
   private updateEnvironmentVariable(envVars: EnvironmentVariableDto[], key: string, value: string) {
-    return envVars.map(env => (env.key === key ? { ...env, defaultValue: value } : env));
+    return envVars.map(env => (env.key === key ? { ...env, default_value: value } : env));
   }
 
   /**
@@ -336,15 +336,15 @@ export class DeploymentController {
     if (existingIndex >= 0) {
       updatedEnvVars[existingIndex] = {
         ...updatedEnvVars[existingIndex],
-        defaultValue: value,
+        default_value: value,
       };
     } else {
       updatedEnvVars.push({
         key,
-        defaultValue: value,
+        default_value: value,
         description,
-        isRequired: true,
-        isSecret: false,
+        is_required: true,
+        is_secret: false,
         type: EnvironmentVariableType.TEXT,
       });
     }

@@ -31,7 +31,7 @@ export class LicenseService {
           throw new NotFoundException(`Project with ID ${projectId} not found`);
         }
 
-        if (project.ownerId !== user.id) {
+        if (project.owner_id !== user.id) {
           throw new BadRequestException(
             `You do not have permission to add license to project: ${project.name}`,
           );
@@ -184,7 +184,7 @@ export class LicenseService {
 
     // Check if user is the owner of all associated projects
     for (const project of license.projects) {
-      if (project.ownerId !== ownerId) {
+      if (project.owner_id !== ownerId) {
         throw new BadRequestException('You do not have permission to delete this license option');
       }
     }
@@ -199,7 +199,7 @@ export class LicenseService {
   /**
    * Update an existing license option
    */
-  async update(id: string, ownerId: string, updateLicenseDto: UpdateLicenseDto): Promise<License> {
+  async update(id: string, owner_id: string, updateLicenseDto: UpdateLicenseDto): Promise<License> {
     // Get license with its associated projects
     const license = await this.licenseRepository.findOne({
       where: { id },
@@ -212,7 +212,7 @@ export class LicenseService {
 
     // Check if user is the owner of all associated projects
     for (const project of license.projects) {
-      if (project.ownerId !== ownerId) {
+      if (project.owner_id !== owner_id) {
         throw new BadRequestException('You do not have permission to update this license option');
       }
     }
@@ -237,7 +237,7 @@ export class LicenseService {
             throw new NotFoundException(`Project with ID ${projectId} not found`);
           }
 
-          if (project.ownerId !== ownerId) {
+          if (project.owner_id !== owner_id) {
             throw new BadRequestException(
               `You do not have permission to add project "${project.name}" to this license`,
             );

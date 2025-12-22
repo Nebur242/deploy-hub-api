@@ -26,12 +26,12 @@ describe('MediaController', () => {
   const mockUser: Partial<User> = {
     id: 'user-id-123',
     uid: 'firebase-uid-123',
-    firstName: 'Test',
-    lastName: 'User',
+    first_name: 'Test',
+    last_name: 'User',
     company: 'Test Company',
     roles: [Role.USER],
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    created_at: new Date(),
+    updated_at: new Date(),
   };
 
   const mockMediaResponse = {
@@ -39,18 +39,18 @@ describe('MediaController', () => {
     url: 'http://example.com/image.jpg',
     type: 'image' as MediaType.IMAGE,
     filename: 'image.jpg',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    originalFilename: '',
-    mimeType: '',
+    created_at: new Date(),
+    updated_at: new Date(),
+    original_filename: '',
+    mime_type: '',
     size: 0,
-    thumbnailUrl: '',
+    thumbnail_url: '',
     width: 0,
     height: 0,
     duration: 0,
     alt: '',
     metadata: {},
-    isPublic: false,
+    is_public: false,
     tags: [],
     folder: '',
   } as unknown as MediaResponseDto;
@@ -84,8 +84,8 @@ describe('MediaController', () => {
         url: 'http://example.com/image.jpg',
         type: 'image' as MediaType.IMAGE,
         filename: 'image.jpg',
-        originalFilename: '',
-        mimeType: '',
+        original_filename: '',
+        mime_type: '',
         size: 0,
       };
 
@@ -95,7 +95,7 @@ describe('MediaController', () => {
 
       expect(service.create).toHaveBeenCalledWith({
         ...createMediaDto,
-        ownerId: mockUser.id,
+        owner_id: mockUser.id,
       });
       expect(result).toEqual(mockMediaResponse);
     });
@@ -115,7 +115,7 @@ describe('MediaController', () => {
 
       expect(service.findAll).toHaveBeenCalledWith({
         ...queryDto,
-        ownerId: mockUser.id,
+        owner_id: mockUser.id,
       });
       expect(result).toEqual(mediaList);
     });

@@ -12,13 +12,13 @@ import {
 import { Project } from './project.entity';
 
 @Entity('project_versions')
-@Unique(['projectId', 'version']) // Ensure version uniqueness within a project
+@Unique(['project_id', 'version']) // Ensure version uniqueness within a project
 export class ProjectVersion {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column({ name: 'project_id' })
-  projectId: string;
+  project_id: string;
 
   /**
    * Version string (e.g., "1.0.0").
@@ -30,16 +30,16 @@ export class ProjectVersion {
   version: string;
 
   @Column({ name: 'release_notes', type: 'text', nullable: true })
-  releaseNotes: string;
+  release_notes: string;
 
   @Column({ name: 'commit_hash', nullable: true })
-  commitHash: string;
+  commit_hash: string;
 
   @Column({ name: 'is_latest', default: true })
-  isLatest: boolean;
+  is_latest: boolean;
 
   @Column({ name: 'is_stable', default: false })
-  isStable: boolean;
+  is_stable: boolean;
 
   @ManyToOne(() => Project, project => project.versions, {
     onDelete: 'CASCADE',
@@ -49,8 +49,8 @@ export class ProjectVersion {
   project: Project;
 
   @CreateDateColumn()
-  createdAt: Date;
+  created_at: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updated_at: Date;
 }

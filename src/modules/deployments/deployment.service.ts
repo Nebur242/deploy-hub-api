@@ -52,7 +52,7 @@ export class DeploymentService {
     const { project, configuration, license, userLicense } = entities;
 
     // Check if user is project owner - project owners can deploy without a user license
-    const isProjectOwner = project.ownerId === serviceCreateDeploymentDto.ownerId;
+    const isProjectOwner = project.owner_id === serviceCreateDeploymentDto.ownerId;
 
     if (isProjectOwner) {
       this.logger.log(
@@ -85,11 +85,11 @@ export class DeploymentService {
     const recentDeployments = await this.deploymentRepository.find({
       where: { projectId: serviceCreateDeploymentDto.projectId },
       order: { createdAt: 'DESC' },
-      take: configuration.githubAccounts.length > 0 ? configuration.githubAccounts.length : 1,
+      take: configuration.github_accounts.length > 0 ? configuration.github_accounts.length : 1,
     });
 
     // Decrypt GitHub account tokens
-    const githubAccounts = configuration.githubAccounts.map(account => ({
+    const githubAccounts = configuration.github_accounts.map(account => ({
       ...account,
       available: true,
       failureCount: 0,
@@ -131,7 +131,7 @@ export class DeploymentService {
   ): GitHubAccount[] {
     const githubAccounts = accounts.map(account => ({
       ...account,
-      accessToken: this.encryptionService.decrypt(account.accessToken),
+      access_token: this.encryptionService.decrypt(account.access_token),
     }));
     // If there's only one account or no recent deployments, just return the accounts
     if (githubAccounts.length <= 1 || recentDeployments.length === 0) {
@@ -184,7 +184,7 @@ export class DeploymentService {
       // Success - update deployment with result
       deployment.githubAccount = {
         ...githubAccount,
-        accessToken: this.encryptionService.encrypt(githubAccount.accessToken),
+        access_token: this.encryptionService.encrypt(githubAccount.access_token),
       };
       deployment.workflowRunId = `${result.workflowRunId}`;
       deployment.status = DeploymentStatus.RUNNING;
@@ -197,7 +197,7 @@ export class DeploymentService {
         const webhookResult = await this.webhookService.createDeploymentWebhook(
           githubAccount.username,
           githubAccount.repository,
-          account.accessToken, // Using the decrypted token from orderedAccounts
+          account.access_token, // Using the decrypted token from orderedAccounts
           deployment.id,
         );
 
@@ -272,9 +272,9 @@ export class DeploymentService {
     }
 
     // Get all GitHub accounts for the project
-    const githubAccounts = configuration.githubAccounts.map(account => ({
+    const githubAccounts = configuration.github_accounts.map(account => ({
       ...account,
-      accessToken: this.encryptionService.decrypt(account.accessToken),
+      access_token: this.encryptionService.decrypt(account.access_token),
       available: true,
       failureCount: 0,
       lastUsed: new Date(),
@@ -284,7 +284,7 @@ export class DeploymentService {
     const recentDeployments = await this.deploymentRepository.find({
       where: { projectId: deployment.projectId },
       order: { createdAt: 'DESC' },
-      take: configuration.githubAccounts.length > 0 ? configuration.githubAccounts.length : 1,
+      take: configuration.github_accounts.length > 0 ? configuration.github_accounts.length : 1,
     });
 
     // Exclude the last failed account if possible
@@ -302,10 +302,10 @@ export class DeploymentService {
       branch: deployment.branch,
       environmentVariables: deployment.environmentVariables.map(env => ({
         ...env,
-        defaultValue:
-          env.isSecret && env.defaultValue
-            ? this.encryptionService.decrypt(env.defaultValue)
-            : env.defaultValue,
+        default_value:
+          env.is_secret && env.default_value
+            ? this.encryptionService.decrypt(env.default_value)
+            : env.default_value,
       })),
       ownerId: deployment.ownerId,
       siteId: deployment.siteId,
@@ -459,7 +459,7 @@ export class DeploymentService {
       const logs = await this.deployerService.getWorkflowLogs(
         {
           username: deployment.githubAccount.username,
-          accessToken: this.encryptionService.decrypt(deployment.githubAccount.accessToken),
+          access_token: this.encryptionService.decrypt(deployment.githubAccount.access_token),
           repository: deployment.githubAccount.repository,
         },
         parseInt(deployment.workflowRunId, 10),
@@ -494,7 +494,7 @@ export class DeploymentService {
       const status = await this.deployerService.checkWorkflowStatus(
         {
           username: deployment.githubAccount.username,
-          accessToken: this.encryptionService.decrypt(deployment.githubAccount.accessToken),
+          access_token: this.encryptionService.decrypt(deployment.githubAccount.access_token),
           repository: deployment.githubAccount.repository,
         },
 
@@ -560,7 +560,7 @@ export class DeploymentService {
 
     try {
       const { hookId, repositoryOwner, repositoryName } = deployment.webhookInfo;
-      const accessToken = this.encryptionService.decrypt(deployment.githubAccount.accessToken);
+      const accessToken = this.encryptionService.decrypt(deployment.githubAccount.access_token);
 
       const success = await this.webhookService.deleteDeploymentWebhook(
         repositoryOwner,
@@ -697,7 +697,7 @@ export class DeploymentService {
     // Decrypt environment variables from the original deployment
     const originalEnvVars = originalDeployment.environmentVariables.map(env => ({
       ...env,
-      defaultValue: env.isSecret && env.defaultValue ? env.defaultValue : env.defaultValue,
+      default_value: env.is_secret && env.default_value ? env.default_value : env.default_value,
     }));
 
     // Create deployment data using original deployment as base with optional overrides

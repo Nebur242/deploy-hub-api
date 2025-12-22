@@ -38,13 +38,13 @@ export class Project {
   description: string;
 
   @Column({ name: 'owner_id' })
-  ownerId: string;
+  owner_id: string;
 
   @Column({ nullable: false })
   repository: string;
 
   @Column({ nullable: true })
-  previewUrl?: string;
+  preview_url?: string;
 
   @Column({ nullable: true })
   image?: string;
@@ -54,7 +54,7 @@ export class Project {
   slug: string;
 
   @Column({ type: 'text', array: true, default: [] })
-  techStack: string[];
+  tech_stack: string[];
 
   @Column({
     type: 'enum',
@@ -72,10 +72,10 @@ export class Project {
   categories: Category[];
 
   @CreateDateColumn()
-  createdAt: Date;
+  created_at: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updated_at: Date;
 
   @OneToMany(() => ProjectVersion, version => version.project, {
     cascade: true,

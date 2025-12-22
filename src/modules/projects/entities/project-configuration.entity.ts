@@ -26,20 +26,20 @@ export class ProjectConfiguration {
   name: string;
 
   @Column({ name: 'project_id' })
-  projectId: string;
+  project_id: string;
 
   @Column({ type: 'jsonb' })
-  githubAccounts: {
+  github_accounts: {
     username: string;
-    accessToken: string;
+    access_token: string;
     repository: string;
-    workflowFile: string;
+    workflow_file: string;
   }[];
 
   @Column({ type: 'jsonb' })
-  deploymentOption: {
+  deployment_option: {
     provider: DeploymentProvider;
-    environmentVariables: EnvironmentVariableDto[];
+    environment_variables: EnvironmentVariableDto[];
   };
 
   @ManyToOne(() => Project, project => project.configurations, {
@@ -50,10 +50,10 @@ export class ProjectConfiguration {
   project: Project;
 
   @CreateDateColumn()
-  createdAt: Date;
+  created_at: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updated_at: Date;
 
   // // Temporary field to hold decrypted values in memory
   // private decryptedAccessTokens: Record<number, string> = {};

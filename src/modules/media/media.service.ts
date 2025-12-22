@@ -15,7 +15,7 @@ export class MediaService {
     private mediaRepository: Repository<Media>,
   ) {}
 
-  create(createMediaDto: CreateMediaDto & { ownerId: string }): Promise<Media> {
+  create(createMediaDto: CreateMediaDto & { owner_id: string }): Promise<Media> {
     const media = this.mediaRepository.create(createMediaDto);
     return this.mediaRepository.save(media);
   }
@@ -30,13 +30,13 @@ export class MediaService {
     const queryOptions = {
       where: {
         ...(options?.type && { type: options.type }),
-        ...(options?.ownerId && { ownerId: options.ownerId }),
-        ...(options?.isPublic !== undefined && { isPublic: options.isPublic }),
+        ...(options?.owner_id && { owner_id: options.owner_id }),
+        ...(options?.is_public !== undefined && { is_public: options.is_public }),
         ...(options?.tags && options.tags.length > 0 && { tags: ArrayContains(options.tags) }),
         ...(options?.search && { filename: Like(`%${options.search}%`) }),
       },
       order: {
-        [options?.sortBy || 'createdAt']: options?.order || 'DESC',
+        [options?.sortBy || 'created_at']: options?.order || 'DESC',
       },
     };
 

@@ -27,7 +27,7 @@ export class ProjectRepository {
     // Create base find options
     const findOptions: FindManyOptions<Project> = {
       relations: ['categories', 'versions', 'configurations'],
-      order: { [options?.sortBy || 'updatedAt']: options?.sortDirection || 'DESC' },
+      order: { [options?.sortBy || 'updated_at']: options?.sortDirection || 'DESC' },
     };
 
     // Add where conditions
@@ -35,7 +35,7 @@ export class ProjectRepository {
 
     // Apply owner filter
     if (options?.ownerId) {
-      whereConditions.ownerId = options.ownerId;
+      whereConditions.owner_id = options.ownerId;
     }
 
     // Apply visibility filter
@@ -45,7 +45,7 @@ export class ProjectRepository {
 
     // Handle tech stack filtering for repository API
     if (options?.techStack && options.techStack.length > 0) {
-      whereConditions.techStack = Raw(
+      whereConditions.tech_stack = Raw(
         alias => `${alias} && ARRAY[${options.techStack?.map(tech => `'${tech}'`).join(',')}]`,
       );
     }
@@ -74,14 +74,14 @@ export class ProjectRepository {
         .createQueryBuilder('project')
         .leftJoinAndSelect('project.categories', 'category')
         .leftJoinAndSelect('project.versions', 'version')
-        .orderBy(`project.${options?.sortBy || 'updatedAt'}`, options?.sortDirection || 'DESC')
+        .orderBy(`project.${options?.sortBy || 'updated_at'}`, options?.sortDirection || 'DESC')
         .where('category.id IN (:...categoryIds)', {
           categoryIds: options.categoryIds,
         });
 
       // Apply other filters to the query builder
       if (options?.ownerId) {
-        queryBuilder.andWhere('project.ownerId = :ownerId', { ownerId: options.ownerId });
+        queryBuilder.andWhere('project.owner_id = :ownerId', { ownerId: options.ownerId });
       }
 
       if (options?.visibility) {
@@ -91,7 +91,7 @@ export class ProjectRepository {
       }
 
       if (options?.techStack && options.techStack.length > 0) {
-        queryBuilder.andWhere('project.techStack && ARRAY[:...techStack]', {
+        queryBuilder.andWhere('project.tech_stack && ARRAY[:...techStack]', {
           techStack: options.techStack,
         });
       }
@@ -186,7 +186,7 @@ export class ProjectRepository {
       .leftJoinAndSelect('project.versions', 'version')
       .where('project.visibility = :visibility', { visibility: Visibility.FEATURED })
       .orderBy(
-        `project.${sortOptions?.sortBy || 'updatedAt'}`,
+        `project.${sortOptions?.sortBy || 'updated_at'}`,
         sortOptions?.sortDirection || 'DESC',
       );
 
@@ -196,9 +196,9 @@ export class ProjectRepository {
   async countByTechStack(): Promise<{ techStack: TechStack; count: number }[]> {
     const result = await this.projectRepository
       .createQueryBuilder('project')
-      .select('unnest(project.techStack)', 'techStack')
+      .select('unnest(project.tech_stack)', 'techStack')
       .addSelect('COUNT(*)', 'count')
-      .groupBy('unnest(project.techStack)')
+      .groupBy('unnest(project.tech_stack)')
       .getRawMany<{ techStack: string; count: string }>();
 
     return result.map(item => ({

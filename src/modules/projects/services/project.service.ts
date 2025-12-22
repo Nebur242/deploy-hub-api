@@ -66,7 +66,7 @@ export class ProjectService {
     return this.projectRepository.create({
       ...projectData,
       categories,
-      ownerId,
+      owner_id: ownerId,
     });
   }
 
@@ -74,7 +74,7 @@ export class ProjectService {
     const project = await this.findOne(id);
 
     // Verify ownership
-    if (project.ownerId !== ownerId) {
+    if (project.owner_id !== ownerId) {
       throw new BadRequestException('You do not have permission to update this project');
     }
 
@@ -108,7 +108,7 @@ export class ProjectService {
     const project = await this.findOne(id);
 
     // Verify ownership
-    if (project.ownerId !== ownerId) {
+    if (project.owner_id !== ownerId) {
       throw new BadRequestException('You do not have permission to delete this project');
     }
 

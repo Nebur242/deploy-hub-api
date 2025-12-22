@@ -13,13 +13,13 @@ export class CreateVersionDto {
 
   @IsOptional()
   @IsString()
-  releaseNotes?: string;
+  release_notes?: string;
 
   @IsOptional()
   @IsString()
-  commitHash?: string;
+  commit_hash?: string;
 
   @IsOptional()
   @IsBoolean()
-  isStable?: boolean;
+  is_stable?: boolean;
 }

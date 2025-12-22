@@ -14,7 +14,7 @@ export class MediaQueryDto extends PaginationOptionsDto {
   @ApiPropertyOptional({ description: 'Filter by owner ID' })
   @IsString()
   @IsOptional()
-  readonly ownerId?: string;
+  readonly owner_id?: string;
 
   @ApiPropertyOptional({ description: 'Filter by tags (comma-separated)' })
   @IsString({ each: true })
@@ -29,7 +29,7 @@ export class MediaQueryDto extends PaginationOptionsDto {
   @IsOptional()
   @IsBoolean()
   @Transform(({ value }) => value === 'true' || value === true)
-  readonly isPublic?: boolean;
+  readonly is_public?: boolean;
 
   @ApiPropertyOptional({ description: 'Search term for filename or alt text' })
   @IsString()
