@@ -1,3 +1,4 @@
+import { UserNotification } from '../user-notification.entity';
 import { UserPreferences } from '../user-preferences.entity';
 import { User } from '../user.entity';
 
@@ -35,6 +36,23 @@ describe('User Entity', () => {
 
     expect(user.preferences).toBeDefined();
     expect(user.preferences.id).toEqual('pref-id');
+  });
+
+  it('should associate with notifications', () => {
+    const user = new User();
+    const notifications = new UserNotification();
+    notifications.id = 'notif-id';
+    notifications.project_updates = true;
+    notifications.deployment_alerts = false;
+    notifications.license_expiration = true;
+
+    user.notifications = notifications;
+
+    expect(user.notifications).toBeDefined();
+    expect(user.notifications.id).toEqual('notif-id');
+    expect(user.notifications.project_updates).toBe(true);
+    expect(user.notifications.deployment_alerts).toBe(false);
+    expect(user.notifications.license_expiration).toBe(true);
   });
 
   it('should have created_at and updated_at dates', () => {
