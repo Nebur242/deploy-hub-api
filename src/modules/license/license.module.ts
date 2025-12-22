@@ -4,22 +4,22 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Order } from '../payment/entities/order.entity';
 import { PaymentModule } from '../payment/payment.module';
 import { ProjectsModule } from '../projects/projects.module';
-import { LicenseOptionController } from './controllers/license-option.controller';
+import { LicenseController } from './controllers/license.controller';
 import { PublicLicenseController } from './controllers/public-license.controller';
 import { UserLicenseController } from './controllers/user-license.controller';
-import { LicenseOption } from './entities/license-option.entity';
+import { License } from './entities/license.entity';
 import { UserLicense } from './entities/user-license.entity';
-import { LicenseOptionService } from './services/license-option.service';
+import { LicenseService } from './services/license.service';
 import { UserLicenseService } from './services/user-license.service';
 
 @Module({
   imports: [
     ProjectsModule,
-    TypeOrmModule.forFeature([LicenseOption, Order, UserLicense]),
+    TypeOrmModule.forFeature([License, Order, UserLicense]),
     forwardRef(() => PaymentModule), // Using forwardRef to break circular dependency
   ],
-  providers: [LicenseOptionService, UserLicenseService],
-  controllers: [LicenseOptionController, UserLicenseController, PublicLicenseController],
-  exports: [LicenseOptionService, UserLicenseService],
+  providers: [LicenseService, UserLicenseService],
+  controllers: [LicenseController, UserLicenseController, PublicLicenseController],
+  exports: [LicenseService, UserLicenseService],
 })
-export class LicensesModule {}
+export class LicenseModule {}

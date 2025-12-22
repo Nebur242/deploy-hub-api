@@ -25,17 +25,17 @@ import {
 } from '@nestjs/swagger';
 import { IPaginationOptions } from 'nestjs-typeorm-paginate';
 
-import { CreateLicenseOptionDto } from '../dto/create-license-option.dto';
+import { CreateLicenseDto } from '../dto/create-license.dto';
 import { FilterLicenseDto } from '../dto/filter.dto';
-import { UpdateLicenseOptionDto } from '../dto/update-license-option.dto';
-import { LicenseOptionService } from '../services/license-option.service';
+import { UpdateLicenseDto } from '../dto/update-license.dto';
+import { LicenseService } from '../services/license.service';
 
 @ApiTags('licenses')
 @ApiBearerAuth()
 @Controller('licenses')
-export class LicenseOptionController {
+export class LicenseController {
   constructor(
-    private readonly licenseService: LicenseOptionService,
+    private readonly licenseService: LicenseService,
     @Inject(forwardRef(() => OrderService))
     private readonly orderService: OrderService,
   ) {}
@@ -47,7 +47,7 @@ export class LicenseOptionController {
   @ApiResponse({ status: 400, description: 'Invalid input data' })
   @ApiResponse({ status: 404, description: 'Project not found' })
   @ApiParam({ name: 'projectId', description: 'Project ID' })
-  create(@CurrentUser() user: User, @Body() createLicenseDto: CreateLicenseOptionDto) {
+  create(@CurrentUser() user: User, @Body() createLicenseDto: CreateLicenseDto) {
     return this.licenseService.create(user, createLicenseDto);
   }
 
@@ -102,7 +102,7 @@ export class LicenseOptionController {
   update(
     @CurrentUser() user: User,
     @Param('id') id: string,
-    @Body() updateLicenseDto: UpdateLicenseOptionDto,
+    @Body() updateLicenseDto: UpdateLicenseDto,
   ) {
     return this.licenseService.update(id, user.id, updateLicenseDto);
   }

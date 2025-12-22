@@ -20,8 +20,8 @@ export enum LicenseStatus {
   ARCHIVED = 'archived',
 }
 
-@Entity('license_options')
-export class LicenseOption {
+@Entity('licenses')
+export class License {
   @ApiProperty({
     description: 'Unique identifier',
     example: '550e8400-e29b-12d3-a456-426614174000',
@@ -87,14 +87,14 @@ export class LicenseOption {
   projects: Project[];
 
   @ApiProperty({
-    description: 'Owner ID of the license option',
+    description: 'Owner ID of the license',
     example: '550e8400-e29b-12d3-a456-426614174000',
   })
   @Column({ name: 'owner_id', nullable: true })
   ownerId: string;
 
   @ApiProperty({
-    description: 'Owner of the license option',
+    description: 'Owner of the license',
     type: () => User,
   })
   @ManyToOne(() => User, { onDelete: 'SET NULL' })
@@ -116,7 +116,7 @@ export class LicenseOption {
   updatedAt: Date;
 
   @ApiProperty({
-    description: 'Status of the license option',
+    description: 'Status of the license',
     enum: LicenseStatus,
     example: LicenseStatus.DRAFT,
   })

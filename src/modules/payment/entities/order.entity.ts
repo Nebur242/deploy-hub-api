@@ -1,4 +1,4 @@
-import { LicenseOption } from '@app/modules/licenses/entities/license-option.entity';
+import { License } from '@app/modules/license/entities/license.entity';
 import { User } from '@app/modules/users/entities/user.entity';
 import { Currency, OrderStatus } from '@app/shared/enums';
 import {
@@ -72,9 +72,9 @@ export class Order {
     country: string;
   };
 
-  @ManyToOne(() => LicenseOption)
+  @ManyToOne(() => License)
   @JoinColumn({ name: 'licenseId' })
-  license: LicenseOption;
+  license: License;
 
   @OneToMany(() => Payment, payment => payment.order)
   payments: Payment[];

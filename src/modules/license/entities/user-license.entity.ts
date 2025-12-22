@@ -9,7 +9,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 
-import { LicenseOption } from './license-option.entity';
+import { License } from './license.entity';
 
 @Entity('user_licenses')
 export class UserLicense {
@@ -26,9 +26,9 @@ export class UserLicense {
   @Column({ name: 'license_id' })
   licenseId: string;
 
-  @ManyToOne(() => LicenseOption, { onDelete: 'SET NULL' })
+  @ManyToOne(() => License, { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'license_id' })
-  license: LicenseOption;
+  license: License;
 
   @Column({ type: 'date', nullable: true })
   expiresAt?: Date;

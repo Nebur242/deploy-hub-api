@@ -28,8 +28,8 @@ import { RedeployDeploymentDto } from './dto/redeploy-deployment.dto';
 import { Deployment } from './entities/deployment.entity';
 import { NetlifyService } from './services/netlify.service';
 import { VercelService } from './services/vercel.service';
-import { LicenseOption } from '../licenses/entities/license-option.entity';
-import { UserLicense } from '../licenses/entities/user-license.entity';
+import { License } from '../license/entities/license.entity';
+import { UserLicense } from '../license/entities/user-license.entity';
 import {
   EnvironmentVariableDto,
   EnvironmentVariableType,
@@ -44,7 +44,7 @@ import { User } from '../users/entities/user.entity';
 export interface DeploymentEntities {
   project: Project;
   configuration: ProjectConfiguration;
-  license: LicenseOption;
+  license: License;
   userLicense: UserLicense; // Optional, only needed for limit checks
 }
 
@@ -67,8 +67,8 @@ export class DeploymentController {
     private projectConfigurationRepository: Repository<ProjectConfiguration>,
     private readonly vercelService: VercelService,
     private readonly netlifyService: NetlifyService,
-    @InjectRepository(LicenseOption)
-    private licenseRepository: Repository<LicenseOption>,
+    @InjectRepository(License)
+    private licenseRepository: Repository<License>,
     @InjectRepository(UserLicense)
     private userLicenseRepository: Repository<UserLicense>,
   ) {}

@@ -1,4 +1,4 @@
-import { LicenseOptionService } from '@app/modules/licenses/services/license-option.service';
+import { LicenseService } from '@app/modules/license/services/license.service';
 import { OrderStatus } from '@app/shared/enums';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -14,7 +14,7 @@ export class OrderService {
   constructor(
     @InjectRepository(Order)
     private readonly orderRepository: Repository<Order>,
-    private readonly licenseService: LicenseOptionService,
+    private readonly licenseService: LicenseService,
   ) {}
 
   /**
@@ -24,9 +24,9 @@ export class OrderService {
     const { currency, licenseId, ...rest } = createOrderDto;
 
     // Verify the license option exists
-    const licenseOption = await this.licenseService.findOne(licenseId);
-    if (!licenseOption) {
-      throw new NotFoundException(`License option with ID ${licenseId} not found`);
+    const license = await this.licenseService.findOne(licenseId);
+    if (!license) {
+      throw new NotFoundException(`License with ID ${licenseId} not found`);
     }
 
     // Create a new order
@@ -34,8 +34,8 @@ export class OrderService {
       ...rest,
       licenseId,
       userId,
-      amount: licenseOption.price,
-      currency: currency || licenseOption.currency,
+      amount: license.price,
+      currency: currency || license.currency,
       status: OrderStatus.PENDING,
     });
 

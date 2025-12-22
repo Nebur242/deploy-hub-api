@@ -5,23 +5,23 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { IPaginationOptions, paginate, Pagination } from 'nestjs-typeorm-paginate';
 import { Repository, ILike, FindOptionsOrder } from 'typeorm';
 
-import { CreateLicenseOptionDto } from '../dto/create-license-option.dto';
+import { CreateLicenseDto } from '../dto/create-license.dto';
 import { FilterLicenseDto } from '../dto/filter.dto';
-import { UpdateLicenseOptionDto } from '../dto/update-license-option.dto';
-import { LicenseOption } from '../entities/license-option.entity';
+import { UpdateLicenseDto } from '../dto/update-license.dto';
+import { License } from '../entities/license.entity';
 
 @Injectable()
-export class LicenseOptionService {
+export class LicenseService {
   constructor(
-    @InjectRepository(LicenseOption)
-    private licenseRepository: Repository<LicenseOption>,
+    @InjectRepository(License)
+    private licenseRepository: Repository<License>,
     private readonly projectRepository: ProjectRepository,
   ) {}
 
   /**
    * Create a new license option for a project
    */
-  async create(user: User, createLicenseDto: CreateLicenseOptionDto): Promise<LicenseOption> {
+  async create(user: User, createLicenseDto: CreateLicenseDto): Promise<License> {
     // Check if all projects exist and user is the owner of each
     const projects = await Promise.all(
       createLicenseDto.projectIds.map(async projectId => {
@@ -57,7 +57,7 @@ export class LicenseOptionService {
   /**
    * Find a license option by ID
    */
-  async findOne(id: string): Promise<LicenseOption> {
+  async findOne(id: string): Promise<License> {
     const license = await this.licenseRepository.findOne({
       where: { id },
       relations: ['projects'],
@@ -76,7 +76,7 @@ export class LicenseOptionService {
   findAll(
     filter: FilterLicenseDto,
     paginationOptions: IPaginationOptions,
-  ): Promise<Pagination<LicenseOption>> {
+  ): Promise<Pagination<License>> {
     const { search, currency, sortBy, sortDirection, ownerId, status, projectId } = filter;
 
     // Build the where conditions
@@ -105,7 +105,7 @@ export class LicenseOptionService {
     }
 
     // Build the order condition
-    let orderCondition: FindOptionsOrder<LicenseOption> = {};
+    let orderCondition: FindOptionsOrder<License> = {};
     if (sortBy) {
       orderCondition[sortBy] = sortDirection || 'ASC';
     } else {
@@ -157,11 +157,11 @@ export class LicenseOptionService {
         queryBuilder.orderBy('license.createdAt', 'DESC');
       }
 
-      return paginate<LicenseOption>(queryBuilder, paginationOptions);
+      return paginate<License>(queryBuilder, paginationOptions);
     }
 
     // If no search is needed, use the simpler approach
-    return paginate<LicenseOption>(this.licenseRepository, paginationOptions, {
+    return paginate<License>(this.licenseRepository, paginationOptions, {
       where: whereConditions,
       order: orderCondition,
       relations: ['projects'],
@@ -199,11 +199,7 @@ export class LicenseOptionService {
   /**
    * Update an existing license option
    */
-  async update(
-    id: string,
-    ownerId: string,
-    updateLicenseDto: UpdateLicenseOptionDto,
-  ): Promise<LicenseOption> {
+  async update(id: string, ownerId: string, updateLicenseDto: UpdateLicenseDto): Promise<License> {
     // Get license with its associated projects
     const license = await this.licenseRepository.findOne({
       where: { id },

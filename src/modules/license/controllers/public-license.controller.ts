@@ -3,20 +3,20 @@ import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiParam } from '@nestjs/
 import { IPaginationOptions, Pagination } from 'nestjs-typeorm-paginate';
 
 import { FilterLicenseDto } from '../dto/filter.dto';
-import { LicenseOption, LicenseStatus } from '../entities/license-option.entity';
-import { LicenseOptionService } from '../services/license-option.service';
+import { License, LicenseStatus } from '../entities/license.entity';
+import { LicenseService } from '../services/license.service';
 
 @ApiTags('public/licenses')
 @Controller('public/licenses')
 export class PublicLicenseController {
-  constructor(private readonly licenseService: LicenseOptionService) {}
+  constructor(private readonly licenseService: LicenseService) {}
 
   @Get()
   @ApiOperation({ summary: 'Get all public license options' })
   @ApiResponse({
     status: 200,
     description: 'Returns a paginated list of public license options',
-    type: LicenseOption,
+    type: License,
     isArray: true,
   })
   @ApiQuery({ name: 'search', required: false, description: 'Search term for name or description' })
@@ -31,7 +31,7 @@ export class PublicLicenseController {
   })
   @ApiQuery({ name: 'page', required: false, description: 'Page number (1-based)' })
   @ApiQuery({ name: 'limit', required: false, description: 'Items per page' })
-  findAllPublic(@Query() filter: FilterLicenseDto): Promise<Pagination<LicenseOption>> {
+  findAllPublic(@Query() filter: FilterLicenseDto): Promise<Pagination<License>> {
     const { page = 1, limit = 10, ...rest } = filter;
 
     const paginationOptions: IPaginationOptions = {
@@ -54,8 +54,8 @@ export class PublicLicenseController {
   @ApiOperation({ summary: 'Get a public license option by ID' })
   @ApiResponse({ status: 200, description: 'Returns the license option' })
   @ApiResponse({ status: 404, description: 'License option not found or not public' })
-  @ApiParam({ name: 'id', description: 'License option ID' })
-  async findOnePublic(@Param('id') id: string): Promise<LicenseOption> {
+  @ApiParam({ name: 'id', description: 'License ID' })
+  async findOnePublic(@Param('id') id: string): Promise<License> {
     const license = await this.licenseService.findOne(id);
 
     // Verify the license is public

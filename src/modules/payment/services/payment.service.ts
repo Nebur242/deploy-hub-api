@@ -1,4 +1,4 @@
-import { UserLicense } from '@app/modules/licenses/entities/user-license.entity';
+import { UserLicense } from '@app/modules/license/entities/user-license.entity';
 import { OrderStatus, PaymentStatus } from '@app/shared/enums';
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';

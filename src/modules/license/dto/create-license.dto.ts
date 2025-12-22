@@ -12,9 +12,9 @@ import {
   IsBoolean,
 } from 'class-validator';
 
-import { LicenseStatus } from '../entities/license-option.entity';
+import { LicenseStatus } from '../entities/license.entity';
 
-export class CreateLicenseOptionDto {
+export class CreateLicenseDto {
   @ApiProperty({
     description: 'Name of the license option',
     example: 'Enterprise License',

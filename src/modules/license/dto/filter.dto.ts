@@ -3,7 +3,7 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsEnum, IsOptional, IsString, IsNumber, Min, IsBoolean } from 'class-validator';
 
-import { LicenseStatus } from '../entities/license-option.entity';
+import { LicenseStatus } from '../entities/license.entity';
 
 export class FilterLicenseDto {
   @ApiPropertyOptional({

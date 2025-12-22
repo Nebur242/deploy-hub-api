@@ -1,5 +1,5 @@
 import { Category } from '@app/modules/categories/entities/category.entity';
-import { LicenseOption } from '@app/modules/licenses/entities/license-option.entity';
+import { License } from '@app/modules/license/entities/license.entity';
 import {
   Column,
   CreateDateColumn,
@@ -91,10 +91,10 @@ export class Project {
   })
   configurations: ProjectConfiguration[];
 
-  @ManyToMany(() => LicenseOption, licenseOption => licenseOption.projects)
+  @ManyToMany(() => License, license => license.projects)
   @JoinTable({
     joinColumn: { name: 'project_id', referencedColumnName: 'id' },
     inverseJoinColumn: { name: 'license_id', referencedColumnName: 'id' },
   })
-  licenses: LicenseOption[];
+  licenses: License[];
 }

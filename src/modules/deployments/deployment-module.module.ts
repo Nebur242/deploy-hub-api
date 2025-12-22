@@ -12,20 +12,14 @@ import { NetlifyService } from './services/netlify.service';
 import { DeploymentUrlExtractorService } from './services/url-extractor.service';
 import { VercelService } from './services/vercel.service';
 import { GithubWebhookController } from './webhook.controller';
-import { LicenseOption } from '../licenses/entities/license-option.entity';
-import { UserLicense } from '../licenses/entities/user-license.entity';
+import { License } from '../license/entities/license.entity';
+import { UserLicense } from '../license/entities/user-license.entity';
 import { ProjectConfiguration } from '../projects/entities/project-configuration.entity';
 import { Project } from '../projects/entities/project.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([
-      Deployment,
-      Project,
-      ProjectConfiguration,
-      LicenseOption,
-      UserLicense,
-    ]),
+    TypeOrmModule.forFeature([Deployment, Project, ProjectConfiguration, License, UserLicense]),
   ],
   controllers: [DeploymentController, GithubWebhookController],
   providers: [
