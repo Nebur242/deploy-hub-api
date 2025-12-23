@@ -1,4 +1,5 @@
 import { License } from '@app/modules/license/entities/license.entity';
+import { Payment } from '@app/modules/payment/entities/payment.entity';
 import { User } from '@app/modules/users/entities/user.entity';
 import { Currency, OrderStatus } from '@app/shared/enums';
 import {
@@ -11,8 +12,6 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-
-import { Payment } from './payment.entity';
 
 @Entity('orders')
 export class Order {

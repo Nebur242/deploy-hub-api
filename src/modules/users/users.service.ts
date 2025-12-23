@@ -14,7 +14,7 @@ import { User } from './entities/user.entity';
 import { NotificationScope } from '../notifications/entities/notification.enty';
 import { NotificationType } from '../notifications/enums/notification-type.enum';
 import { NotificationService } from '../notifications/services/notification.service';
-import { Order } from '../payment/entities/order.entity';
+import { Order } from '../order/entities/order.entity';
 import { Project } from '../projects/entities/project.entity';
 
 @Injectable()

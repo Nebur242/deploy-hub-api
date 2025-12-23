@@ -1,3 +1,4 @@
+import { Order } from '@app/modules/order/entities/order.entity';
 import { Currency, PaymentMethod, PaymentStatus } from '@app/shared/enums';
 import {
   Column,
@@ -8,8 +9,6 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-
-import { Order } from './order.entity';
 
 @Entity('payments')
 export class Payment {

@@ -1,4 +1,4 @@
-import { Order } from '@app/modules/payment/entities/order.entity';
+import { Order } from '@app/modules/order/entities/order.entity';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IPaginationOptions, paginate, Pagination } from 'nestjs-typeorm-paginate';

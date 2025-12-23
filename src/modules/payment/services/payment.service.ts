@@ -1,10 +1,10 @@
 import { UserLicense } from '@app/modules/license/entities/user-license.entity';
+import { OrderService } from '@app/modules/order/services/order.service';
 import { OrderStatus, PaymentStatus } from '@app/shared/enums';
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import { OrderService } from './order.service';
 import { CreatePaymentDto } from '../dto/create-payment.dto';
 import { Payment } from '../entities/payment.entity';
 

@@ -1,7 +1,7 @@
 import { CurrentUser } from '@app/core/decorators/current-user.decorator';
 import { Admin, Authenticated } from '@app/core/guards/roles-auth.guard';
-import { CreateOrderDto } from '@app/modules/payment/dto';
-import { OrderService } from '@app/modules/payment/services/order.service';
+import { CreateOrderDto } from '@app/modules/order/dto';
+import { OrderService } from '@app/modules/order/services/order.service';
 import { User } from '@app/modules/users/entities/user.entity';
 import {
   Controller,
