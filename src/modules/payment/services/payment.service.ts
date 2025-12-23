@@ -22,13 +22,13 @@ export class PaymentService {
    * Process a payment for an order
    */
   async processPayment(userId: string, createPaymentDto: CreatePaymentDto): Promise<Payment> {
-    const { orderId, amount, currency, paymentMethod, transactionId, paymentGatewayResponse } =
+    const { order_id, amount, currency, payment_method, transaction_id, payment_gateway_response } =
       createPaymentDto;
 
     // Verify the order exists and belongs to the user
-    const order = await this.orderService.findOne(orderId, userId);
+    const order = await this.orderService.findOne(order_id, userId);
     if (!order) {
-      throw new NotFoundException(`Order with ID ${orderId} not found`);
+      throw new NotFoundException(`Order with ID ${order_id} not found`);
     }
 
     // Check if order is pending
@@ -47,13 +47,13 @@ export class PaymentService {
 
     // Create a new payment record
     const payment = this.paymentRepository.create({
-      orderId,
+      order_id,
       order,
       amount,
       currency: currency || order.currency,
-      paymentMethod,
-      transactionId,
-      paymentGatewayResponse,
+      payment_method,
+      transaction_id,
+      payment_gateway_response,
       status: PaymentStatus.PENDING,
     });
 
@@ -77,16 +77,16 @@ export class PaymentService {
 
     // Update payment status
     payment.status = isSuccessful ? PaymentStatus.COMPLETED : PaymentStatus.FAILED;
-    payment.processedAt = new Date();
+    payment.processed_at = new Date();
 
     await this.paymentRepository.save(payment);
 
     // Update order status based on payment result
     if (isSuccessful) {
-      await this.orderService.updateStatus(payment.orderId, OrderStatus.COMPLETED);
+      await this.orderService.updateStatus(payment.order_id, OrderStatus.COMPLETED);
       await this.createUserLicense(payment, false);
     } else {
-      await this.orderService.updateStatus(payment.orderId, OrderStatus.FAILED);
+      await this.orderService.updateStatus(payment.order_id, OrderStatus.FAILED);
     }
   }
 
@@ -113,11 +113,11 @@ export class PaymentService {
     const queryBuilder = this.paymentRepository
       .createQueryBuilder('payment')
       .leftJoinAndSelect('payment.order', 'order')
-      .where('payment.orderId = :orderId', { orderId });
+      .where('payment.order_id = :orderId', { orderId });
 
     // If userId is provided, ensure the order belongs to this user
     if (userId) {
-      queryBuilder.andWhere('order.userId = :userId', { userId });
+      queryBuilder.andWhere('order.user_id = :userId', { userId });
     }
 
     return queryBuilder.getMany();
@@ -131,22 +131,22 @@ export class PaymentService {
     isAdminManaged: boolean = false,
   ): Promise<void> {
     // Fetch the complete order with license information
-    const order = await this.orderService.findOne(payment.orderId);
+    const order = await this.orderService.findOne(payment.order_id);
 
     // Create a new UserLicense instance
     const userLicense = this.userLicenseRepository.create({
-      ownerId: order.userId,
-      licenseId: order.licenseId,
-      expiresAt: order.expiresAt,
+      owner_id: order.user_id,
+      license_id: order.license_id,
+      expires_at: order.expires_at,
       active: true,
       count: 0,
-      maxDeployments: order.license.deploymentLimit,
+      max_deployments: order.license.deployment_limit,
       deployments: [],
       trial: false,
       metadata: {
-        orderReference: order.referenceNumber,
+        orderReference: order.reference_number,
         paymentId: payment.id,
-        paymentDate: payment.processedAt,
+        paymentDate: payment.processed_at,
         adminAssigned: isAdminManaged,
       },
     });
@@ -162,16 +162,16 @@ export class PaymentService {
     const payment = await this.findOne(id);
 
     payment.status = status;
-    payment.processedAt = new Date();
+    payment.processed_at = new Date();
 
     const savedPayment = await this.paymentRepository.save(payment);
 
     // If payment is completed, update the order and create a user license
     if (status === PaymentStatus.COMPLETED) {
-      await this.orderService.updateStatus(payment.orderId, OrderStatus.COMPLETED);
+      await this.orderService.updateStatus(payment.order_id, OrderStatus.COMPLETED);
       await this.createUserLicense(savedPayment, true);
     } else if (status === PaymentStatus.FAILED) {
-      await this.orderService.updateStatus(payment.orderId, OrderStatus.FAILED);
+      await this.orderService.updateStatus(payment.order_id, OrderStatus.FAILED);
     }
 
     return savedPayment;

@@ -21,10 +21,10 @@ export class PublicLicenseController {
   })
   @ApiQuery({ name: 'search', required: false, description: 'Search term for name or description' })
   @ApiQuery({ name: 'currency', required: false, description: 'Filter by currency' })
-  @ApiQuery({ name: 'projectId', required: false, description: 'Filter by project ID' })
-  @ApiQuery({ name: 'sortBy', required: false, description: 'Field to sort by' })
+  @ApiQuery({ name: 'project_id', required: false, description: 'Filter by project ID' })
+  @ApiQuery({ name: 'sort_by', required: false, description: 'Field to sort by' })
   @ApiQuery({
-    name: 'sortDirection',
+    name: 'sort_direction',
     required: false,
     enum: ['ASC', 'DESC'],
     description: 'Sort direction',

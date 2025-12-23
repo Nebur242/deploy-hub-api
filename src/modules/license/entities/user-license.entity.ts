@@ -17,21 +17,21 @@ export class UserLicense {
   id: string;
 
   @Column('owner_id')
-  ownerId: string;
+  owner_id: string;
 
   @ManyToOne(() => User, { onDelete: 'SET NULL' })
-  @JoinColumn({ name: 'ownerId' })
+  @JoinColumn({ name: 'owner_id' })
   owner: User;
 
   @Column({ name: 'license_id' })
-  licenseId: string;
+  license_id: string;
 
   @ManyToOne(() => License, { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'license_id' })
   license: License;
 
   @Column({ type: 'date', nullable: true })
-  expiresAt?: Date;
+  expires_at?: Date;
 
   @Column({ type: 'boolean', default: true })
   active: boolean;
@@ -40,7 +40,7 @@ export class UserLicense {
   count: number;
 
   @Column({ name: 'max_deployments' })
-  maxDeployments: number;
+  max_deployments: number;
 
   @Column({ type: 'text', array: true, default: [] })
   deployments: string[];
@@ -52,8 +52,8 @@ export class UserLicense {
   metadata?: Record<string, any>;
 
   @CreateDateColumn()
-  createdAt: Date;
+  created_at: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updated_at: Date;
 }

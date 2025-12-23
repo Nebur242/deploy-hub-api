@@ -58,7 +58,7 @@ export class CreateLicenseDto {
   @IsNumber()
   @Min(1)
   @IsOptional()
-  deploymentLimit: number = 1;
+  deployment_limit: number = 1;
 
   @ApiPropertyOptional({
     description: 'Duration of the license in days (0 means unlimited)',
@@ -98,7 +98,7 @@ export class CreateLicenseDto {
   })
   @IsArray()
   @IsUUID(undefined, { each: true })
-  projectIds: string[] = [];
+  project_ids: string[] = [];
 
   @ApiPropertyOptional({
     description: 'Status of the license option',

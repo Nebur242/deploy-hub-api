@@ -153,8 +153,8 @@ export class DeploymentController {
     // Find active UserLicense for this user and license
     const userLicense = await this.userLicenseRepository.findOne({
       where: {
-        licenseId: dto.licenseId,
-        ownerId: user.id,
+        license_id: dto.licenseId,
+        owner_id: user.id,
         active: true,
       },
     });
@@ -163,7 +163,7 @@ export class DeploymentController {
       throw new ForbiddenException('No active license found for this deployment');
     }
 
-    if (userLicense.count >= userLicense.maxDeployments) {
+    if (userLicense.count >= userLicense.max_deployments) {
       throw new ForbiddenException('Maximum deployments limit reached');
     }
   }

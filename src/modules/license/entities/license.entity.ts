@@ -60,7 +60,7 @@ export class License {
     default: 1,
   })
   @Column({ name: 'deployment_limit', default: 1 })
-  deploymentLimit: number;
+  deployment_limit: number;
 
   @ApiProperty({
     description: 'License duration in days (0 means unlimited)',
@@ -91,14 +91,14 @@ export class License {
     example: '550e8400-e29b-12d3-a456-426614174000',
   })
   @Column({ name: 'owner_id', nullable: true })
-  ownerId: string;
+  owner_id: string;
 
   @ApiProperty({
     description: 'Owner of the license',
     type: () => User,
   })
   @ManyToOne(() => User, { onDelete: 'SET NULL' })
-  @JoinColumn({ name: 'ownerId' })
+  @JoinColumn({ name: 'owner_id' })
   owner: User;
 
   @ApiProperty({
@@ -106,14 +106,14 @@ export class License {
     example: '2023-01-01T00:00:00Z',
   })
   @CreateDateColumn()
-  createdAt: Date;
+  created_at: Date;
 
   @ApiProperty({
     description: 'Last update timestamp',
     example: '2023-01-01T00:00:00Z',
   })
   @UpdateDateColumn()
-  updatedAt: Date;
+  updated_at: Date;
 
   @ApiProperty({
     description: 'Status of the license',

@@ -514,8 +514,8 @@ export class DeploymentService {
           // Update UserLicense count instead of DeploymentCount
           const userLicense = await this.userLicenseRepository.findOne({
             where: {
-              licenseId: deployment.licenseId,
-              ownerId: deployment.ownerId,
+              license_id: deployment.licenseId,
+              owner_id: deployment.ownerId,
               active: true,
             },
           });
@@ -607,26 +607,26 @@ export class DeploymentService {
 
     // Apply filters
     if (filterDto.licenseId) {
-      queryBuilder.andWhere('userLicense.licenseId = :licenseId', {
+      queryBuilder.andWhere('userLicense.license_id = :licenseId', {
         licenseId: filterDto.licenseId,
       });
     }
 
     if (filterDto.ownerId) {
-      queryBuilder.andWhere('userLicense.ownerId = :ownerId', {
+      queryBuilder.andWhere('userLicense.owner_id = :ownerId', {
         ownerId: filterDto.ownerId,
       });
     }
 
     // Date range filters
     if (filterDto.createdFrom) {
-      queryBuilder.andWhere('userLicense.createdAt >= :createdFrom', {
+      queryBuilder.andWhere('userLicense.created_at >= :createdFrom', {
         createdFrom: filterDto.createdFrom,
       });
     }
 
     if (filterDto.createdTo) {
-      queryBuilder.andWhere('userLicense.createdAt <= :createdTo', {
+      queryBuilder.andWhere('userLicense.created_at <= :createdTo', {
         createdTo: filterDto.createdTo,
       });
     }
@@ -642,7 +642,7 @@ export class DeploymentService {
     queryBuilder.leftJoinAndSelect('userLicense.owner', 'owner');
 
     // Order by creation date (newest first)
-    queryBuilder.orderBy('userLicense.createdAt', 'DESC');
+    queryBuilder.orderBy('userLicense.created_at', 'DESC');
 
     return paginate<UserLicense>(queryBuilder, options);
   }
@@ -687,9 +687,9 @@ export class DeploymentService {
       throw new BadRequestException('User license is no longer active');
     }
 
-    if (userLicense.count >= userLicense.maxDeployments) {
+    if (userLicense.count >= userLicense.max_deployments) {
       throw new BadRequestException(
-        `Deployment limit reached. Used ${userLicense.count}/${userLicense.maxDeployments} deployments.`,
+        `Deployment limit reached. Used ${userLicense.count}/${userLicense.max_deployments} deployments.`,
       );
     }
 

@@ -144,7 +144,7 @@ export class UserLicenseController {
     description: 'Number of items per page',
   })
   @ApiQuery({
-    name: 'ownerId',
+    name: 'owner_id',
     type: String,
     required: false,
     description: 'Filter by owner ID',
@@ -156,7 +156,7 @@ export class UserLicenseController {
     description: 'Filter by active status',
   })
   @ApiQuery({
-    name: 'licenseId',
+    name: 'license_id',
     type: String,
     required: false,
     description: 'Filter by license ID',
@@ -164,9 +164,9 @@ export class UserLicenseController {
   getAllUserLicenses(
     @Query('page') page = 1,
     @Query('limit') limit = 10,
-    @Query('ownerId') ownerId?: string,
+    @Query('owner_id') owner_id?: string,
     @Query('active') active?: boolean,
-    @Query('licenseId') licenseId?: string,
+    @Query('license_id') license_id?: string,
   ): Promise<Pagination<UserLicense>> {
     const options: IPaginationOptions = {
       page,
@@ -174,9 +174,9 @@ export class UserLicenseController {
       route: 'user-licenses/admin/all',
     };
     return this.userLicenseService.getAllUserLicenses(options, {
-      ownerId,
+      owner_id,
       active,
-      licenseId,
+      license_id,
     });
   }
 

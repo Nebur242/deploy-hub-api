@@ -14,13 +14,14 @@ import {
 class BillingInfoDto {
   @ApiProperty({ description: 'First name of the billing contact' })
   @IsString()
+  @IsString()
   @IsNotEmpty()
-  firstName: string;
+  first_name: string;
 
   @ApiProperty({ description: 'Last name of the billing contact' })
   @IsString()
   @IsNotEmpty()
-  lastName: string;
+  last_name: string;
 
   @ApiProperty({ description: 'Email address of the billing contact' })
   @IsString()
@@ -52,7 +53,7 @@ class BillingInfoDto {
   @IsString()
   @IsNotEmpty()
   @IsOptional()
-  postalCode?: string;
+  postal_code?: string;
 
   @ApiProperty({ description: 'Country of the billing contact' })
   @IsString()
@@ -64,7 +65,7 @@ export class CreateOrderDto {
   @ApiProperty({ description: 'License Option ID to purchase' })
   @IsUUID()
   @IsNotEmpty()
-  licenseId: string;
+  license_id: string;
 
   @ApiProperty({ description: 'Currency for the payment', enum: Currency, default: Currency.USD })
   @IsEnum(Currency)

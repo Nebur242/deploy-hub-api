@@ -85,9 +85,9 @@ describe('Category DTOs', () => {
         slug: 'test-category',
         description: 'A test category description',
         icon: 'test-icon',
-        parentId: '123e4567-e89b-12d3-a456-426614174001',
-        isActive: true,
-        sortOrder: 5,
+        parent_id: '123e4567-e89b-12d3-a456-426614174001',
+        is_active: true,
+        sort_order: 5,
       });
 
       const errors = await validate(dto);
@@ -140,23 +140,23 @@ describe('Category DTOs', () => {
         description: 'Updated description',
         icon: 'updated-icon',
         mediaId: '123e4567-e89b-12d3-a456-426614174000',
-        parentId: '123e4567-e89b-12d3-a456-426614174001',
-        isActive: false,
-        sortOrder: 10,
+        parent_id: '123e4567-e89b-12d3-a456-426614174001',
+        is_active: false,
+        sort_order: 10,
       });
 
       const errors = await validate(dto);
       expect(errors.length).toBe(0);
     });
 
-    it('should fail if sortOrder is negative', async () => {
+    it('should fail if sort_order is negative', async () => {
       const dto = plainToInstance(UpdateCategoryDto, {
-        sortOrder: -1,
+        sort_order: -1,
       });
 
       const errors = await validate(dto);
       expect(errors.length).toBeGreaterThan(0);
-      expect(errors[0].property).toBe('sortOrder');
+      expect(errors[0].property).toBe('sort_order');
     });
   });
 
@@ -167,32 +167,32 @@ describe('Category DTOs', () => {
       expect(errors.length).toBe(0);
     });
 
-    it('should validate a "root" parentId', async () => {
+    it('should validate a "root" parent_id', async () => {
       const dto = plainToInstance(CategoryFilterDto, {
-        parentId: 'root',
+        parent_id: 'root',
       });
 
       const errors = await validate(dto);
       expect(errors.length).toBe(0);
     });
 
-    it('should validate a UUID parentId', async () => {
+    it('should validate a UUID parent_id', async () => {
       const dto = plainToInstance(CategoryFilterDto, {
-        parentId: '123e4567-e89b-12d3-a456-426614174000',
+        parent_id: '123e4567-e89b-12d3-a456-426614174000',
       });
 
       const errors = await validate(dto);
       expect(errors.length).toBe(0);
     });
 
-    it('should fail if parentId is not "root" or UUID', async () => {
+    it('should fail if parent_id is not "root" or UUID', async () => {
       const dto = plainToInstance(CategoryFilterDto, {
-        parentId: 'invalid-parent',
+        parent_id: 'invalid-parent',
       });
 
       const errors = await validate(dto);
       expect(errors.length).toBeGreaterThan(0);
-      expect(errors[0].property).toBe('parentId');
+      expect(errors[0].property).toBe('parent_id');
     });
 
     it('should fail if page is less than 1', async () => {

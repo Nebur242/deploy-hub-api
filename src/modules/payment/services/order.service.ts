@@ -21,19 +21,19 @@ export class OrderService {
    * Create a new order for a license purchase
    */
   async create(userId: string, createOrderDto: CreateOrderDto): Promise<Order> {
-    const { currency, licenseId, ...rest } = createOrderDto;
+    const { currency, license_id, ...rest } = createOrderDto;
 
     // Verify the license option exists
-    const license = await this.licenseService.findOne(licenseId);
+    const license = await this.licenseService.findOne(license_id);
     if (!license) {
-      throw new NotFoundException(`License with ID ${licenseId} not found`);
+      throw new NotFoundException(`License with ID ${license_id} not found`);
     }
 
     // Create a new order
     const order = this.orderRepository.create({
       ...rest,
-      licenseId,
-      userId,
+      license_id,
+      user_id: userId,
       amount: license.price,
       currency: currency || license.currency,
       status: OrderStatus.PENDING,
@@ -50,38 +50,41 @@ export class OrderService {
     filter: FilterOrdersDto,
     paginationOptions: IPaginationOptions,
   ): Promise<Pagination<Order>> {
-    const { status, licenseId, currency, isActive, search } = filter;
+    const { status, license_id, currency, is_active, search } = filter;
 
     const queryBuilder = this.orderRepository
       .createQueryBuilder('order')
       .leftJoinAndSelect('order.license', 'license')
-      .where('order.userId = :userId', { userId });
+      .where('order.user_id = :userId', { userId });
 
     // Apply filters if provided
     if (status) {
       queryBuilder.andWhere('order.status = :status', { status });
     }
 
-    if (licenseId) {
-      queryBuilder.andWhere('order.licenseId = :licenseId', { licenseId });
+    if (license_id) {
+      queryBuilder.andWhere('order.license_id = :licenseId', { licenseId: license_id });
     }
 
     if (currency) {
       queryBuilder.andWhere('order.currency = :currency', { currency });
     }
 
-    if (isActive !== undefined) {
-      queryBuilder.andWhere('order.isActive = :isActive', { isActive });
+    if (is_active !== undefined) {
+      queryBuilder.andWhere('order.is_active = :isActive', { isActive: is_active });
     }
 
     // Apply search if provided
     if (search) {
-      queryBuilder.andWhere('(license.name ILIKE :search OR order.referenceNumber ILIKE :search)', {
-        search: `%${search}%`,
-      });
+      queryBuilder.andWhere(
+        '(license.name ILIKE :search OR order.reference_number ILIKE :search)',
+        {
+          search: `%${search}%`,
+        },
+      );
     }
 
-    queryBuilder.orderBy('order.createdAt', 'DESC');
+    queryBuilder.orderBy('order.created_at', 'DESC');
 
     return paginate<Order>(queryBuilder, paginationOptions);
   }
@@ -93,7 +96,7 @@ export class OrderService {
     filter: FilterOrdersDto,
     paginationOptions: IPaginationOptions,
   ): Promise<Pagination<Order>> {
-    const { status, licenseId, currency, isActive, search } = filter;
+    const { status, license_id, currency, is_active, search } = filter;
 
     const queryBuilder = this.orderRepository
       .createQueryBuilder('order')
@@ -105,27 +108,27 @@ export class OrderService {
       queryBuilder.andWhere('order.status = :status', { status });
     }
 
-    if (licenseId) {
-      queryBuilder.andWhere('order.licenseId = :licenseId', { licenseId });
+    if (license_id) {
+      queryBuilder.andWhere('order.license_id = :licenseId', { licenseId: license_id });
     }
 
     if (currency) {
       queryBuilder.andWhere('order.currency = :currency', { currency });
     }
 
-    if (isActive !== undefined) {
-      queryBuilder.andWhere('order.isActive = :isActive', { isActive });
+    if (is_active !== undefined) {
+      queryBuilder.andWhere('order.is_active = :isActive', { isActive: is_active });
     }
 
     // Apply search if provided
     if (search) {
       queryBuilder.andWhere(
-        '(license.name ILIKE :search OR order.referenceNumber ILIKE :search OR user.email ILIKE :search)',
+        '(license.name ILIKE :search OR order.reference_number ILIKE :search OR user.email ILIKE :search)',
         { search: `%${search}%` },
       );
     }
 
-    queryBuilder.orderBy('order.createdAt', 'DESC');
+    queryBuilder.orderBy('order.created_at', 'DESC');
 
     return paginate<Order>(queryBuilder, paginationOptions);
   }
@@ -142,7 +145,7 @@ export class OrderService {
 
     // If userId is provided, only return the user's orders
     if (userId) {
-      queryBuilder.andWhere('order.userId = :userId', { userId });
+      queryBuilder.andWhere('order.user_id = :userId', { userId });
     }
 
     const order = await queryBuilder.getOne();
@@ -170,20 +173,20 @@ export class OrderService {
 
     // If completing the order, set the completion date and activate the license
     if (status === OrderStatus.COMPLETED) {
-      order.completedAt = new Date();
-      order.isActive = true;
+      order.completed_at = new Date();
+      order.is_active = true;
 
       // Calculate the expiration date based on the license duration
       if (order.license?.duration) {
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + order.license.duration);
-        order.expiresAt = expiresAt;
+        order.expires_at = expiresAt;
       }
     }
 
     // If cancelling or refunding, deactivate the license
     if (status === OrderStatus.CANCELLED || status === OrderStatus.REFUNDED) {
-      order.isActive = false;
+      order.is_active = false;
     }
 
     return this.orderRepository.save(order);

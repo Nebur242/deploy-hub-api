@@ -77,7 +77,7 @@ export class LicenseController {
     return this.licenseService.findAll(
       {
         ...rest,
-        ownerId: user.id,
+        owner_id: user.id,
       },
       paginationOptions,
     );
@@ -132,7 +132,7 @@ export class LicenseController {
     // Create a simple order for the license
     const dto: CreateOrderDto = {
       ...createOrderDto,
-      licenseId: id,
+      license_id: id,
     };
     return this.orderService.create(user.id, dto);
   }

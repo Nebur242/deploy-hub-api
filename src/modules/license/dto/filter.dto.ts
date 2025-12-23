@@ -20,7 +20,7 @@ export class FilterLicenseDto {
   })
   @IsOptional()
   @IsString()
-  ownerId?: string;
+  owner_id?: string;
 
   @ApiPropertyOptional({
     description: 'Filter by project ID',
@@ -28,7 +28,7 @@ export class FilterLicenseDto {
   })
   @IsOptional()
   @IsString()
-  projectId?: string;
+  project_id?: string;
 
   @ApiPropertyOptional({
     description: 'Filter by license status',
@@ -51,11 +51,11 @@ export class FilterLicenseDto {
   @ApiPropertyOptional({
     description: 'Field to sort by',
     example: 'price',
-    enum: ['name', 'price', 'createdAt', 'updatedAt'],
+    enum: ['name', 'price', 'created_at', 'updated_at'],
   })
   @IsOptional()
-  @IsEnum(['name', 'price', 'createdAt', 'updatedAt'])
-  sortBy?: string;
+  @IsEnum(['name', 'price', 'created_at', 'updated_at'])
+  sort_by?: string;
 
   @ApiPropertyOptional({
     description: 'Sort direction',
@@ -64,7 +64,7 @@ export class FilterLicenseDto {
   })
   @IsOptional()
   @IsEnum(['ASC', 'DESC'])
-  sortDirection?: 'ASC' | 'DESC';
+  sort_direction?: 'ASC' | 'DESC';
 
   @ApiPropertyOptional({
     description: 'Filter by popularity status',

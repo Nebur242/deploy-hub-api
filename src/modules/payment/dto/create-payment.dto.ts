@@ -6,7 +6,7 @@ export class CreatePaymentDto {
   @ApiProperty({ description: 'Order ID associated with this payment' })
   @IsUUID()
   @IsNotEmpty()
-  orderId: string;
+  order_id: string;
 
   @ApiProperty({ description: 'Amount to be paid' })
   @IsNumber()
@@ -19,15 +19,15 @@ export class CreatePaymentDto {
 
   @ApiProperty({ description: 'Payment method', enum: PaymentMethod })
   @IsEnum(PaymentMethod)
-  paymentMethod: PaymentMethod;
+  payment_method: PaymentMethod;
 
   @ApiProperty({ description: 'Transaction ID from payment provider', required: false })
   @IsString()
   @IsOptional()
-  transactionId?: string;
+  transaction_id?: string;
 
   @ApiProperty({ description: 'Payment gateway response', required: false })
   @IsString()
   @IsOptional()
-  paymentGatewayResponse?: string;
+  payment_gateway_response?: string;
 }

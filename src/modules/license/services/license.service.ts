@@ -24,7 +24,7 @@ export class LicenseService {
   async create(user: User, createLicenseDto: CreateLicenseDto): Promise<License> {
     // Check if all projects exist and user is the owner of each
     const projects = await Promise.all(
-      createLicenseDto.projectIds.map(async projectId => {
+      createLicenseDto.project_ids.map(async projectId => {
         const project = await this.projectRepository.findOne(projectId);
 
         if (!project) {
@@ -42,12 +42,12 @@ export class LicenseService {
     );
 
     // Create license without projects first
-    const { projectIds: _, ...licenseData } = createLicenseDto;
+    const { project_ids: _, ...licenseData } = createLicenseDto;
     const newLicense = this.licenseRepository.create(licenseData);
     const savedLicense = await this.licenseRepository.save(newLicense);
 
     savedLicense.projects = projects;
-    savedLicense.ownerId = user.id; // Assuming you have a relation to the User entity
+    savedLicense.owner_id = user.id; // Assuming you have a relation to the User entity
     savedLicense.owner = user; // Assuming you have a relation to the User entity
     await this.licenseRepository.save(savedLicense);
 
@@ -77,7 +77,15 @@ export class LicenseService {
     filter: FilterLicenseDto,
     paginationOptions: IPaginationOptions,
   ): Promise<Pagination<License>> {
-    const { search, currency, sortBy, sortDirection, ownerId, status, projectId } = filter;
+    const {
+      search,
+      currency,
+      sort_by: sortBy,
+      sort_direction: sortDirection,
+      owner_id: ownerId,
+      status,
+      project_id: projectId,
+    } = filter;
 
     // Build the where conditions
     const whereConditions: Record<string, unknown> = {};
@@ -96,7 +104,7 @@ export class LicenseService {
 
     // Add owner filter if provided
     if (ownerId) {
-      whereConditions.ownerId = ownerId;
+      whereConditions.owner_id = ownerId;
     }
 
     // Add status filter if provided
@@ -110,7 +118,7 @@ export class LicenseService {
       orderCondition[sortBy] = sortDirection || 'ASC';
     } else {
       // Default sort by createdAt desc
-      orderCondition = { createdAt: 'DESC' };
+      orderCondition = { created_at: 'DESC' };
     }
 
     // If we need to search in multiple columns or filter by projectId, we need to use queryBuilder
@@ -142,7 +150,7 @@ export class LicenseService {
 
       // Add owner filter if provided
       if (ownerId) {
-        queryBuilder.andWhere('license.ownerId = :ownerId', { ownerId });
+        queryBuilder.andWhere('license.owner_id = :ownerId', { ownerId });
       }
 
       // Add status filter if provided
@@ -154,7 +162,7 @@ export class LicenseService {
       if (sortBy) {
         queryBuilder.orderBy(`license.${sortBy}`, sortDirection || 'ASC');
       } else {
-        queryBuilder.orderBy('license.createdAt', 'DESC');
+        queryBuilder.orderBy('license.created_at', 'DESC');
       }
 
       return paginate<License>(queryBuilder, paginationOptions);
@@ -222,15 +230,15 @@ export class LicenseService {
       throw new BadRequestException('Price cannot be negative');
     }
 
-    if (updateLicenseDto.deploymentLimit !== undefined && updateLicenseDto.deploymentLimit < 1) {
+    if (updateLicenseDto.deployment_limit !== undefined && updateLicenseDto.deployment_limit < 1) {
       throw new BadRequestException('Deployment limit must be at least 1');
     }
 
     // Handle project updates if provided
-    if (updateLicenseDto.projectIds) {
+    if (updateLicenseDto.project_ids) {
       // Fetch all projects to be associated with this license
       const projects = await Promise.all(
-        updateLicenseDto.projectIds.map(async projectId => {
+        updateLicenseDto.project_ids.map(async projectId => {
           const project = await this.projectRepository.findOne(projectId);
 
           if (!project) {
@@ -251,7 +259,7 @@ export class LicenseService {
     }
 
     // Update license option fields by applying all defined properties from DTO
-    const { projectIds: _projectIds, ...licenseUpdates } = updateLicenseDto;
+    const { project_ids: _projectIds, ...licenseUpdates } = updateLicenseDto;
 
     // Directly apply all updates from the DTO to the license object
     Object.assign(license, licenseUpdates);

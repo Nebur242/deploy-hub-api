@@ -39,8 +39,8 @@ export class UserLicenseService {
       .createQueryBuilder('userLicense')
       .leftJoinAndSelect('userLicense.owner', 'owner')
       .leftJoinAndSelect('userLicense.license', 'license')
-      .where('userLicense.ownerId = :ownerId', { ownerId })
-      .orderBy('userLicense.createdAt', 'DESC');
+      .where('userLicense.owner_id = :ownerId', { ownerId })
+      .orderBy('userLicense.created_at', 'DESC');
 
     return paginate<UserLicense>(queryBuilder, options);
   }
@@ -51,12 +51,12 @@ export class UserLicenseService {
   getActiveUserLicenses(ownerId: string): Promise<UserLicense[]> {
     return this.userLicenseRepository.find({
       where: {
-        ownerId,
+        owner_id: ownerId,
         active: true,
       },
       relations: ['owner', 'license'],
       order: {
-        createdAt: 'DESC',
+        created_at: 'DESC',
       },
     });
   }
@@ -66,26 +66,28 @@ export class UserLicenseService {
    */
   getAllUserLicenses(
     options: IPaginationOptions,
-    filters?: { ownerId?: string; active?: boolean; licenseId?: string },
+    filters?: { owner_id?: string; active?: boolean; license_id?: string },
   ): Promise<Pagination<UserLicense>> {
     const queryBuilder = this.userLicenseRepository
       .createQueryBuilder('userLicense')
       .leftJoinAndSelect('userLicense.owner', 'owner');
 
     // Apply filters if provided
-    if (filters?.ownerId) {
-      queryBuilder.andWhere('userLicense.ownerId = :ownerId', { ownerId: filters.ownerId });
+    if (filters?.owner_id) {
+      queryBuilder.andWhere('userLicense.owner_id = :ownerId', { ownerId: filters.owner_id });
     }
 
     if (filters?.active !== undefined) {
       queryBuilder.andWhere('userLicense.active = :active', { active: filters.active });
     }
 
-    if (filters?.licenseId) {
-      queryBuilder.andWhere('userLicense.licenseId = :licenseId', { licenseId: filters.licenseId });
+    if (filters?.license_id) {
+      queryBuilder.andWhere('userLicense.license_id = :licenseId', {
+        licenseId: filters.license_id,
+      });
     }
 
-    queryBuilder.orderBy('userLicense.createdAt', 'DESC');
+    queryBuilder.orderBy('userLicense.created_at', 'DESC');
 
     return paginate<UserLicense>(queryBuilder, options);
   }

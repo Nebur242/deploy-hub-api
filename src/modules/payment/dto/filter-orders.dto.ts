@@ -27,7 +27,7 @@ export class FilterOrdersDto {
   @ApiProperty({ description: 'Filter by license ID', required: false })
   @IsUUID()
   @IsOptional()
-  licenseId?: string;
+  license_id?: string;
 
   @ApiProperty({ description: 'Filter by currency', enum: Currency, required: false })
   @IsEnum(Currency)
@@ -37,7 +37,7 @@ export class FilterOrdersDto {
   @ApiProperty({ description: 'Filter by active orders', required: false })
   @IsOptional()
   @Type(() => Boolean)
-  isActive?: boolean;
+  is_active?: boolean;
 
   @ApiProperty({ description: 'Search term', required: false })
   @IsString()

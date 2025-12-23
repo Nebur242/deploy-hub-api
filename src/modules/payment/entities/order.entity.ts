@@ -20,10 +20,10 @@ export class Order {
   id: string;
 
   @Column()
-  userId: string;
+  user_id: string;
 
   @Column()
-  licenseId: string;
+  license_id: string;
 
   @Column()
   amount: number;
@@ -43,37 +43,37 @@ export class Order {
   status: OrderStatus;
 
   @Column({ nullable: true })
-  referenceNumber: string;
+  reference_number: string;
 
   @CreateDateColumn()
-  createdAt: Date;
+  created_at: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updated_at: Date;
 
   @Column({ nullable: true })
-  completedAt: Date;
+  completed_at: Date;
 
   // Relations
   @ManyToOne(() => User)
-  @JoinColumn({ name: 'userId' })
+  @JoinColumn({ name: 'user_id' })
   user: User;
 
   @Column({ type: 'jsonb', nullable: true })
   billing: {
-    firstName: string;
-    lastName: string;
+    first_name: string;
+    last_name: string;
     email: string;
     company?: string;
     address?: string;
     city: string;
     state?: string;
-    postalCode?: string;
+    postal_code?: string;
     country: string;
   };
 
   @ManyToOne(() => License)
-  @JoinColumn({ name: 'licenseId' })
+  @JoinColumn({ name: 'license_id' })
   license: License;
 
   @OneToMany(() => Payment, payment => payment.order)
@@ -83,8 +83,8 @@ export class Order {
   notes: string;
 
   @Column({ default: false })
-  isActive: boolean;
+  is_active: boolean;
 
   @Column({ nullable: true })
-  expiresAt: Date;
+  expires_at: Date;
 }
