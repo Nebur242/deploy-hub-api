@@ -58,7 +58,7 @@ export class Order {
   @JoinColumn({ name: 'user_id' })
   user: User;
 
-  @Column({ type: 'jsonb', nullable: true })
+  @Column({ type: 'jsonb', nullable: false })
   billing: {
     first_name: string;
     last_name: string;
