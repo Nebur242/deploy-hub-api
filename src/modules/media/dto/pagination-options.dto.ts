@@ -34,10 +34,10 @@ export class PaginationOptionsDto {
 
   @ApiPropertyOptional({
     description: 'Sort field',
-    default: 'createdAt',
+    default: 'created_at',
   })
   @IsOptional()
-  readonly sortBy?: string = 'createdAt';
+  readonly sortBy?: string = 'created_at';
 
   @ApiPropertyOptional({
     description: 'Sort order (ASC or DESC)',

@@ -60,16 +60,16 @@ export class ProjectSearchDto {
   @ApiProperty({
     description: 'Sort projects by field',
     required: false,
-    enum: ['name', 'createdAt', 'updatedAt'],
-    default: 'updatedAt',
+    enum: ['name', 'created_at', 'updated_at'],
+    default: 'updated_at',
   })
   @IsOptional()
   @IsString()
   @Transform(({ value }: { value: string }) => {
-    const allowedSortFields = ['name', 'createdAt', 'updatedAt'];
-    return allowedSortFields.includes(value) ? value : 'updatedAt';
+    const allowedSortFields = ['name', 'created_at', 'updated_at'];
+    return allowedSortFields.includes(value) ? value : 'updated_at';
   })
-  sortBy?: string = 'updatedAt';
+  sortBy?: string = 'updated_at';
 
   @ApiProperty({
     description: 'Sort direction',
