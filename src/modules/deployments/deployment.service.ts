@@ -19,8 +19,8 @@ import { GithubDeployerService } from './services/github-deployer.service';
 import { GithubWebhookService } from './services/github-webhook.service';
 import { DeploymentUrlExtractorService } from './services/url-extractor.service';
 import { UserLicense } from '../license/entities/user-license.entity';
-import { EnvironmentVariableDto } from '../projects/dto/create-project-configuration.dto';
-import { ProjectConfiguration } from '../projects/entities/project-configuration.entity';
+import { EnvironmentVariableDto } from '../project-config/dto/create-project-configuration.dto';
+import { ProjectConfiguration } from '../project-config/entities/project-configuration.entity';
 import { User } from '../users/entities/user.entity';
 
 @Injectable()

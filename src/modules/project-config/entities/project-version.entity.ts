@@ -1,3 +1,4 @@
+import { Project } from '@app/modules/projects/entities/project.entity';
 import {
   Column,
   Entity,
@@ -8,8 +9,6 @@ import {
   UpdateDateColumn,
   Unique,
 } from 'typeorm';
-
-import { Project } from './project.entity';
 
 @Entity('project_versions')
 @Unique(['project_id', 'version']) // Ensure version uniqueness within a project

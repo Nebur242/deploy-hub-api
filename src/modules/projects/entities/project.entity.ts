@@ -1,5 +1,7 @@
 import { Category } from '@app/modules/categories/entities/category.entity';
 import { License } from '@app/modules/license/entities/license.entity';
+import { ProjectConfiguration } from '@app/modules/project-config/entities/project-configuration.entity';
+import { ProjectVersion } from '@app/modules/project-config/entities/project-version.entity';
 import {
   Column,
   CreateDateColumn,
@@ -11,9 +13,6 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-
-import { ProjectConfiguration } from './project-configuration.entity';
-import { ProjectVersion } from './project-version.entity';
 
 export enum TechStack {
   REACT = 'react',

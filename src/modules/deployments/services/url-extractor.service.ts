@@ -1,4 +1,4 @@
-import { DeploymentProvider } from '@app/modules/projects/entities/project-configuration.entity';
+import { DeploymentProvider } from '@app/modules/project-config/entities/project-configuration.entity';
 import { Injectable } from '@nestjs/common';
 
 import { Deployment } from '../entities/deployment.entity';

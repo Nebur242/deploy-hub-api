@@ -1,3 +1,4 @@
+import { Project } from '@app/modules/projects/entities/project.entity';
 import {
   Column,
   Entity,
@@ -8,7 +9,6 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 
-import { Project } from './project.entity';
 import { EnvironmentVariableDto } from '../dto/create-project-configuration.dto';
 
 export enum DeploymentProvider {

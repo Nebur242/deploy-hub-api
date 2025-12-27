@@ -1,7 +1,7 @@
 import { License } from '@app/modules/license/entities/license.entity';
 import { UserLicense } from '@app/modules/license/entities/user-license.entity';
-import { EnvironmentVariableDto } from '@app/modules/projects/dto/create-project-configuration.dto';
-import { ProjectConfiguration } from '@app/modules/projects/entities/project-configuration.entity';
+import { EnvironmentVariableDto } from '@app/modules/project-config/dto/create-project-configuration.dto';
+import { ProjectConfiguration } from '@app/modules/project-config/entities/project-configuration.entity';
 import { Project } from '@app/modules/projects/entities/project.entity';
 import { User } from '@app/modules/users/entities/user.entity';
 import {

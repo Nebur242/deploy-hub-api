@@ -14,7 +14,7 @@ import { VercelService } from './services/vercel.service';
 import { GithubWebhookController } from './webhook.controller';
 import { License } from '../license/entities/license.entity';
 import { UserLicense } from '../license/entities/user-license.entity';
-import { ProjectConfiguration } from '../projects/entities/project-configuration.entity';
+import { ProjectConfiguration } from '../project-config/entities/project-configuration.entity';
 import { Project } from '../projects/entities/project.entity';
 
 @Module({

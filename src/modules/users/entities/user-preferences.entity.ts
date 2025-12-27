@@ -1,4 +1,4 @@
-import { DeploymentProvider } from '@app/modules/projects/entities/project-configuration.entity';
+import { DeploymentProvider } from '@app/modules/project-config/entities/project-configuration.entity';
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
 import { Theme } from '../dto/user-preferences.dto';

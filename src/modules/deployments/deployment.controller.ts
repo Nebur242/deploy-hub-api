@@ -33,11 +33,11 @@ import { UserLicense } from '../license/entities/user-license.entity';
 import {
   EnvironmentVariableDto,
   EnvironmentVariableType,
-} from '../projects/dto/create-project-configuration.dto';
+} from '../project-config/dto/create-project-configuration.dto';
 import {
   DeploymentProvider,
   ProjectConfiguration,
-} from '../projects/entities/project-configuration.entity';
+} from '../project-config/entities/project-configuration.entity';
 import { Project } from '../projects/entities/project.entity';
 import { User } from '../users/entities/user.entity';
 

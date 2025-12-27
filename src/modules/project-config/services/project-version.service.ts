@@ -1,3 +1,4 @@
+import { Project } from '@app/modules/projects/entities/project.entity';
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -5,7 +6,6 @@ import { Repository } from 'typeorm';
 import { CreateVersionDto } from '../dto/create-version.dto';
 import { UpdateVersionDto } from '../dto/update-version.dto';
 import { ProjectVersion } from '../entities/project-version.entity';
-import { Project } from '../entities/project.entity';
 
 @Injectable()
 export class ProjectVersionService {

@@ -1,3 +1,4 @@
+import { Project } from '@app/modules/projects/entities/project.entity';
 import { EncryptionService } from '@app/shared/encryption/encryption.service';
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -6,7 +7,6 @@ import { Repository } from 'typeorm';
 import { CreateProjectConfigurationDto } from '../dto/create-project-configuration.dto';
 import { UpdateProjectConfigurationDto } from '../dto/update-project-configuration.dto';
 import { DeploymentProvider, ProjectConfiguration } from '../entities/project-configuration.entity';
-import { Project } from '../entities/project.entity';
 
 @Injectable()
 export class ProjectConfigurationService {
