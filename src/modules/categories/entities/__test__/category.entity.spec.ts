@@ -42,14 +42,14 @@ describe('Category Entity', () => {
       'slug',
       'description',
       'icon',
-      'ownerId',
+      'owner_id',
       'owner',
-      'parentId',
+      'parent_id',
       'parent',
       'children',
-      'sortOrder',
-      'createdAt',
-      'updatedAt',
+      'sort_order',
+      'created_at',
+      'updated_at',
     ];
 
     requiredProperties.forEach(prop => {
@@ -59,7 +59,7 @@ describe('Category Entity', () => {
 
   it('should have default values', () => {
     expect(category.icon).toBeUndefined(); // Will be set to 'default-category-icon' by DB
-    expect(category.sortOrder).toBeUndefined(); // Will be set to 0 by DB
+    expect(category.sort_order).toBeUndefined(); // Will be set to 0 by DB
   });
 
   it('should allow setting and getting properties', () => {

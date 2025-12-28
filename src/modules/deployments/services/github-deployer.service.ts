@@ -21,7 +21,7 @@ export class GithubDeployerService {
     deploymentConfig: ServiceCreateDeploymentDto,
   ): Promise<{ workflowRunId: number }> {
     try {
-      const octokit = new Octokit({ auth: githubAccount.accessToken });
+      const octokit = new Octokit({ auth: githubAccount.access_token });
 
       // Get the workflow ID with improved error handling
       const workflowId = await this.getWorkflowId(octokit, githubAccount);
@@ -42,7 +42,7 @@ export class GithubDeployerService {
 
       // Add environment variables as inputs
       deploymentConfig.environmentVariables.forEach(env => {
-        inputs[env.key] = env.defaultValue;
+        inputs[env.key] = env.default_value;
       });
 
       // Record timestamp before triggering
@@ -85,7 +85,7 @@ export class GithubDeployerService {
     });
 
     // Strategy 1: Find by exact path match
-    const workflowPath = `.github/workflows/${githubAccount.workflowFile}`;
+    const workflowPath = `.github/workflows/${githubAccount.workflow_file}`;
     let workflow = workflows.workflows.find(w => w.path === workflowPath);
 
     if (workflow) {
@@ -94,10 +94,10 @@ export class GithubDeployerService {
     }
 
     // Strategy 2: Find by filename only (in case path structure differs)
-    workflow = workflows.workflows.find(w => w.path?.endsWith(`/${githubAccount.workflowFile}`));
+    workflow = workflows.workflows.find(w => w.path?.endsWith(`/${githubAccount.workflow_file}`));
 
     if (workflow) {
-      this.logger.log(`Found workflow by filename: ${githubAccount.workflowFile}`);
+      this.logger.log(`Found workflow by filename: ${githubAccount.workflow_file}`);
       return workflow.id;
     }
 
@@ -333,7 +333,7 @@ export class GithubDeployerService {
     githubAccount: GitHubAccount,
   ): Promise<{ valid: boolean; workflowId?: number; error?: string }> {
     try {
-      const octokit = new Octokit({ auth: githubAccount.accessToken });
+      const octokit = new Octokit({ auth: githubAccount.access_token });
       const workflowId = await this.getWorkflowId(octokit, githubAccount);
 
       // Try to get workflow details to ensure it exists and is accessible
@@ -366,10 +366,10 @@ export class GithubDeployerService {
    * Get logs for a workflow run
    */
   async getWorkflowLogs(
-    account: { username: string; accessToken: string; repository: string },
+    account: { username: string; access_token: string; repository: string },
     runId: number,
   ): Promise<string> {
-    const octokit = new Octokit({ auth: account.accessToken });
+    const octokit = new Octokit({ auth: account.access_token });
 
     try {
       // Get the jobs for this workflow run
@@ -416,10 +416,10 @@ export class GithubDeployerService {
    * Check workflow run status
    */
   async checkWorkflowStatus(
-    account: { username: string; accessToken: string; repository: string },
+    account: { username: string; access_token: string; repository: string },
     runId: number,
   ): Promise<{ status: string; conclusion: string | null; deploymentUrl?: string }> {
-    const octokit = new Octokit({ auth: account.accessToken });
+    const octokit = new Octokit({ auth: account.access_token });
 
     try {
       const { data: run } = await octokit.actions.getWorkflowRun({

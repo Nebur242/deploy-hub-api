@@ -18,9 +18,9 @@ import { Deployment, DeploymentStatus, DeplomentEnvironment } from './entities/d
 import { GithubDeployerService } from './services/github-deployer.service';
 import { GithubWebhookService } from './services/github-webhook.service';
 import { DeploymentUrlExtractorService } from './services/url-extractor.service';
-import { UserLicense } from '../licenses/entities/user-license.entity';
-import { EnvironmentVariableDto } from '../projects/dto/create-project-configuration.dto';
-import { ProjectConfiguration } from '../projects/entities/project-configuration.entity';
+import { UserLicense } from '../license/entities/user-license.entity';
+import { EnvironmentVariableDto } from '../project-config/dto/create-project-configuration.dto';
+import { ProjectConfiguration } from '../project-config/entities/project-configuration.entity';
 import { User } from '../users/entities/user.entity';
 
 @Injectable()
@@ -52,7 +52,7 @@ export class DeploymentService {
     const { project, configuration, license, userLicense } = entities;
 
     // Check if user is project owner - project owners can deploy without a user license
-    const isProjectOwner = project.ownerId === serviceCreateDeploymentDto.ownerId;
+    const isProjectOwner = project.owner_id === serviceCreateDeploymentDto.ownerId;
 
     if (isProjectOwner) {
       this.logger.log(
@@ -61,35 +61,36 @@ export class DeploymentService {
     }
 
     const deployment = this.deploymentRepository.create({
-      projectId: serviceCreateDeploymentDto.projectId,
-      configurationId: serviceCreateDeploymentDto.configurationId,
+      project_id: serviceCreateDeploymentDto.projectId,
+      configuration_id: serviceCreateDeploymentDto.configurationId,
       configuration,
-      deploymentUrl: serviceCreateDeploymentDto?.deploymentUrl || '',
+      deployment_url: serviceCreateDeploymentDto?.deploymentUrl || '',
       project,
-      ownerId: serviceCreateDeploymentDto.ownerId,
+      owner_id: serviceCreateDeploymentDto.ownerId,
       owner: serviceCreateDeploymentDto.owner,
       environment: serviceCreateDeploymentDto.environment,
       branch: serviceCreateDeploymentDto.branch,
       status: DeploymentStatus.PENDING,
-      environmentVariables: serviceCreateDeploymentDto.environmentVariables,
-      siteId: serviceCreateDeploymentDto.siteId || undefined,
-      licenseId: serviceCreateDeploymentDto.licenseId,
+      environment_variables: serviceCreateDeploymentDto.environmentVariables,
+      site_id: serviceCreateDeploymentDto.siteId || undefined,
+      license_id: serviceCreateDeploymentDto.licenseId,
       license,
       userLicense: isProjectOwner ? null : userLicense, // Project owners don't need user license
-      userLicenseId: isProjectOwner ? null : userLicense?.id,
+      user_license_id: isProjectOwner ? null : userLicense?.id,
+      is_test: serviceCreateDeploymentDto.isTest === true, // Mark as test deployment if specified
     } as DeepPartial<Deployment>);
 
     await this.deploymentRepository.save(deployment);
 
     // Get recent deployments for this project to determine next account in rotation
     const recentDeployments = await this.deploymentRepository.find({
-      where: { projectId: serviceCreateDeploymentDto.projectId },
-      order: { createdAt: 'DESC' },
-      take: configuration.githubAccounts.length > 0 ? configuration.githubAccounts.length : 1,
+      where: { project_id: serviceCreateDeploymentDto.projectId },
+      order: { created_at: 'DESC' },
+      take: configuration.github_accounts.length > 0 ? configuration.github_accounts.length : 1,
     });
 
     // Decrypt GitHub account tokens
-    const githubAccounts = configuration.githubAccounts.map(account => ({
+    const githubAccounts = configuration.github_accounts.map(account => ({
       ...account,
       available: true,
       failureCount: 0,
@@ -115,7 +116,7 @@ export class DeploymentService {
       const error = err as Error;
       this.logger.error(`Deployment ${deployment.id} failed: ${error.message}`);
       deployment.status = DeploymentStatus.FAILED;
-      deployment.errorMessage = error.message;
+      deployment.error_message = error.message;
       await this.deploymentRepository.save(deployment);
     }
 
@@ -131,7 +132,7 @@ export class DeploymentService {
   ): GitHubAccount[] {
     const githubAccounts = accounts.map(account => ({
       ...account,
-      accessToken: this.encryptionService.decrypt(account.accessToken),
+      access_token: this.encryptionService.decrypt(account.access_token),
     }));
     // If there's only one account or no recent deployments, just return the accounts
     if (githubAccounts.length <= 1 || recentDeployments.length === 0) {
@@ -140,8 +141,8 @@ export class DeploymentService {
 
     // Find the last used account
     let startIndex = 0;
-    if (recentDeployments[0].githubAccount) {
-      const lastUsername = recentDeployments[0].githubAccount.username;
+    if (recentDeployments[0].github_account) {
+      const lastUsername = recentDeployments[0].github_account.username;
       const lastIndex = githubAccounts.findIndex(a => a.username === lastUsername);
       if (lastIndex !== -1) {
         // Start with the next account in the sequence
@@ -182,11 +183,11 @@ export class DeploymentService {
       );
 
       // Success - update deployment with result
-      deployment.githubAccount = {
+      deployment.github_account = {
         ...githubAccount,
-        accessToken: this.encryptionService.encrypt(githubAccount.accessToken),
+        access_token: this.encryptionService.encrypt(githubAccount.access_token),
       };
-      deployment.workflowRunId = `${result.workflowRunId}`;
+      deployment.workflow_run_id = `${result.workflowRunId}`;
       deployment.status = DeploymentStatus.RUNNING;
 
       // Create webhook for this repository to get real-time status updates
@@ -197,13 +198,13 @@ export class DeploymentService {
         const webhookResult = await this.webhookService.createDeploymentWebhook(
           githubAccount.username,
           githubAccount.repository,
-          account.accessToken, // Using the decrypted token from orderedAccounts
+          account.access_token, // Using the decrypted token from orderedAccounts
           deployment.id,
         );
 
         if (webhookResult.success && webhookResult.hookId) {
           // Store webhook information in the deployment record
-          deployment.webhookInfo = {
+          deployment.webhook_info = {
             hookId: webhookResult.hookId,
             repositoryOwner: githubAccount.username,
             repositoryName: githubAccount.repository,
@@ -233,7 +234,7 @@ export class DeploymentService {
 
       // Mark as failed since we're not trying multiple accounts
       deployment.status = DeploymentStatus.FAILED;
-      deployment.errorMessage = error.message;
+      deployment.error_message = error.message;
       await this.deploymentRepository.save(deployment);
       throw new BadGatewayException(
         `Deployment failed with account ${account.username}: ${error.message}`,
@@ -257,24 +258,24 @@ export class DeploymentService {
 
     // Reset deployment status for retry
     deployment.status = DeploymentStatus.PENDING;
-    deployment.errorMessage = '';
+    deployment.error_message = '';
 
     await this.deploymentRepository.save(deployment);
 
     // Find project and configuration
-    // await this.projectService.findOne(deployment.projectId);
+    // await this.projectService.findOne(deployment.project_id);
     const configuration = await this.projectConfigurationRepository.findOne({
-      where: { id: deployment.configurationId },
+      where: { id: deployment.configuration_id },
     });
 
     if (!configuration) {
-      throw new Error(`Configuration with ID "${deployment.configurationId}" not found`);
+      throw new Error(`Configuration with ID "${deployment.configuration_id}" not found`);
     }
 
     // Get all GitHub accounts for the project
-    const githubAccounts = configuration.githubAccounts.map(account => ({
+    const githubAccounts = configuration.github_accounts.map(account => ({
       ...account,
-      accessToken: this.encryptionService.decrypt(account.accessToken),
+      access_token: this.encryptionService.decrypt(account.access_token),
       available: true,
       failureCount: 0,
       lastUsed: new Date(),
@@ -282,35 +283,35 @@ export class DeploymentService {
 
     // Get recent deployments to determine order
     const recentDeployments = await this.deploymentRepository.find({
-      where: { projectId: deployment.projectId },
-      order: { createdAt: 'DESC' },
-      take: configuration.githubAccounts.length > 0 ? configuration.githubAccounts.length : 1,
+      where: { project_id: deployment.project_id },
+      order: { created_at: 'DESC' },
+      take: configuration.github_accounts.length > 0 ? configuration.github_accounts.length : 1,
     });
 
     // Exclude the last failed account if possible
     const orderedAccounts = this.getOrderedAccountsForRetry(
       githubAccounts,
       recentDeployments,
-      deployment.githubAccount?.username,
+      deployment.github_account?.username,
     );
 
     // Create deployment config from stored deployment
     const deploymentConfig: ServiceCreateDeploymentDto = {
-      projectId: deployment.projectId,
+      projectId: deployment.project_id,
       configurationId: configuration.id,
       environment: deployment.environment,
       branch: deployment.branch,
-      environmentVariables: deployment.environmentVariables.map(env => ({
+      environmentVariables: deployment.environment_variables.map(env => ({
         ...env,
-        defaultValue:
-          env.isSecret && env.defaultValue
-            ? this.encryptionService.decrypt(env.defaultValue)
-            : env.defaultValue,
+        default_value:
+          env.is_secret && env.default_value
+            ? this.encryptionService.decrypt(env.default_value)
+            : env.default_value,
       })),
-      ownerId: deployment.ownerId,
-      siteId: deployment.siteId,
-      licenseId: deployment.licenseId,
-      userLicenseId: deployment.userLicenseId,
+      ownerId: deployment.owner_id,
+      siteId: deployment.site_id,
+      licenseId: deployment.license_id,
+      userLicenseId: deployment.user_license_id,
     };
 
     // Trigger deployment with reordered accounts
@@ -321,7 +322,7 @@ export class DeploymentService {
       const error = err as Error;
       this.logger.error(`Deployment ${deployment.id} retry failed: ${error.message}`);
       deployment.status = DeploymentStatus.FAILED;
-      deployment.errorMessage = error.message;
+      deployment.error_message = error.message;
       await this.deploymentRepository.save(deployment);
     }
 
@@ -367,14 +368,14 @@ export class DeploymentService {
       throw new Error(`Deployment with ID "${deploymentId}" not found`);
     }
 
-    if (!deployment.deploymentUrl) {
+    if (!deployment.deployment_url) {
       const { logs } = await this.getDeploymentLogs(deployment);
 
       if (logs) {
         const url = this.deploymentUrlExtractorService.extractUrlFromLogs(logs, deployment);
 
         if (url) {
-          deployment.deploymentUrl = url;
+          deployment.deployment_url = url;
           await this.deploymentRepository.save(deployment);
         } else {
           this.logger.warn(`No deployment URL found in logs for deployment ${deploymentId}`);
@@ -390,8 +391,8 @@ export class DeploymentService {
    */
   getProjectDeployments(projectId: string): Promise<Deployment[]> {
     return this.deploymentRepository.find({
-      where: { projectId },
-      order: { createdAt: 'DESC' },
+      where: { project_id: projectId },
+      order: { created_at: 'DESC' },
     });
   }
 
@@ -407,14 +408,14 @@ export class DeploymentService {
     // Always filter by project
 
     if (filterDto.projectId) {
-      queryBuilder.where('deployment.projectId = :projectId', {
+      queryBuilder.where('deployment.project_id = :projectId', {
         projectId: filterDto.projectId,
       });
     }
 
     // Apply optional filters
     if (filterDto.ownerId) {
-      queryBuilder.andWhere('deployment.ownerId = :ownerId', {
+      queryBuilder.andWhere('deployment.owner_id = :ownerId', {
         ownerId: filterDto.ownerId,
       });
     }
@@ -437,8 +438,8 @@ export class DeploymentService {
       });
     }
 
-    // Always order by createdAt DESC (newest first)
-    queryBuilder.orderBy('deployment.createdAt', 'DESC');
+    // Always order by created_at DESC (newest first)
+    queryBuilder.orderBy('deployment.created_at', 'DESC');
 
     // add project relation
     queryBuilder.leftJoinAndSelect('deployment.project', 'project');
@@ -451,18 +452,18 @@ export class DeploymentService {
    * Get logs for a deployment
    */
   async getDeploymentLogs(deployment: Deployment): Promise<{ logs: string }> {
-    if (!deployment.githubAccount || !deployment.workflowRunId) {
+    if (!deployment.github_account || !deployment.workflow_run_id) {
       return { logs: 'No workflow information available for this deployment' };
     }
 
     try {
       const logs = await this.deployerService.getWorkflowLogs(
         {
-          username: deployment.githubAccount.username,
-          accessToken: this.encryptionService.decrypt(deployment.githubAccount.accessToken),
-          repository: deployment.githubAccount.repository,
+          username: deployment.github_account.username,
+          access_token: this.encryptionService.decrypt(deployment.github_account.access_token),
+          repository: deployment.github_account.repository,
         },
-        parseInt(deployment.workflowRunId, 10),
+        parseInt(deployment.workflow_run_id, 10),
       );
 
       return { logs };
@@ -483,8 +484,8 @@ export class DeploymentService {
     // Only check running deployments
     if (
       deployment.status !== DeploymentStatus.RUNNING ||
-      !deployment.githubAccount ||
-      !deployment.workflowRunId
+      !deployment.github_account ||
+      !deployment.workflow_run_id
     ) {
       return deployment;
     }
@@ -493,12 +494,12 @@ export class DeploymentService {
       // Check workflow status
       const status = await this.deployerService.checkWorkflowStatus(
         {
-          username: deployment.githubAccount.username,
-          accessToken: this.encryptionService.decrypt(deployment.githubAccount.accessToken),
-          repository: deployment.githubAccount.repository,
+          username: deployment.github_account.username,
+          access_token: this.encryptionService.decrypt(deployment.github_account.access_token),
+          repository: deployment.github_account.repository,
         },
 
-        parseInt(deployment.workflowRunId, 10),
+        parseInt(deployment.workflow_run_id, 10),
       );
 
       // Update deployment based on workflow status
@@ -507,15 +508,15 @@ export class DeploymentService {
       if (status.status === 'completed') {
         if (status.conclusion === 'success') {
           deployment.status = DeploymentStatus.SUCCESS;
-          deployment.deploymentUrl = status.deploymentUrl;
-          deployment.completedAt = new Date();
+          deployment.deployment_url = status.deploymentUrl;
+          deployment.completed_at = new Date();
           completedDeployment = true;
 
           // Update UserLicense count instead of DeploymentCount
           const userLicense = await this.userLicenseRepository.findOne({
             where: {
-              licenseId: deployment.licenseId,
-              ownerId: deployment.ownerId,
+              license_id: deployment.license_id,
+              owner_id: deployment.owner_id,
               active: true,
             },
           });
@@ -527,14 +528,14 @@ export class DeploymentService {
           }
         } else if (status.conclusion === 'failure' || status.conclusion === 'cancelled') {
           deployment.status = DeploymentStatus.FAILED;
-          deployment.errorMessage = `GitHub workflow ${status.conclusion}`;
+          deployment.error_message = `GitHub workflow ${status.conclusion}`;
           completedDeployment = true;
         }
 
         await this.deploymentRepository.save(deployment);
 
         // Cleanup webhook if deployment is complete and webhook exists
-        if (completedDeployment && deployment.webhookInfo && deployment.webhookInfo.hookId) {
+        if (completedDeployment && deployment.webhook_info && deployment.webhook_info.hookId) {
           this.cleanupDeploymentWebhook(deployment).catch(err => {
             const error = err as Error;
             this.logger.error(`Failed to clean up webhook: ${error.message}`);
@@ -554,13 +555,13 @@ export class DeploymentService {
    * Clean up webhook after deployment completion
    */
   private async cleanupDeploymentWebhook(deployment: Deployment): Promise<void> {
-    if (!deployment.webhookInfo || !deployment.webhookInfo.hookId || !deployment.githubAccount) {
+    if (!deployment.webhook_info || !deployment.webhook_info.hookId || !deployment.github_account) {
       return;
     }
 
     try {
-      const { hookId, repositoryOwner, repositoryName } = deployment.webhookInfo;
-      const accessToken = this.encryptionService.decrypt(deployment.githubAccount.accessToken);
+      const { hookId, repositoryOwner, repositoryName } = deployment.webhook_info;
+      const accessToken = this.encryptionService.decrypt(deployment.github_account.access_token);
 
       const success = await this.webhookService.deleteDeploymentWebhook(
         repositoryOwner,
@@ -573,7 +574,7 @@ export class DeploymentService {
         this.logger.log(`Cleaned up webhook ${hookId} for completed deployment ${deployment.id}`);
 
         // Remove webhook info from deployment
-        deployment.webhookInfo = undefined;
+        deployment.webhook_info = undefined;
         await this.deploymentRepository.save(deployment);
       } else {
         this.logger.warn(`Failed to delete webhook ${hookId} for deployment ${deployment.id}`);
@@ -607,26 +608,26 @@ export class DeploymentService {
 
     // Apply filters
     if (filterDto.licenseId) {
-      queryBuilder.andWhere('userLicense.licenseId = :licenseId', {
+      queryBuilder.andWhere('userLicense.license_id = :licenseId', {
         licenseId: filterDto.licenseId,
       });
     }
 
     if (filterDto.ownerId) {
-      queryBuilder.andWhere('userLicense.ownerId = :ownerId', {
+      queryBuilder.andWhere('userLicense.owner_id = :ownerId', {
         ownerId: filterDto.ownerId,
       });
     }
 
     // Date range filters
     if (filterDto.createdFrom) {
-      queryBuilder.andWhere('userLicense.createdAt >= :createdFrom', {
+      queryBuilder.andWhere('userLicense.created_at >= :createdFrom', {
         createdFrom: filterDto.createdFrom,
       });
     }
 
     if (filterDto.createdTo) {
-      queryBuilder.andWhere('userLicense.createdAt <= :createdTo', {
+      queryBuilder.andWhere('userLicense.created_at <= :createdTo', {
         createdTo: filterDto.createdTo,
       });
     }
@@ -642,7 +643,7 @@ export class DeploymentService {
     queryBuilder.leftJoinAndSelect('userLicense.owner', 'owner');
 
     // Order by creation date (newest first)
-    queryBuilder.orderBy('userLicense.createdAt', 'DESC');
+    queryBuilder.orderBy('userLicense.created_at', 'DESC');
 
     return paginate<UserLicense>(queryBuilder, options);
   }
@@ -671,47 +672,55 @@ export class DeploymentService {
     }
 
     // Verify ownership
-    if (originalDeployment.ownerId !== user.id) {
+    if (originalDeployment.owner_id !== user.id) {
       throw new BadRequestException('You can only redeploy your own deployments');
     }
 
+    // Check if the user is the project owner
+    const isProjectOwner = originalDeployment.project.owner_id === user.id;
+
     // Verify the user license is still active and has available deployments
-    const userLicense = await this.userLicenseRepository.findOne({
-      where: {
-        id: originalDeployment.userLicenseId,
-        active: true,
-      },
-    });
+    // Project owners don't need a user license
+    let userLicense: UserLicense | null = null;
 
-    if (!userLicense) {
-      throw new BadRequestException('User license is no longer active');
-    }
+    if (!isProjectOwner) {
+      userLicense = await this.userLicenseRepository.findOne({
+        where: {
+          id: originalDeployment.user_license_id,
+          active: true,
+        },
+      });
 
-    if (userLicense.count >= userLicense.maxDeployments) {
-      throw new BadRequestException(
-        `Deployment limit reached. Used ${userLicense.count}/${userLicense.maxDeployments} deployments.`,
-      );
+      if (!userLicense) {
+        throw new BadRequestException('User license is no longer active');
+      }
+
+      if (userLicense.count >= userLicense.max_deployments) {
+        throw new BadRequestException(
+          `Deployment limit reached. Used ${userLicense.count}/${userLicense.max_deployments} deployments.`,
+        );
+      }
     }
 
     // Prepare the deployment configuration for redeployment
     // Decrypt environment variables from the original deployment
-    const originalEnvVars = originalDeployment.environmentVariables.map(env => ({
+    const originalEnvVars = originalDeployment.environment_variables.map(env => ({
       ...env,
-      defaultValue: env.isSecret && env.defaultValue ? env.defaultValue : env.defaultValue,
+      default_value: env.is_secret && env.default_value ? env.default_value : env.default_value,
     }));
 
     // Create deployment data using original deployment as base with optional overrides
     const deploymentData: ServiceCreateDeploymentDto & { owner: User } = {
-      projectId: originalDeployment.projectId,
-      licenseId: originalDeployment.licenseId,
-      userLicenseId: originalDeployment.userLicenseId,
-      configurationId: originalDeployment.configurationId,
+      projectId: originalDeployment.project_id,
+      licenseId: originalDeployment.license_id,
+      userLicenseId: originalDeployment.user_license_id,
+      configurationId: originalDeployment.configuration_id,
       environment: overrides.environment || originalDeployment.environment,
       branch: overrides.branch || originalDeployment.branch,
       environmentVariables: overrides.environmentVariables || originalEnvVars,
-      deploymentUrl: originalDeployment.deploymentUrl,
+      deploymentUrl: originalDeployment.deployment_url,
       ownerId: user.id,
-      siteId: originalDeployment.siteId,
+      siteId: originalDeployment.site_id,
       owner: user,
     };
 
@@ -720,7 +729,7 @@ export class DeploymentService {
       project: originalDeployment.project,
       configuration: originalDeployment.configuration,
       license: originalDeployment.license,
-      userLicense: originalDeployment.userLicense,
+      userLicense: userLicense, // Use the freshly fetched userLicense
     };
 
     this.logger.log(

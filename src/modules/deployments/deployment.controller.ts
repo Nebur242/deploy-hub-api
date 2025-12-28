@@ -28,24 +28,24 @@ import { RedeployDeploymentDto } from './dto/redeploy-deployment.dto';
 import { Deployment } from './entities/deployment.entity';
 import { NetlifyService } from './services/netlify.service';
 import { VercelService } from './services/vercel.service';
-import { LicenseOption } from '../licenses/entities/license-option.entity';
-import { UserLicense } from '../licenses/entities/user-license.entity';
+import { License } from '../license/entities/license.entity';
+import { UserLicense } from '../license/entities/user-license.entity';
 import {
   EnvironmentVariableDto,
   EnvironmentVariableType,
-} from '../projects/dto/create-project-configuration.dto';
+} from '../project-config/dto/create-project-configuration.dto';
 import {
   DeploymentProvider,
   ProjectConfiguration,
-} from '../projects/entities/project-configuration.entity';
+} from '../project-config/entities/project-configuration.entity';
 import { Project } from '../projects/entities/project.entity';
 import { User } from '../users/entities/user.entity';
 
 export interface DeploymentEntities {
   project: Project;
   configuration: ProjectConfiguration;
-  license: LicenseOption;
-  userLicense: UserLicense; // Optional, only needed for limit checks
+  license: License;
+  userLicense: UserLicense | null; // Optional, only needed for limit checks
 }
 
 interface CreateDeploymentContext {
@@ -67,8 +67,8 @@ export class DeploymentController {
     private projectConfigurationRepository: Repository<ProjectConfiguration>,
     private readonly vercelService: VercelService,
     private readonly netlifyService: NetlifyService,
-    @InjectRepository(LicenseOption)
-    private licenseRepository: Repository<LicenseOption>,
+    @InjectRepository(License)
+    private licenseRepository: Repository<License>,
     @InjectRepository(UserLicense)
     private userLicenseRepository: Repository<UserLicense>,
   ) {}
@@ -138,23 +138,32 @@ export class DeploymentController {
   /**
    * Validate deployment limits for the user
    * Project owners bypass all license limitations
+   * Test deployments don't consume license deployments
    */
   private async validateDeploymentLimits(context: CreateDeploymentContext): Promise<void> {
     const { dto, user, entities } = context;
 
     // Check if the user is the project owner
-    if (entities.project.ownerId === user.id) {
+    if (entities.project.owner_id === user.id) {
       this.logger.log(
         `User ${user.id} is the project owner for project ${entities.project.id}. Bypassing license validation.`,
       );
       return; // Skip all license validation for project owners
     }
 
+    // Test deployments don't consume license deployments
+    if (dto.isTest) {
+      this.logger.log(
+        `Test deployment requested for project ${entities.project.id}. Bypassing deployment limit checks.`,
+      );
+      return;
+    }
+
     // Find active UserLicense for this user and license
     const userLicense = await this.userLicenseRepository.findOne({
       where: {
-        licenseId: dto.licenseId,
-        ownerId: user.id,
+        license_id: dto.licenseId,
+        owner_id: user.id,
         active: true,
       },
     });
@@ -163,7 +172,7 @@ export class DeploymentController {
       throw new ForbiddenException('No active license found for this deployment');
     }
 
-    if (userLicense.count >= userLicense.maxDeployments) {
+    if (userLicense.count >= userLicense.max_deployments) {
       throw new ForbiddenException('Maximum deployments limit reached');
     }
   }
@@ -173,7 +182,7 @@ export class DeploymentController {
    */
   private processDeploymentByProvider(context: CreateDeploymentContext) {
     const { entities } = context;
-    const provider = entities.configuration.deploymentOption.provider;
+    const provider = entities.configuration.deployment_option.provider;
 
     switch (provider) {
       case DeploymentProvider.VERCEL:
@@ -200,8 +209,8 @@ export class DeploymentController {
     try {
       // Create Vercel project
       const vercelProject = await this.vercelService.createProject({
-        orgId: orgIdVar.defaultValue,
-        token: tokenVar.defaultValue,
+        orgId: orgIdVar.default_value,
+        token: tokenVar.default_value,
       });
 
       if (!vercelProject) {
@@ -238,7 +247,7 @@ export class DeploymentController {
     try {
       // Create Netlify site
       const netlifySite = await this.netlifyService.createSite({
-        token: tokenVar.defaultValue,
+        token: tokenVar.default_value,
       });
 
       if (!netlifySite) {
@@ -318,7 +327,7 @@ export class DeploymentController {
    * Update existing environment variable value
    */
   private updateEnvironmentVariable(envVars: EnvironmentVariableDto[], key: string, value: string) {
-    return envVars.map(env => (env.key === key ? { ...env, defaultValue: value } : env));
+    return envVars.map(env => (env.key === key ? { ...env, default_value: value } : env));
   }
 
   /**
@@ -336,15 +345,15 @@ export class DeploymentController {
     if (existingIndex >= 0) {
       updatedEnvVars[existingIndex] = {
         ...updatedEnvVars[existingIndex],
-        defaultValue: value,
+        default_value: value,
       };
     } else {
       updatedEnvVars.push({
         key,
-        defaultValue: value,
+        default_value: value,
         description,
-        isRequired: true,
-        isSecret: false,
+        is_required: true,
+        is_secret: false,
         type: EnvironmentVariableType.TEXT,
       });
     }
@@ -356,7 +365,7 @@ export class DeploymentController {
   async getDeployment(@Param('deploymentId') deploymentId: string, @CurrentUser() user: User) {
     const deployment = await this.deploymentService.getDeployment(deploymentId);
 
-    if (deployment.ownerId !== user.id) {
+    if (deployment.owner_id !== user.id) {
       throw new ForbiddenException('You do not have permission to access this deployment');
     }
 
@@ -367,7 +376,7 @@ export class DeploymentController {
   async retryDeployment(@Param('deploymentId') deploymentId: string, @CurrentUser() user: User) {
     const deployment = await this.deploymentService.getDeployment(deploymentId);
 
-    if (deployment.ownerId !== user.id) {
+    if (deployment.owner_id !== user.id) {
       throw new ForbiddenException('You do not have permission to retry this deployment');
     }
 
@@ -450,7 +459,7 @@ export class DeploymentController {
   async getDeploymentLogs(@Param('deploymentId') deploymentId: string, @CurrentUser() user: User) {
     const deployment = await this.deploymentService.getDeployment(deploymentId);
 
-    if (deployment.ownerId !== user.id) {
+    if (deployment.owner_id !== user.id) {
       throw new ForbiddenException('You do not have permission to access this deployment');
     }
 

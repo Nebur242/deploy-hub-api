@@ -1,4 +1,4 @@
-import { DeploymentProvider } from '@app/modules/projects/entities/project-configuration.entity';
+import { DeploymentProvider } from '@app/modules/project-config/entities/project-configuration.entity';
 import { Injectable } from '@nestjs/common';
 
 import { Deployment } from '../entities/deployment.entity';
@@ -6,7 +6,7 @@ import { Deployment } from '../entities/deployment.entity';
 @Injectable()
 export class DeploymentUrlExtractorService {
   extractUrlFromLogs(logs: string, deployment: Deployment) {
-    switch (deployment.configuration.deploymentOption.provider) {
+    switch (deployment.configuration.deployment_option.provider) {
       case DeploymentProvider.VERCEL: {
         return this.extractVercelUrl(logs);
       }

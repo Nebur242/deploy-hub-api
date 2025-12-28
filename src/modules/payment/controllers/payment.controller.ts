@@ -36,24 +36,24 @@ export class PaymentController {
     return this.paymentService.findOne(id);
   }
 
-  @Get('order/:orderId')
+  @Get('order/:order_id')
   @ApiOperation({ summary: 'Get payments by order ID' })
   @ApiResponse({ status: 200, description: 'Returns the list of payments for the order' })
-  @ApiParam({ name: 'orderId', description: 'Order ID' })
+  @ApiParam({ name: 'order_id', description: 'Order ID' })
   @Authenticated()
-  findByOrderId(@CurrentUser() user: User, @Param('orderId') orderId: string) {
+  findByOrderId(@CurrentUser() user: User, @Param('order_id') orderId: string) {
     if (!user || !user.id) {
       throw new UnauthorizedException('User not authenticated or missing ID');
     }
     return this.paymentService.findByOrderId(orderId, user.id);
   }
 
-  @Get('admin/order/:orderId')
+  @Get('admin/order/:order_id')
   @Admin()
   @ApiOperation({ summary: 'Admin - Get payments by order ID' })
   @ApiResponse({ status: 200, description: 'Returns the list of payments for the order' })
-  @ApiParam({ name: 'orderId', description: 'Order ID' })
-  findByOrderIdAdmin(@Param('orderId') orderId: string) {
+  @ApiParam({ name: 'order_id', description: 'Order ID' })
+  findByOrderIdAdmin(@Param('order_id') orderId: string) {
     return this.paymentService.findByOrderId(orderId);
   }
 

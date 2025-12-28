@@ -37,31 +37,31 @@ export class Category {
 
   @Column({ nullable: true })
   @Index()
-  ownerId: string;
+  owner_id: string;
 
   @ManyToOne(() => User, { onDelete: 'SET NULL' })
-  @JoinColumn({ name: 'ownerId' })
+  @JoinColumn({ name: 'owner_id' })
   owner: User;
 
   @Column({ nullable: true })
-  parentId?: string | null;
+  parent_id?: string | null;
 
   @ManyToOne(() => Category, category => category.children, { onDelete: 'SET NULL' })
-  @JoinColumn({ name: 'parentId' })
+  @JoinColumn({ name: 'parent_id' })
   parent?: Category;
 
   @OneToMany(() => Category, category => category.parent)
   children: Category[];
 
   @Column({ default: 0 })
-  sortOrder: number;
+  sort_order: number;
 
   @Column({ default: 'active' })
   status: `${CategoryStatus}`;
 
   @CreateDateColumn()
-  createdAt: Date;
+  created_at: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updated_at: Date;
 }

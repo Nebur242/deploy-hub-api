@@ -12,9 +12,10 @@ import { CategoriesModule } from './modules/categories/categories.module';
 import { DeploymentModule } from './modules/deployments/deployment-module.module';
 import { FirebaseModule } from './modules/firebase/firebase.module';
 import { HealthModule } from './modules/health/health.module';
-import { LicensesModule } from './modules/licenses/licenses.module';
+import { LicenseModule } from './modules/license/license.module';
 import { MediaModule } from './modules/media/media.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { OrderModule } from './modules/order/order.module';
 import { PaymentModule } from './modules/payment/payment.module';
 import { ProjectsModule } from './modules/projects/projects.module';
 import { TestHelpersModule } from './modules/test-helpers/test-helpers.module';
@@ -52,7 +53,8 @@ import { UserModule } from './modules/users/users.module';
     UserModule,
     MediaModule,
     ProjectsModule,
-    LicensesModule,
+    LicenseModule,
+    OrderModule,
     PaymentModule,
     DeploymentModule,
     HealthModule,

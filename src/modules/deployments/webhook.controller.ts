@@ -53,7 +53,7 @@ export class GithubWebhookController {
 
       // Check if this workflow run is associated with any deployments
       const deployment = await this.deploymentRepository.findOne({
-        where: { workflowRunId },
+        where: { workflow_run_id: workflowRunId },
       });
 
       if (!deployment) {

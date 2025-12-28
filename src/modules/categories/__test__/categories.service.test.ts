@@ -90,7 +90,7 @@ describe('CategoryService', () => {
         status: 'pending',
       };
 
-      const createdCategory = { ...createCategoryDto, id: 'category-id', ownerId: mockUser.id };
+      const createdCategory = { ...createCategoryDto, id: 'category-id', owner_id: mockUser.id };
 
       categoryRepository.findOne.mockResolvedValue(null);
       categoryRepository.create.mockReturnValue(createdCategory as any);
@@ -101,7 +101,7 @@ describe('CategoryService', () => {
       expect(categoryRepository.findOne).toHaveBeenCalled();
       expect(categoryRepository.create).toHaveBeenCalledWith({
         ...createCategoryDto,
-        ownerId: mockUser.id,
+        owner_id: mockUser.id,
       });
       expect(categoryRepository.save).toHaveBeenCalled();
       expect(result).toEqual(createdCategory);
@@ -130,7 +130,7 @@ describe('CategoryService', () => {
       const createCategoryDto: CreateCategoryDto = {
         name: 'Test Category',
         slug: 'test-category',
-        parentId: 'parent-id',
+        parent_id: 'parent-id',
         status: 'pending',
       };
 
@@ -154,7 +154,7 @@ describe('CategoryService', () => {
       const createdCategory = {
         ...createCategoryDto,
         id: 'category-id',
-        ownerId: mockUser.id,
+        owner_id: mockUser.id,
       };
 
       categoryRepository.findOne.mockResolvedValue(null);
@@ -165,7 +165,7 @@ describe('CategoryService', () => {
 
       expect(categoryRepository.create).toHaveBeenCalledWith({
         ...createCategoryDto,
-        ownerId: mockUser.id,
+        owner_id: mockUser.id,
       });
       expect(result.status).toEqual('inactive');
     });
@@ -219,7 +219,7 @@ describe('CategoryService', () => {
       const existingCategory = {
         id: 'test-id',
         name: 'Test Category',
-        ownerId: mockUser.id,
+        owner_id: mockUser.id,
       };
       const updatedCategory = { ...existingCategory, ...updateCategoryDto };
 
@@ -238,7 +238,7 @@ describe('CategoryService', () => {
       const existingCategory = {
         id: 'test-id',
         name: 'Test Category',
-        ownerId: 'different-user-id',
+        owner_id: 'different-user-id',
       };
 
       categoryRepository.findOne.mockResolvedValue(existingCategory as any);
@@ -253,7 +253,7 @@ describe('CategoryService', () => {
       const existingCategory = {
         id: 'test-id',
         name: 'Test Category',
-        ownerId: 'different-user-id',
+        owner_id: 'different-user-id',
       };
       const updatedCategory = { ...existingCategory, ...updateCategoryDto };
 
@@ -273,7 +273,7 @@ describe('CategoryService', () => {
         id: 'test-id',
         name: 'Test Category',
         status: 'active',
-        ownerId: mockUser.id,
+        owner_id: mockUser.id,
       };
       const updatedCategory = { ...existingCategory, ...updateCategoryDto };
 
@@ -294,7 +294,7 @@ describe('CategoryService', () => {
 
   describe('remove', () => {
     it('should remove a category successfully', async () => {
-      const mockCategory = { id: 'test-id', ownerId: mockUser.id };
+      const mockCategory = { id: 'test-id', owner_id: mockUser.id };
 
       categoryRepository.findOne.mockResolvedValue(mockCategory as any);
       categoryRepository.count.mockResolvedValue(0); // No children
@@ -306,7 +306,7 @@ describe('CategoryService', () => {
     });
 
     it('should throw ConflictException if category has children', async () => {
-      const mockCategory = { id: 'test-id', ownerId: mockUser.id };
+      const mockCategory = { id: 'test-id', owner_id: mockUser.id };
 
       categoryRepository.findOne.mockResolvedValue(mockCategory as any);
       categoryRepository.count.mockResolvedValue(1); // Has children

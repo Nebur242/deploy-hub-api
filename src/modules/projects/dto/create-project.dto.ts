@@ -43,7 +43,7 @@ export class CreateProjectDto {
   @IsString()
   @IsUrl()
   @ApiProperty({ description: 'Preview URL for the project', required: false })
-  previewUrl?: string;
+  preview_url?: string;
 
   @IsOptional()
   @IsString()
@@ -52,7 +52,7 @@ export class CreateProjectDto {
 
   @IsArray()
   @IsString({ each: true })
-  techStack: string[];
+  tech_stack: string[];
 
   @IsEnum(Visibility)
   @IsOptional()

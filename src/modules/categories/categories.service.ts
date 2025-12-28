@@ -41,9 +41,9 @@ export class CategoryService {
       );
     }
     // Validate parent category if provided
-    if (createCategoryDto.parentId && createCategoryDto.parentId !== 'root') {
+    if (createCategoryDto.parent_id && createCategoryDto.parent_id !== 'root') {
       const parentCategory = await this.categoryRepository.findOne({
-        where: { id: createCategoryDto.parentId },
+        where: { id: createCategoryDto.parent_id },
       });
 
       if (!parentCategory) {
@@ -54,8 +54,8 @@ export class CategoryService {
     // Create and save the new category
     const category = this.categoryRepository.create({
       ...createCategoryDto,
-      ownerId: user.id,
-      parentId: createCategoryDto.parentId === 'root' ? null : createCategoryDto.parentId,
+      owner_id: user.id,
+      parent_id: createCategoryDto.parent_id === 'root' ? null : createCategoryDto.parent_id,
     });
 
     return this.categoryRepository.save(category);
@@ -65,17 +65,17 @@ export class CategoryService {
    * Find all categories with optional filtering
    */
   findAll(filters: CategoryFilterDto): Promise<Pagination<Category>> {
-    const { parentId, search, status, ownerId, page = 1, limit = 10 } = filters;
+    const { parent_id, search, status, owner_id, page = 1, limit = 10 } = filters;
 
     // Build where conditions
     const where: FindManyOptions<Category>['where'] = {
-      ownerId,
+      owner_id,
     };
 
-    if (parentId === 'root') {
-      where.parentId = IsNull();
-    } else if (parentId) {
-      where.parentId = parentId;
+    if (parent_id === 'root') {
+      where.parent_id = IsNull();
+    } else if (parent_id) {
+      where.parent_id = parent_id;
     }
 
     if (status) {
@@ -87,7 +87,7 @@ export class CategoryService {
       where,
       relations: ['parent'],
       order: {
-        sortOrder: 'ASC',
+        sort_order: 'ASC',
         name: 'ASC',
       },
     };
@@ -106,29 +106,30 @@ export class CategoryService {
     options: IPaginationOptions,
     filters: CategoryFilterDto,
   ): Promise<Pagination<Category>> {
-    const { parentId, status, ownerId, search } = filters;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { parent_id, status, owner_id, search } = filters;
     const queryBuilder = this.categoryRepository.createQueryBuilder('category');
 
     // Apply filters
-    if (parentId === 'root') {
-      queryBuilder.andWhere('category.parentId IS NULL');
-    } else if (parentId) {
-      queryBuilder.andWhere('category.parentId = :parentId', { parentId });
+    if (filters.parent_id === 'root') {
+      queryBuilder.andWhere('category.parent_id IS NULL');
+    } else if (filters.parent_id) {
+      queryBuilder.andWhere('category.parent_id = :parentId', { parentId: filters.parent_id });
     }
 
-    if (status) {
-      queryBuilder.andWhere('category.status = :status', { status });
+    if (filters.status) {
+      queryBuilder.andWhere('category.status = :status', { status: filters.status });
     }
 
-    if (ownerId) {
-      queryBuilder.andWhere('category.ownerId = :ownerId', { ownerId });
+    if (filters.owner_id) {
+      queryBuilder.andWhere('category.owner_id = :ownerId', { ownerId: filters.owner_id });
     }
 
-    if (search) {
-      queryBuilder.andWhere('category.name ILIKE :search', { search: `%${search}%` });
+    if (filters.search) {
+      queryBuilder.andWhere('category.name ILIKE :search', { search: `%${filters.search}%` });
     }
 
-    queryBuilder.orderBy('category.sortOrder', 'ASC').addOrderBy('category.name', 'ASC');
+    queryBuilder.orderBy('category.sort_order', 'ASC').addOrderBy('category.name', 'ASC');
 
     return paginate<Category>(queryBuilder, options);
   }
@@ -141,8 +142,8 @@ export class CategoryService {
     // Using underscore prefix to indicate intentionally unused variable
     const _rootCategories = allCategories.items.filter(
       category =>
-        (!category.parentId || filters.parentId === category.id) &&
-        category.ownerId === filters.ownerId,
+        (!category.parent_id || filters.parent_id === category.id) &&
+        category.owner_id === filters.owner_id,
     );
 
     // Define a type for category with children
@@ -153,7 +154,7 @@ export class CategoryService {
       parentId: string | null = null,
     ): CategoryWithChildren[] => {
       return categories
-        .filter(category => category.parentId === parentId)
+        .filter(category => category.parent_id === parentId)
         .map(category => {
           const children = buildTree(categories, category.id);
           const categoryWithChildren: CategoryWithChildren = {
@@ -239,17 +240,17 @@ export class CategoryService {
 
     // Validate parent category if changing
     if (
-      updateCategoryDto.parentId &&
-      updateCategoryDto.parentId !== category.parentId &&
-      updateCategoryDto.parentId !== 'root'
+      updateCategoryDto.parent_id &&
+      updateCategoryDto.parent_id !== category.parent_id &&
+      updateCategoryDto.parent_id !== 'root'
     ) {
       // Prevent circular references
-      if (updateCategoryDto.parentId === id) {
+      if (updateCategoryDto.parent_id === id) {
         throw new ConflictException('Category cannot be its own parent');
       }
 
       const parentCategory = await this.categoryRepository.findOne({
-        where: { id: updateCategoryDto.parentId },
+        where: { id: updateCategoryDto.parent_id },
       });
 
       if (!parentCategory) {
@@ -258,17 +259,17 @@ export class CategoryService {
 
       // Check for deeper circular references
       let currentParent = parentCategory;
-      while (currentParent.parentId) {
-        if (currentParent.parentId === id) {
+      while (currentParent.parent_id) {
+        if (currentParent.parent_id === id) {
           throw new ConflictException('Circular reference detected in category hierarchy');
         }
         const parent = await this.categoryRepository.findOne({
-          where: { id: currentParent.parentId },
+          where: { id: currentParent.parent_id },
         });
 
         if (!parent) {
           throw new NotFoundException(
-            `Parent category with ID ${currentParent.parentId} not found`,
+            `Parent category with ID ${currentParent.parent_id} not found`,
           );
         }
 
@@ -281,11 +282,11 @@ export class CategoryService {
       });
     }
 
-    if (updateCategoryDto.parentId === 'root') {
+    if (updateCategoryDto.parent_id === 'root') {
       Object.assign(category, updateCategoryDto);
       return this.categoryRepository.save({
         ...category,
-        parentId: null,
+        parent_id: null,
         parent: undefined,
       });
     }
@@ -305,7 +306,7 @@ export class CategoryService {
 
     // Check if category has children
     const childrenCount = await this.categoryRepository.count({
-      where: { parentId: id },
+      where: { parent_id: id },
     });
 
     if (childrenCount > 0) {
@@ -320,7 +321,7 @@ export class CategoryService {
    */
   private checkPermission(category: Category, user: User): void {
     const isAdmin = user.roles.includes(Role.ADMIN);
-    const isOwner = category.ownerId === user.id;
+    const isOwner = category.owner_id === user.id;
 
     if (!isAdmin && !isOwner) {
       throw new ForbiddenException('You do not have permission to modify this category');

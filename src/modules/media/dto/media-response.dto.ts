@@ -17,10 +17,10 @@ export class MediaResponseDto {
   readonly filename: string;
 
   @ApiProperty({ example: 'profile-photo.jpg' })
-  readonly originalFilename: string;
+  readonly original_filename: string;
 
   @ApiProperty({ example: 'image/jpeg' })
-  readonly mimeType: string;
+  readonly mime_type: string;
 
   @ApiProperty({ enum: MediaType, example: MediaType.IMAGE })
   readonly type: MediaType;
@@ -34,7 +34,7 @@ export class MediaResponseDto {
   @ApiPropertyOptional({
     example: 'https://storage.googleapis.com/bucket-name/path/to/thumbnail.jpg',
   })
-  readonly thumbnailUrl: string;
+  readonly thumbnail_url: string;
 
   @ApiPropertyOptional({ example: 1920 })
   readonly width: number;
@@ -52,7 +52,7 @@ export class MediaResponseDto {
   readonly metadata: Record<string, string>;
 
   @ApiProperty({ example: true })
-  readonly isPublic: boolean;
+  readonly is_public: boolean;
 
   @ApiPropertyOptional()
   @Type(() => OwnerDto)
@@ -65,10 +65,10 @@ export class MediaResponseDto {
   readonly folder: string;
 
   @ApiProperty({ example: '2023-01-01T12:00:00Z' })
-  readonly createdAt: Date;
+  readonly created_at: Date;
 
   @ApiProperty({ example: '2023-01-01T12:00:00Z' })
-  readonly updatedAt: Date;
+  readonly updated_at: Date;
 }
 
 export class PaginationMetaDto {

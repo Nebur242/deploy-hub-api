@@ -1,8 +1,8 @@
 export class GitHubAccount {
   username: string;
-  accessToken: string;
+  access_token: string;
   repository: string;
-  workflowFile: string;
+  workflow_file: string;
   available: boolean;
   failureCount: number;
   lastUsed?: Date;

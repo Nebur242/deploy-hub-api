@@ -1,5 +1,7 @@
 import { Category } from '@app/modules/categories/entities/category.entity';
-import { LicenseOption } from '@app/modules/licenses/entities/license-option.entity';
+import { License } from '@app/modules/license/entities/license.entity';
+import { ProjectConfiguration } from '@app/modules/project-config/entities/project-configuration.entity';
+import { ProjectVersion } from '@app/modules/project-config/entities/project-version.entity';
 import {
   Column,
   CreateDateColumn,
@@ -11,9 +13,6 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-
-import { ProjectConfiguration } from './project-configuration.entity';
-import { ProjectVersion } from './project-version.entity';
 
 export enum TechStack {
   REACT = 'react',
@@ -38,13 +37,13 @@ export class Project {
   description: string;
 
   @Column({ name: 'owner_id' })
-  ownerId: string;
+  owner_id: string;
 
   @Column({ nullable: false })
   repository: string;
 
   @Column({ nullable: true })
-  previewUrl?: string;
+  preview_url?: string;
 
   @Column({ nullable: true })
   image?: string;
@@ -54,7 +53,7 @@ export class Project {
   slug: string;
 
   @Column({ type: 'text', array: true, default: [] })
-  techStack: string[];
+  tech_stack: string[];
 
   @Column({
     type: 'enum',
@@ -72,10 +71,10 @@ export class Project {
   categories: Category[];
 
   @CreateDateColumn()
-  createdAt: Date;
+  created_at: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updated_at: Date;
 
   @OneToMany(() => ProjectVersion, version => version.project, {
     cascade: true,
@@ -91,10 +90,10 @@ export class Project {
   })
   configurations: ProjectConfiguration[];
 
-  @ManyToMany(() => LicenseOption, licenseOption => licenseOption.projects)
+  @ManyToMany(() => License, license => license.projects)
   @JoinTable({
     joinColumn: { name: 'project_id', referencedColumnName: 'id' },
     inverseJoinColumn: { name: 'license_id', referencedColumnName: 'id' },
   })
-  licenses: LicenseOption[];
+  licenses: License[];
 }

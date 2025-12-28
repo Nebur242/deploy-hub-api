@@ -1,3 +1,4 @@
+import { UserNotification } from '../user-notification.entity';
 import { UserPreferences } from '../user-preferences.entity';
 import { User } from '../user.entity';
 
@@ -11,18 +12,18 @@ describe('User Entity', () => {
     const user = new User();
     user.id = 'test-id';
     user.uid = 'firebase-uid';
-    user.firstName = 'John';
-    user.lastName = 'Doe';
+    user.first_name = 'John';
+    user.last_name = 'Doe';
     user.company = 'Test Co';
-    user.profilePicture = 'profile.jpg';
+    user.profile_picture = 'profile.jpg';
     user.roles = ['user'];
 
     expect(user.id).toEqual('test-id');
     expect(user.uid).toEqual('firebase-uid');
-    expect(user.firstName).toEqual('John');
-    expect(user.lastName).toEqual('Doe');
+    expect(user.first_name).toEqual('John');
+    expect(user.last_name).toEqual('Doe');
     expect(user.company).toEqual('Test Co');
-    expect(user.profilePicture).toEqual('profile.jpg');
+    expect(user.profile_picture).toEqual('profile.jpg');
     expect(user.roles).toEqual(['user']);
   });
 
@@ -37,24 +38,41 @@ describe('User Entity', () => {
     expect(user.preferences.id).toEqual('pref-id');
   });
 
-  it('should have createdAt and updatedAt dates', () => {
+  it('should associate with notifications', () => {
+    const user = new User();
+    const notifications = new UserNotification();
+    notifications.id = 'notif-id';
+    notifications.project_updates = true;
+    notifications.deployment_alerts = false;
+    notifications.license_expiration = true;
+
+    user.notifications = notifications;
+
+    expect(user.notifications).toBeDefined();
+    expect(user.notifications.id).toEqual('notif-id');
+    expect(user.notifications.project_updates).toBe(true);
+    expect(user.notifications.deployment_alerts).toBe(false);
+    expect(user.notifications.license_expiration).toBe(true);
+  });
+
+  it('should have created_at and updated_at dates', () => {
     const user = new User();
     const now = new Date();
 
-    user.createdAt = now;
-    user.updatedAt = now;
+    user.created_at = now;
+    user.updated_at = now;
 
-    expect(user.createdAt).toEqual(now);
-    expect(user.updatedAt).toEqual(now);
+    expect(user.created_at).toEqual(now);
+    expect(user.updated_at).toEqual(now);
   });
 
   it('should have default values for non-required fields', () => {
     const user = new User();
 
-    expect(user.firstName).toBeUndefined();
-    expect(user.lastName).toBeUndefined();
+    expect(user.first_name).toBeUndefined();
+    expect(user.last_name).toBeUndefined();
     expect(user.company).toBeUndefined();
-    expect(user.profilePicture).toBeUndefined();
+    expect(user.profile_picture).toBeUndefined();
   });
 
   it('should have default role as user', () => {

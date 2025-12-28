@@ -6,13 +6,13 @@ export class UserNotification {
   id: string;
 
   @Column({ default: true })
-  projectUpdates: boolean;
+  project_updates: boolean;
 
   @Column({ default: true })
-  deploymentAlerts: boolean;
+  deployment_alerts: boolean;
 
   @Column({ default: true })
-  licenseExpiration: boolean;
+  license_expiration: boolean;
 
   @Column({ default: false })
   marketing: boolean;

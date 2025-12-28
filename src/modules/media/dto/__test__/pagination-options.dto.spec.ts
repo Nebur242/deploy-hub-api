@@ -8,7 +8,7 @@ describe('PaginationOptionsDto', () => {
     const dto = new PaginationOptionsDto();
     expect(dto.page).toBe(1);
     expect(dto.limit).toBe(10);
-    expect(dto.sortBy).toBe('createdAt');
+    expect(dto.sortBy).toBe('created_at');
     expect(dto.order).toBe(Order.DESC);
   });
 

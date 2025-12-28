@@ -53,7 +53,7 @@ export class CreateCategoryDto {
 
   @ApiPropertyOptional({ description: 'Parent category ID' })
   @IsOptional()
-  parentId?: string;
+  parent_id?: string;
 
   @ApiProperty({
     description: 'Status of the category',
@@ -69,7 +69,7 @@ export class CreateCategoryDto {
   @Min(0)
   @IsOptional()
   @Type(() => Number)
-  sortOrder?: number;
+  sort_order?: number;
 }
 
 export class UpdateCategoryDto {
@@ -113,19 +113,19 @@ export class UpdateCategoryDto {
 
   @ApiPropertyOptional({ description: 'Parent category ID' })
   @IsOptional()
-  parentId?: string | null;
+  parent_id?: string | null;
 
   @ApiPropertyOptional({ description: 'Is category active' })
   @IsBoolean()
   @IsOptional()
-  isActive?: boolean;
+  is_active?: boolean;
 
   @ApiPropertyOptional({ description: 'Sorting order' })
   @IsNumber()
   @IsOptional()
   @Min(0)
   @Type(() => Number)
-  sortOrder?: number;
+  sort_order?: number;
 }
 
 export class CategoryResponseDto {
@@ -148,13 +148,13 @@ export class CategoryResponseDto {
   icon: string;
 
   @ApiPropertyOptional()
-  ownerId?: string;
+  owner_id?: string;
 
   @ApiPropertyOptional()
-  parentId?: string | null;
+  parent_id?: string | null;
 
   @ApiProperty()
-  sortOrder: number;
+  sort_order: number;
 
   @ApiProperty({
     enum: ['pending', 'active', 'inactive', 'deleted'],
@@ -163,10 +163,10 @@ export class CategoryResponseDto {
   status: `${CategoryStatus}`;
 
   @ApiProperty()
-  createdAt: Date;
+  created_at: Date;
 
   @ApiProperty()
-  updatedAt: Date;
+  updated_at: Date;
 }
 
 export class CategoryTreeDto extends CategoryResponseDto {
@@ -177,13 +177,13 @@ export class CategoryTreeDto extends CategoryResponseDto {
 export class CategoryFilterDto {
   @ApiPropertyOptional({ description: 'Filter by parent ID (UUID or "root")' })
   @IsOptional()
-  @ValidateIf((o: CategoryFilterDto) => o.parentId !== 'root')
+  @ValidateIf((o: CategoryFilterDto) => o.parent_id !== 'root')
   @IsUUID()
-  parentId?: string;
+  parent_id?: string;
 
   @ApiPropertyOptional({ description: 'category owner id' })
   @IsOptional()
-  ownerId: string;
+  owner_id: string;
 
   @ApiPropertyOptional({ description: 'Search by name' })
   @IsString()

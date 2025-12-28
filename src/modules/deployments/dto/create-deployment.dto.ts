@@ -1,7 +1,15 @@
-import { EnvironmentVariableDto } from '@app/modules/projects/dto/create-project-configuration.dto';
+import { EnvironmentVariableDto } from '@app/modules/project-config/dto/create-project-configuration.dto';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsString, IsNotEmpty, ValidateNested, IsEnum, IsOptional, IsUUID } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  ValidateNested,
+  IsEnum,
+  IsOptional,
+  IsUUID,
+  IsBoolean,
+} from 'class-validator';
 
 import { DeplomentEnvironment } from '../entities/deployment.entity';
 
@@ -43,6 +51,16 @@ export class CreateDeploymentDto {
   @ValidateNested({ each: true })
   @Type(() => EnvironmentVariableDto)
   environmentVariables: EnvironmentVariableDto[];
+
+  @IsOptional()
+  @IsBoolean()
+  @ApiProperty({
+    description:
+      'Whether this is a test deployment (for testing configuration before making project public)',
+    example: false,
+    default: false,
+  })
+  isTest?: boolean;
 }
 
 export class ServiceCreateDeploymentDto extends CreateDeploymentDto {

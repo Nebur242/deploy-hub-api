@@ -39,7 +39,7 @@ export class MediaController {
   create(@Body() createMediaDto: CreateMediaDto, @CurrentUser() user: User) {
     return this.mediaService.create({
       ...createMediaDto,
-      ownerId: user.id,
+      owner_id: user.id,
     });
   }
 
@@ -53,7 +53,7 @@ export class MediaController {
   findAll(@Query() paginationOptionsDto: MediaQueryDto, @CurrentUser() user: User) {
     return this.mediaService.findAll({
       ...paginationOptionsDto,
-      ownerId: user.id,
+      owner_id: user.id,
     });
   }
 

@@ -42,7 +42,7 @@ export class DeploymentTrackerService {
       // Find running deployments, prioritizing newer ones first, with a batch limit
       const runningDeployments = await this.deploymentRepository.find({
         where: { status: DeploymentStatus.RUNNING },
-        order: { updatedAt: 'DESC' },
+        order: { updated_at: 'DESC' },
         take: this.batchSize,
       });
 
@@ -58,12 +58,13 @@ export class DeploymentTrackerService {
         runningDeployments.map(async deployment => {
           try {
             // Mark very old deployments as failed
-            if (deployment.updatedAt < cutoffTime) {
+            if (deployment.updated_at < cutoffTime) {
               this.logger.warn(
                 `Deployment ${deployment.id} has been running for too long, marking as failed`,
               );
               deployment.status = DeploymentStatus.FAILED;
-              deployment.errorMessage = 'Deployment timed out after exceeding maximum running time';
+              deployment.error_message =
+                'Deployment timed out after exceeding maximum running time';
               return this.deploymentRepository.save(deployment);
             }
 

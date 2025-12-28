@@ -24,16 +24,16 @@ export class User {
   email: string;
 
   @Column({ length: 50, nullable: true })
-  firstName?: string;
+  first_name?: string;
 
   @Column({ length: 50, nullable: true })
-  lastName?: string;
+  last_name?: string;
 
   @Column({ nullable: true })
   company: string;
 
   @Column({ nullable: true })
-  profilePicture: string;
+  profile_picture: string;
 
   @OneToOne(() => UserPreferences, { cascade: true })
   @JoinColumn()
@@ -47,8 +47,8 @@ export class User {
   roles: `${Role}`[];
 
   @CreateDateColumn()
-  createdAt: Date;
+  created_at: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updated_at: Date;
 }

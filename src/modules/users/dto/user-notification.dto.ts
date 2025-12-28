@@ -3,15 +3,15 @@ import { IsBoolean, IsOptional } from 'class-validator';
 export class UserNotificationDto {
   @IsOptional()
   @IsBoolean()
-  projectUpdates?: boolean;
+  project_updates?: boolean;
 
   @IsOptional()
   @IsBoolean()
-  deploymentAlerts?: boolean;
+  deployment_alerts?: boolean;
 
   @IsOptional()
   @IsBoolean()
-  licenseExpiration?: boolean;
+  license_expiration?: boolean;
 
   @IsOptional()
   @IsBoolean()

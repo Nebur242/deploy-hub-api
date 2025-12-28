@@ -1,3 +1,4 @@
+import { Order } from '@app/modules/order/entities/order.entity';
 import { Currency, PaymentMethod, PaymentStatus } from '@app/shared/enums';
 import {
   Column,
@@ -9,15 +10,13 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 
-import { Order } from './order.entity';
-
 @Entity('payments')
 export class Payment {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column()
-  orderId: string;
+  order_id: string;
 
   @Column()
   amount: number;
@@ -41,26 +40,26 @@ export class Payment {
     enum: PaymentMethod,
     default: PaymentMethod.CREDIT_CARD,
   })
-  paymentMethod: PaymentMethod;
+  payment_method: PaymentMethod;
 
   @Column({ nullable: true })
-  transactionId: string;
+  transaction_id: string;
 
   @Column({ nullable: true })
-  paymentGatewayResponse: string;
+  payment_gateway_response: string;
 
   @CreateDateColumn()
-  createdAt: Date;
+  created_at: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updated_at: Date;
 
   @Column({ nullable: true })
-  processedAt: Date;
+  processed_at: Date;
 
   // Relations
 
   @ManyToOne(() => Order, order => order.payments)
-  @JoinColumn({ name: 'orderId' })
+  @JoinColumn({ name: 'order_id' })
   order: Order;
 }

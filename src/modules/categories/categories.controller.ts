@@ -63,8 +63,8 @@ export class CategoryController {
     description: 'List of categories',
     type: [CategoryResponseDto],
   })
-  @ApiQuery({ name: 'parentId', required: false, description: 'Filter by parent ID or "root"' })
-  @ApiQuery({ name: 'isActive', required: false, description: 'Filter by active status' })
+  @ApiQuery({ name: 'parent_id', required: false, description: 'Filter by parent ID or "root"' })
+  @ApiQuery({ name: 'is_active', required: false, description: 'Filter by active status' })
   @ApiQuery({ name: 'search', required: false, description: 'Search by name' })
   @ApiQuery({
     name: 'includeInactive',
@@ -75,7 +75,7 @@ export class CategoryController {
     @Query() filters: CategoryFilterDto,
     @CurrentUser() user: User,
   ): Promise<Pagination<Category>> {
-    return this.categoryService.findAll({ ...filters, ownerId: user.id });
+    return this.categoryService.findAll({ ...filters, owner_id: user.id });
   }
 
   @Get('paginated')
@@ -112,8 +112,8 @@ export class CategoryController {
   })
   @ApiQuery({ name: 'page', required: false, description: 'Page number' })
   @ApiQuery({ name: 'limit', required: false, description: 'Items per page' })
-  @ApiQuery({ name: 'parentId', required: false, description: 'Filter by parent ID or "root"' })
-  @ApiQuery({ name: 'isActive', required: false, description: 'Filter by active status' })
+  @ApiQuery({ name: 'parent_id', required: false, description: 'Filter by parent ID or "root"' })
+  @ApiQuery({ name: 'is_active', required: false, description: 'Filter by active status' })
   @ApiQuery({ name: 'search', required: false, description: 'Search by name' })
   @ApiQuery({
     name: 'includeInactive',
@@ -132,7 +132,7 @@ export class CategoryController {
     description: 'Category hierarchy tree',
     type: [CategoryTreeDto],
   })
-  @ApiQuery({ name: 'parentId', required: false, description: 'Root node for the tree' })
+  @ApiQuery({ name: 'parent_id', required: false, description: 'Root node for the tree' })
   @ApiQuery({
     name: 'includeInactive',
     required: false,

@@ -14,7 +14,7 @@ import { User } from './entities/user.entity';
 import { NotificationScope } from '../notifications/entities/notification.enty';
 import { NotificationType } from '../notifications/enums/notification-type.enum';
 import { NotificationService } from '../notifications/services/notification.service';
-import { Order } from '../payment/entities/order.entity';
+import { Order } from '../order/entities/order.entity';
 import { Project } from '../projects/entities/project.entity';
 
 @Injectable()
@@ -52,6 +52,7 @@ export class UsersService {
     await this.notificationRepository.save(notifications);
 
     // Create the user
+    // Keys now match between DTO and Entity (snake_case)
     const user = this.userRepository.create({
       ...createUserDto,
       preferences,
@@ -101,8 +102,10 @@ export class UsersService {
 
   async updatePreferences(id: string, preferencesDto: UserPreferencesDto): Promise<User> {
     const user = await this.findOne(id);
-    // Update only the provided preference fields
+
+    // Keys now match (snake_case)
     Object.assign(user.preferences, preferencesDto);
+
     await this.preferencesRepository.save(user.preferences);
     return user;
   }
@@ -134,15 +137,15 @@ export class UsersService {
     return {
       id: user.id,
       uid: user.uid,
-      firstName: user?.firstName,
-      lastName: user?.lastName,
+      first_name: user?.first_name,
+      last_name: user?.last_name,
       company: user.company,
       preferences: user.preferences,
       notifications: user.notifications,
       roles: user.roles,
-      profilePicture: user.profilePicture,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
+      profile_picture: user.profile_picture,
+      created_at: user.created_at,
+      updated_at: user.updated_at,
     };
   }
 
@@ -243,17 +246,17 @@ export class UsersService {
    * @returns A promise resolving to void
    */
   async sendWelcomeEmailNotification(user: User & { email: string }): Promise<void> {
-    const firstName = user.firstName || 'User';
+    const first_name = user.first_name || 'User';
 
     await this.notificationService.create({
       type: NotificationType.EMAIL,
       userId: user.id,
       recipient: user.email,
       subject: 'Welcome to Deploy Hub!',
-      message: `Welcome to Deploy Hub, ${firstName}! We're excited to have you on board.`,
+      message: `Welcome to Deploy Hub, ${first_name}! We're excited to have you on board.`,
       scope: NotificationScope.WELCOME, // Enum value for template
       data: {
-        firstName: firstName,
+        firstName: first_name,
         logoUrl: process.env.LOGO_URL || 'https://deployhub.app/logo.png',
         dashboardUrl: process.env.DASHBOARD_URL || 'https://deployhub.app/dashboard',
         docsUrl: process.env.DOCS_URL || 'https://deployhub.app/docs',

@@ -91,7 +91,7 @@ await userService.updateUser(userId, {
 
 // Example: Updating user notification settings
 await userService.updateNotifications(userId, {
-  projectUpdates: true,
+  project_updates: true,
   marketing: false,
 });
 ```
@@ -271,9 +271,9 @@ This document provides an overview of the User API endpoints available in the `U
 **Request Body:**
 
 - `notificationDto` - The DTO containing user notification settings to be updated.
-  - `projectUpdates` (optional, boolean): Whether to receive project update notifications.
-  - `deploymentAlerts` (optional, boolean): Whether to receive deployment alert notifications.
-  - `licenseExpiration` (optional, boolean): Whether to receive license expiration notifications.
+  - `project_updates` (optional, boolean): Whether to receive project update notifications.
+  - `deployment_alerts` (optional, boolean): Whether to receive deployment alert notifications.
+  - `license_expiration` (optional, boolean): Whether to receive license expiration notifications.
   - `marketing` (optional, boolean): Whether to receive marketing notifications.
 
 **Response:**

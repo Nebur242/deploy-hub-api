@@ -1,43 +1,19 @@
-import { EncryptionService } from '@app/shared/encryption/encryption.service';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { ProjectConfigurationController } from './controllers/project-configuration.controller';
-import { ProjectVersionController } from './controllers/project-version.controller';
+import { Category } from '../categories/entities/category.entity';
+import { ProjectConfigModule } from '../project-config/project-config.module';
 import { ProjectController } from './controllers/project.controller';
 import { PublicProjectController } from './controllers/public-project.controller';
-import { ProjectConfiguration } from './entities/project-configuration.entity';
-import { ProjectVersion } from './entities/project-version.entity';
 import { Project } from './entities/project.entity';
 import { ProjectRepository } from './repositories/project.repository';
-import { ProjectConfigurationService } from './services/project-configuration.service';
-import { ProjectVersionService } from './services/project-version.service';
 import { ProjectService } from './services/project.service';
 import { PublicProjectService } from './services/public-project.service';
-import { Category } from '../categories/entities/category.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Project, ProjectVersion, ProjectConfiguration, Category])],
-  providers: [
-    ProjectRepository,
-    ProjectService,
-    ProjectVersionService,
-    ProjectConfigurationService,
-    PublicProjectService,
-    EncryptionService,
-  ],
-  controllers: [
-    ProjectController,
-    ProjectVersionController,
-    ProjectConfigurationController,
-    PublicProjectController,
-  ],
-  exports: [
-    ProjectRepository,
-    ProjectService,
-    ProjectVersionService,
-    ProjectConfigurationService,
-    PublicProjectService,
-  ],
+  imports: [TypeOrmModule.forFeature([Project, Category]), forwardRef(() => ProjectConfigModule)],
+  providers: [ProjectRepository, ProjectService, PublicProjectService],
+  controllers: [ProjectController, PublicProjectController],
+  exports: [ProjectRepository, ProjectService, PublicProjectService, TypeOrmModule],
 })
 export class ProjectsModule {}
