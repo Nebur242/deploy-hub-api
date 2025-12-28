@@ -1,29 +1,40 @@
 import { EncryptionService } from '@app/shared/encryption/encryption.service';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { DeploymentController } from './deployment.controller';
 import { DeploymentService } from './deployment.service';
 import { Deployment } from './entities/deployment.entity';
+import { DeploymentEventListener } from './listeners/deployment-event.listener';
+import { DeploymentRepository } from './repositories/deployment.repository';
+import { DeploymentConcurrencyService } from './services/deployment-concurrency.service';
 import { DeploymentTrackerService } from './services/deployment-tracker.service';
+import { GitHubAccountManagerService } from './services/github-account-manager.service';
 import { GithubDeployerService } from './services/github-deployer.service';
 import { GithubWebhookService } from './services/github-webhook.service';
 import { NetlifyService } from './services/netlify.service';
 import { DeploymentUrlExtractorService } from './services/url-extractor.service';
 import { VercelService } from './services/vercel.service';
 import { GithubWebhookController } from './webhook.controller';
-import { License } from '../license/entities/license.entity';
-import { UserLicense } from '../license/entities/user-license.entity';
-import { ProjectConfiguration } from '../project-config/entities/project-configuration.entity';
-import { Project } from '../projects/entities/project.entity';
+import { LicenseModule } from '../license/license.module';
+import { ProjectConfigModule } from '../project-config/project-config.module';
+import { ProjectsModule } from '../projects/projects.module';
+import { SubscriptionModule } from '../subscription/subscription.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Deployment, Project, ProjectConfiguration, License, UserLicense]),
+    TypeOrmModule.forFeature([Deployment]),
+    forwardRef(() => LicenseModule),
+    forwardRef(() => ProjectConfigModule),
+    forwardRef(() => ProjectsModule),
+    forwardRef(() => SubscriptionModule),
   ],
   controllers: [DeploymentController, GithubWebhookController],
   providers: [
     DeploymentService,
+    DeploymentRepository,
+    GitHubAccountManagerService,
+    DeploymentConcurrencyService,
     GithubDeployerService,
     EncryptionService,
     VercelService,
@@ -31,7 +42,14 @@ import { Project } from '../projects/entities/project.entity';
     DeploymentTrackerService,
     GithubWebhookService,
     DeploymentUrlExtractorService,
+    DeploymentEventListener,
   ],
-  exports: [DeploymentService, GithubDeployerService],
+  exports: [
+    DeploymentService,
+    DeploymentRepository,
+    GithubDeployerService,
+    GitHubAccountManagerService,
+    DeploymentConcurrencyService,
+  ],
 })
 export class DeploymentModule {}

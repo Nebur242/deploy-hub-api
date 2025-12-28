@@ -39,3 +39,26 @@ export enum PaymentMethod {
   BANK_TRANSFER = 'bank_transfer',
   STRIPE = 'stripe',
 }
+
+export enum SubscriptionStatus {
+  ACTIVE = 'active',
+  CANCELED = 'canceled',
+  INCOMPLETE = 'incomplete',
+  INCOMPLETE_EXPIRED = 'incomplete_expired',
+  PAST_DUE = 'past_due',
+  TRIALING = 'trialing',
+  UNPAID = 'unpaid',
+  PAUSED = 'paused',
+}
+
+export enum SubscriptionPlan {
+  FREE = 'free',
+  STARTER = 'starter',
+  PRO = 'pro',
+  ENTERPRISE = 'enterprise',
+}
+
+export enum BillingInterval {
+  MONTHLY = 'monthly',
+  YEARLY = 'yearly',
+}

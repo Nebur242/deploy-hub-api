@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
@@ -18,6 +19,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { OrderModule } from './modules/order/order.module';
 import { PaymentModule } from './modules/payment/payment.module';
 import { ProjectsModule } from './modules/projects/projects.module';
+import { SubscriptionModule } from './modules/subscription/subscription.module';
 import { TestHelpersModule } from './modules/test-helpers/test-helpers.module';
 import { UserModule } from './modules/users/users.module';
 
@@ -26,6 +28,22 @@ import { UserModule } from './modules/users/users.module';
     ConfigModule.forRoot({
       isGlobal: true,
       validate,
+    }),
+    EventEmitterModule.forRoot({
+      // Use wildcard events for flexibility
+      wildcard: true,
+      // Set delimiter for nested event names
+      delimiter: '.',
+      // Enable new listener events
+      newListener: false,
+      // Remove listener events
+      removeListener: false,
+      // Maximum listeners per event
+      maxListeners: 10,
+      // Show memory leak warning when max listeners exceeded
+      verboseMemoryLeak: true,
+      // Ignore errors when emitting events
+      ignoreErrors: false,
     }),
     ScheduleModule.forRoot(),
     CoreModule,
@@ -59,6 +77,7 @@ import { UserModule } from './modules/users/users.module';
     DeploymentModule,
     HealthModule,
     NotificationsModule,
+    SubscriptionModule,
   ],
   controllers: [AppController],
   providers: [AppService],

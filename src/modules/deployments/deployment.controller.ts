@@ -1,5 +1,10 @@
 import { CurrentUser } from '@app/core/decorators/current-user.decorator';
 import { Authenticated } from '@app/core/guards/roles-auth.guard';
+import { LicenseService } from '@app/modules/license/services/license.service';
+import { UserLicenseService } from '@app/modules/license/services/user-license.service';
+import { ProjectConfigurationService } from '@app/modules/project-config/services/project-configuration.service';
+import { ProjectService } from '@app/modules/projects/services/project.service';
+import { SubscriptionService } from '@app/modules/subscription/services/subscription.service';
 import {
   Controller,
   Post,
@@ -15,9 +20,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiResponse } from '@nestjs/swagger';
-import { InjectRepository } from '@nestjs/typeorm';
 import { Pagination } from 'nestjs-typeorm-paginate';
-import { Repository } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 
 import { DeploymentService } from './deployment.service';
@@ -28,31 +31,14 @@ import { RedeployDeploymentDto } from './dto/redeploy-deployment.dto';
 import { Deployment } from './entities/deployment.entity';
 import { NetlifyService } from './services/netlify.service';
 import { VercelService } from './services/vercel.service';
-import { License } from '../license/entities/license.entity';
+import { CreateDeploymentContext, DeploymentEntities } from './types/deployment.types';
 import { UserLicense } from '../license/entities/user-license.entity';
 import {
   EnvironmentVariableDto,
   EnvironmentVariableType,
 } from '../project-config/dto/create-project-configuration.dto';
-import {
-  DeploymentProvider,
-  ProjectConfiguration,
-} from '../project-config/entities/project-configuration.entity';
-import { Project } from '../projects/entities/project.entity';
+import { DeploymentProvider } from '../project-config/entities/project-configuration.entity';
 import { User } from '../users/entities/user.entity';
-
-export interface DeploymentEntities {
-  project: Project;
-  configuration: ProjectConfiguration;
-  license: License;
-  userLicense: UserLicense | null; // Optional, only needed for limit checks
-}
-
-interface CreateDeploymentContext {
-  dto: CreateDeploymentDto;
-  user: User;
-  entities: DeploymentEntities;
-}
 
 @Controller('deployments')
 @Authenticated()
@@ -61,16 +47,13 @@ export class DeploymentController {
 
   constructor(
     private readonly deploymentService: DeploymentService,
-    @InjectRepository(Project)
-    private projectRepository: Repository<Project>,
-    @InjectRepository(ProjectConfiguration)
-    private projectConfigurationRepository: Repository<ProjectConfiguration>,
+    private readonly projectService: ProjectService,
+    private readonly projectConfigurationService: ProjectConfigurationService,
     private readonly vercelService: VercelService,
     private readonly netlifyService: NetlifyService,
-    @InjectRepository(License)
-    private licenseRepository: Repository<License>,
-    @InjectRepository(UserLicense)
-    private userLicenseRepository: Repository<UserLicense>,
+    private readonly licenseService: LicenseService,
+    private readonly userLicenseService: UserLicenseService,
+    private readonly subscriptionService: SubscriptionService,
   ) {}
 
   @Post()
@@ -93,11 +76,18 @@ export class DeploymentController {
         `Processing deployment request for project ${entities.project.id} with configuration ${entities.configuration.id}`,
       );
 
-      // Check deployment limits
+      // Check deployment limits (both license and subscription)
       await this.validateDeploymentLimits(context);
 
       // Process deployment based on provider
-      return this.processDeploymentByProvider(context);
+      const deployment = await this.processDeploymentByProvider(context);
+
+      // Increment subscription deployment count for project owners
+      if (entities.project.owner_id === user.id && !createDeploymentDto.isTest) {
+        await this.subscriptionService.incrementDeploymentCount(user.id);
+      }
+
+      return deployment;
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Unknown error occurred');
       this.logger.error(`Deployment creation failed: ${error.message}`, error.stack);
@@ -106,14 +96,17 @@ export class DeploymentController {
   }
 
   /**
-   * Load and validate all required entities in parallel
+   * Load and validate all required entities using their services
    */
   private async loadAndValidateEntities(dto: CreateDeploymentDto): Promise<DeploymentEntities> {
+    // Load entities in parallel using their respective services
     const [project, configuration, license, userLicense] = await Promise.all([
-      this.projectRepository.findOne({ where: { id: dto.projectId } }),
-      this.projectConfigurationRepository.findOne({ where: { id: dto.configurationId } }),
-      this.licenseRepository.findOne({ where: { id: dto.licenseId } }),
-      this.userLicenseRepository.findOne({ where: { id: dto.userLicenseId } }),
+      this.projectService.findOne(dto.projectId).catch(() => null),
+      this.projectConfigurationService.findOne(dto.configurationId).catch(() => null),
+      this.licenseService.findOne(dto.licenseId).catch(() => null),
+      dto.userLicenseId
+        ? this.userLicenseService.getUserLicenseById(dto.userLicenseId).catch(() => null)
+        : Promise.resolve(null),
     ]);
 
     if (!project) {
@@ -128,30 +121,20 @@ export class DeploymentController {
       throw new NotFoundException('License not found');
     }
 
-    if (!userLicense) {
-      throw new NotFoundException('User license not found');
-    }
-
+    // User license is optional for project owners
     return { project, configuration, license, userLicense };
   }
 
   /**
    * Validate deployment limits for the user
-   * Project owners bypass all license limitations
-   * Test deployments don't consume license deployments
+   * Project owners are subject to subscription limits
+   * Non-owners are subject to license limits
+   * Test deployments don't consume any limits
    */
   private async validateDeploymentLimits(context: CreateDeploymentContext): Promise<void> {
     const { dto, user, entities } = context;
 
-    // Check if the user is the project owner
-    if (entities.project.owner_id === user.id) {
-      this.logger.log(
-        `User ${user.id} is the project owner for project ${entities.project.id}. Bypassing license validation.`,
-      );
-      return; // Skip all license validation for project owners
-    }
-
-    // Test deployments don't consume license deployments
+    // Test deployments don't consume any limits
     if (dto.isTest) {
       this.logger.log(
         `Test deployment requested for project ${entities.project.id}. Bypassing deployment limit checks.`,
@@ -159,20 +142,27 @@ export class DeploymentController {
       return;
     }
 
-    // Find active UserLicense for this user and license
-    const userLicense = await this.userLicenseRepository.findOne({
-      where: {
-        license_id: dto.licenseId,
-        owner_id: user.id,
-        active: true,
-      },
-    });
+    // Check if the user is the project owner
+    if (entities.project.owner_id === user.id) {
+      this.logger.log(
+        `User ${user.id} is the project owner for project ${entities.project.id}. Checking subscription limits.`,
+      );
+
+      // Project owners are subject to subscription deployment limits
+      await this.subscriptionService.validateDeployment(user.id);
+      return;
+    }
+
+    // Non-owners are subject to license limits
+    // Find active UserLicense for this user and license using service
+    const userLicense = await this.userLicenseService.findActiveUserLicense(dto.licenseId, user.id);
 
     if (!userLicense) {
       throw new ForbiddenException('No active license found for this deployment');
     }
 
-    if (userLicense.count >= userLicense.max_deployments) {
+    const hasAvailable = await this.userLicenseService.hasAvailableDeployments(userLicense.id);
+    if (!hasAvailable) {
       throw new ForbiddenException('Maximum deployments limit reached');
     }
   }
@@ -383,6 +373,24 @@ export class DeploymentController {
     return this.deploymentService.retryDeployment(deploymentId);
   }
 
+  @Post(':deploymentId/cancel')
+  @ApiOperation({ summary: 'Cancel a running or pending deployment' })
+  @ApiResponse({
+    status: 200,
+    description: 'Deployment cancellation result',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request - Cannot cancel deployment or not authorized',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Not found - Deployment not found',
+  })
+  cancelDeployment(@Param('deploymentId') deploymentId: string, @CurrentUser() user: User) {
+    return this.deploymentService.cancelDeployment(deploymentId, user.id);
+  }
+
   @Post(':deploymentId/redeploy')
   @ApiOperation({ summary: 'Redeploy an existing deployment with optional overrides' })
   @ApiResponse({
@@ -434,12 +442,13 @@ export class DeploymentController {
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit = 10,
     @CurrentUser() user: User,
   ): Promise<Pagination<Deployment>> {
-    const project = await this.projectRepository.findOne({
-      where: { id: filterDto.projectId },
-    });
-
-    if (!project) {
-      throw new ForbiddenException('Project not found');
+    // Validate project exists using service if projectId provided
+    if (filterDto.projectId) {
+      try {
+        await this.projectService.findOne(filterDto.projectId);
+      } catch {
+        throw new ForbiddenException('Project not found');
+      }
     }
 
     return this.deploymentService.getDeployments(
@@ -511,25 +520,13 @@ export class DeploymentController {
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit = 10,
     @CurrentUser() user: User,
   ): Promise<Pagination<UserLicense>> {
-    // Regular users can only see their own user licenses
-    const filters: {
-      licenseId?: string;
-      ownerId: string;
-      createdFrom?: string;
-      createdTo?: string;
-      minCount?: number;
-    } = {
-      licenseId: filterDto.licenseId,
-      ownerId: user.id, // Force filter by current user's ID for security
-      createdFrom: filterDto.createdFrom,
-      createdTo: filterDto.createdTo,
-      minCount: filterDto.minCount,
-    };
-
-    return this.deploymentService.getUserLicenses(filters, {
-      page,
-      limit,
-      route: 'deployments/licenses',
-    });
+    // Use UserLicenseService to get user licenses
+    return this.userLicenseService.getAllUserLicenses(
+      { page, limit, route: 'deployments/licenses' },
+      {
+        owner_id: user.id,
+        license_id: filterDto.licenseId,
+      },
+    );
   }
 }

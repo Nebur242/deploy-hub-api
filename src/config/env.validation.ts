@@ -206,6 +206,50 @@ export class EnvironmentVariables {
   @Expose()
   @IsNumber()
   REDIS_DB: number;
+
+  // Stripe configuration
+  @IsNotEmpty()
+  @IsString()
+  @Expose()
+  STRIPE_SECRET_KEY: string;
+
+  @IsNotEmpty()
+  @IsString()
+  @Expose()
+  STRIPE_WEBHOOK_SECRET: string;
+
+  // Stripe Starter Plan Prices
+  @IsOptional()
+  @IsString()
+  @Expose()
+  STRIPE_PRICE_STARTER_MONTHLY?: string;
+
+  @IsOptional()
+  @IsString()
+  @Expose()
+  STRIPE_PRICE_STARTER_YEARLY?: string;
+
+  // Stripe Pro Plan Prices
+  @IsOptional()
+  @IsString()
+  @Expose()
+  STRIPE_PRICE_PRO_MONTHLY?: string;
+
+  @IsOptional()
+  @IsString()
+  @Expose()
+  STRIPE_PRICE_PRO_YEARLY?: string;
+
+  // Stripe Enterprise Plan Prices
+  @IsOptional()
+  @IsString()
+  @Expose()
+  STRIPE_PRICE_ENTERPRISE_MONTHLY?: string;
+
+  @IsOptional()
+  @IsString()
+  @Expose()
+  STRIPE_PRICE_ENTERPRISE_YEARLY?: string;
 }
 
 export const validate = (config: Record<string, unknown>) => {

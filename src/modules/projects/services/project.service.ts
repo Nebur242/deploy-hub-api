@@ -138,4 +138,11 @@ export class ProjectService {
       sortDirection: searchDto?.sortDirection,
     });
   }
+
+  /**
+   * Count total projects for a specific owner
+   */
+  countByOwner(ownerId: string): Promise<number> {
+    return this.projectRepository.countByOwner(ownerId);
+  }
 }

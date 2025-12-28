@@ -6,6 +6,7 @@ import { Octokit } from '@octokit/rest';
 import { ServiceCreateDeploymentDto } from '../dto/create-deployment.dto';
 import { GitHubAccount } from '../dto/github-account.dto';
 import { Deployment } from '../entities/deployment.entity';
+import { retryWithBackoff, isGitHubRetryableError } from '../utils/retry-with-backoff.util';
 
 @Injectable()
 export class GithubDeployerService {
@@ -14,65 +15,119 @@ export class GithubDeployerService {
 
   /**
    * Deploy to GitHub Actions using a specific GitHub account
+   * Uses retry with backoff for resilience against transient failures
    */
   async deployToGitHub(
     deployment: Deployment,
     githubAccount: GitHubAccount,
     deploymentConfig: ServiceCreateDeploymentDto,
   ): Promise<{ workflowRunId: number }> {
-    try {
-      const octokit = new Octokit({ auth: githubAccount.access_token });
+    const octokit = new Octokit({ auth: githubAccount.access_token });
 
-      // Get the workflow ID with improved error handling
-      const workflowId = await this.getWorkflowId(octokit, githubAccount);
+    // Get the workflow ID with retry
+    const workflowIdResult = await retryWithBackoff(
+      () => this.getWorkflowId(octokit, githubAccount),
+      {
+        maxRetries: this.maxRetries,
+        isRetryable: isGitHubRetryableError,
+        logger: this.logger,
+        context: `getWorkflowId(${githubAccount.username}/${githubAccount.repository})`,
+      },
+    );
 
-      // Get existing workflow runs BEFORE triggering new one
-      const existingRunIds = await this.getExistingWorkflowRunIds(
-        octokit,
-        githubAccount.username,
-        githubAccount.repository,
-        workflowId,
-      );
-
-      // Prepare workflow inputs based on deployment provider
-      const inputs: Record<string, string> = {
-        BRANCH: deployment.branch,
-        ENVIRONMENT: deployment.environment,
-      };
-
-      // Add environment variables as inputs
-      deploymentConfig.environmentVariables.forEach(env => {
-        inputs[env.key] = env.default_value;
-      });
-
-      // Record timestamp before triggering
-      const triggerTime = new Date();
-
-      // Trigger the workflow
-      await octokit.actions.createWorkflowDispatch({
-        owner: githubAccount.username,
-        repo: githubAccount.repository,
-        workflow_id: workflowId,
-        ref: deploymentConfig.branch,
-        inputs,
-      });
-
-      // Get the exact new workflow run ID
-      const runId = await this.getNewWorkflowRunId(
-        octokit,
-        githubAccount.username,
-        githubAccount.repository,
-        workflowId,
-        existingRunIds,
-        triggerTime,
-      );
-
-      return { workflowRunId: runId };
-    } catch (error) {
-      console.log('Error deploying to GitHub:', error);
-      this.logger.error(`Error deploying to GitHub: ${error.message}`);
-      throw error;
+    if (!workflowIdResult.success) {
+      throw workflowIdResult.error || new Error('Failed to get workflow ID');
     }
+
+    const workflowId = workflowIdResult.data!;
+
+    // Get existing workflow runs BEFORE triggering new one (with retry)
+    const existingRunsResult = await retryWithBackoff(
+      () =>
+        this.getExistingWorkflowRunIds(
+          octokit,
+          githubAccount.username,
+          githubAccount.repository,
+          workflowId,
+        ),
+      {
+        maxRetries: this.maxRetries,
+        isRetryable: isGitHubRetryableError,
+        logger: this.logger,
+        context: 'getExistingWorkflowRunIds',
+      },
+    );
+
+    if (!existingRunsResult.success) {
+      throw existingRunsResult.error || new Error('Failed to get existing workflow runs');
+    }
+
+    const existingRunIds = existingRunsResult.data!;
+
+    // Prepare workflow inputs based on deployment provider
+    const inputs: Record<string, string> = {
+      BRANCH: deployment.branch,
+      ENVIRONMENT: deployment.environment,
+    };
+
+    // Add environment variables as inputs
+    deploymentConfig.environmentVariables.forEach(env => {
+      inputs[env.key] = env.default_value;
+    });
+
+    // Record timestamp before triggering
+    const triggerTime = new Date();
+
+    // Trigger the workflow with retry
+    const dispatchResult = await retryWithBackoff(
+      () =>
+        octokit.actions.createWorkflowDispatch({
+          owner: githubAccount.username,
+          repo: githubAccount.repository,
+          workflow_id: workflowId,
+          ref: deploymentConfig.branch,
+          inputs,
+        }),
+      {
+        maxRetries: this.maxRetries,
+        isRetryable: isGitHubRetryableError,
+        logger: this.logger,
+        context: 'createWorkflowDispatch',
+      },
+    );
+
+    if (!dispatchResult.success) {
+      this.logger.error(
+        `Failed to trigger workflow after ${dispatchResult.attempts} attempts: ${dispatchResult.error?.message}`,
+      );
+      throw dispatchResult.error || new Error('Failed to trigger workflow');
+    }
+
+    // Get the exact new workflow run ID (with retry)
+    const runIdResult = await retryWithBackoff(
+      () =>
+        this.getNewWorkflowRunId(
+          octokit,
+          githubAccount.username,
+          githubAccount.repository,
+          workflowId,
+          existingRunIds,
+          triggerTime,
+        ),
+      {
+        maxRetries: 5, // More retries for finding new run as it may take time to appear
+        baseDelayMs: 2000, // Longer delay to allow GitHub to register the run
+        isRetryable: isGitHubRetryableError,
+        logger: this.logger,
+        context: 'getNewWorkflowRunId',
+      },
+    );
+
+    if (!runIdResult.success) {
+      throw runIdResult.error || new Error('Failed to get new workflow run ID');
+    }
+
+    return { workflowRunId: runIdResult.data! };
   }
 
   /**
@@ -448,6 +503,53 @@ export class GithubDeployerService {
     } catch (error) {
       this.logger.error(`Error checking workflow status: ${error.message}`);
       throw error;
+    }
+  }
+
+  /**
+   * Cancel a running workflow run
+   */
+  async cancelWorkflowRun(
+    account: { username: string; access_token: string; repository: string },
+    runId: number,
+  ): Promise<{ success: boolean; message: string }> {
+    const octokit = new Octokit({ auth: account.access_token });
+
+    try {
+      // First check if the workflow is still running
+      const { data: run } = await octokit.actions.getWorkflowRun({
+        owner: account.username,
+        repo: account.repository,
+        run_id: runId,
+      });
+
+      // Can only cancel workflows that are in progress or queued
+      if (run.status !== 'in_progress' && run.status !== 'queued') {
+        return {
+          success: false,
+          message: `Cannot cancel workflow. Current status: ${run.status}`,
+        };
+      }
+
+      // Cancel the workflow run
+      await octokit.actions.cancelWorkflowRun({
+        owner: account.username,
+        repo: account.repository,
+        run_id: runId,
+      });
+
+      this.logger.log(`Successfully cancelled workflow run ${runId}`);
+
+      return {
+        success: true,
+        message: 'Workflow run cancelled successfully',
+      };
+    } catch (error) {
+      this.logger.error(`Error cancelling workflow run: ${error.message}`);
+      return {
+        success: false,
+        message: `Failed to cancel workflow: ${error.message}`,
+      };
     }
   }
 }

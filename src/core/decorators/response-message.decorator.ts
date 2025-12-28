@@ -2,7 +2,7 @@ import { SetMetadata } from '@nestjs/common';
 
 export interface ResponseMetadata {
   message?: string;
-  meta?: Record<string, any>;
+  meta?: Record<string, string>;
   successCode?: number;
 }
 

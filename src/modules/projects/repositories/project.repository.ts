@@ -206,4 +206,13 @@ export class ProjectRepository {
       count: parseInt(item.count, 10),
     }));
   }
+
+  /**
+   * Count total projects for a specific owner
+   */
+  countByOwner(ownerId: string): Promise<number> {
+    return this.projectRepository.count({
+      where: { owner_id: ownerId },
+    });
+  }
 }

@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { Category } from '../categories/entities/category.entity';
 import { ProjectConfigModule } from '../project-config/project-config.module';
+import { SubscriptionModule } from '../subscription/subscription.module';
 import { ProjectController } from './controllers/project.controller';
 import { PublicProjectController } from './controllers/public-project.controller';
 import { Project } from './entities/project.entity';
@@ -11,7 +12,11 @@ import { ProjectService } from './services/project.service';
 import { PublicProjectService } from './services/public-project.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Project, Category]), forwardRef(() => ProjectConfigModule)],
+  imports: [
+    TypeOrmModule.forFeature([Project, Category]),
+    forwardRef(() => ProjectConfigModule),
+    forwardRef(() => SubscriptionModule),
+  ],
   providers: [ProjectRepository, ProjectService, PublicProjectService],
   controllers: [ProjectController, PublicProjectController],
   exports: [ProjectRepository, ProjectService, PublicProjectService, TypeOrmModule],
