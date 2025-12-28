@@ -34,15 +34,15 @@ export class Deployment {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
-  ownerId: string;
+  @Column({ name: 'owner_id' })
+  owner_id: string;
 
   @ManyToOne(() => User, { onDelete: 'SET NULL' })
-  @JoinColumn({ name: 'ownerId' })
+  @JoinColumn({ name: 'owner_id' })
   owner: User;
 
   @Column({ name: 'project_id' })
-  projectId: string;
+  project_id: string;
 
   @ManyToOne(() => Project, project => project.id, {
     onDelete: 'CASCADE',
@@ -52,7 +52,7 @@ export class Deployment {
   project: Project;
 
   @Column({ name: 'license_id' })
-  licenseId: string;
+  license_id: string;
 
   @ManyToOne(() => License, license => license.id, {
     onDelete: 'SET NULL',
@@ -61,13 +61,14 @@ export class Deployment {
   license: License;
 
   @Column({ name: 'user_license_id', nullable: true })
-  userLicenseId: string;
+  user_license_id: string;
 
-  @ManyToOne(() => UserLicense)
-  userLicense: UserLicense;
+  @ManyToOne(() => UserLicense, { nullable: true })
+  @JoinColumn({ name: 'user_license_id' })
+  user_license: UserLicense | null;
 
   @Column({ name: 'configuration_id' })
-  configurationId: string;
+  configuration_id: string;
 
   @ManyToOne(() => ProjectConfiguration, configuration => configuration.id, {
     onDelete: 'CASCADE',
@@ -85,11 +86,11 @@ export class Deployment {
   @Column()
   branch: string;
 
-  @Column({ nullable: true })
-  workflowRunId?: string;
+  @Column({ name: 'workflow_run_id', nullable: true })
+  workflow_run_id?: string;
 
-  @Column({ nullable: true })
-  siteId: string;
+  @Column({ name: 'site_id', nullable: true })
+  site_id: string;
 
   @Column({
     type: 'enum',
@@ -98,34 +99,37 @@ export class Deployment {
   })
   status: `${DeploymentStatus}`;
 
-  @Column({ nullable: true })
-  deploymentUrl?: string;
+  @Column({ name: 'deployment_url', nullable: true })
+  deployment_url?: string;
 
   @Column({ name: 'environment_variables', type: 'jsonb' })
-  environmentVariables: EnvironmentVariableDto[];
+  environment_variables: EnvironmentVariableDto[];
 
-  @Column({ nullable: true, type: 'jsonb' })
-  githubAccount?: GitHubAccount;
+  @Column({ name: 'github_account', nullable: true, type: 'jsonb' })
+  github_account?: GitHubAccount;
 
-  @Column({ nullable: true })
-  errorMessage?: string;
+  @Column({ name: 'error_message', nullable: true })
+  error_message?: string;
 
-  @Column({ default: 0 })
-  retryCount: number;
+  @Column({ name: 'retry_count', default: 0 })
+  retry_count: number;
 
-  @Column({ nullable: true, type: 'jsonb' })
-  webhookInfo?: {
+  @Column({ name: 'is_test', default: false })
+  is_test: boolean;
+
+  @Column({ name: 'webhook_info', nullable: true, type: 'jsonb' })
+  webhook_info?: {
     hookId: number;
     repositoryOwner: string;
     repositoryName: string;
   };
 
-  @CreateDateColumn()
-  createdAt: Date;
+  @CreateDateColumn({ name: 'created_at' })
+  created_at: Date;
 
-  @UpdateDateColumn()
-  updatedAt: Date;
+  @UpdateDateColumn({ name: 'updated_at' })
+  updated_at: Date;
 
-  @Column({ nullable: true })
-  completedAt: Date;
+  @Column({ name: 'completed_at', nullable: true })
+  completed_at: Date;
 }

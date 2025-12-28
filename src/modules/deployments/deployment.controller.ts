@@ -45,7 +45,7 @@ export interface DeploymentEntities {
   project: Project;
   configuration: ProjectConfiguration;
   license: License;
-  userLicense: UserLicense; // Optional, only needed for limit checks
+  userLicense: UserLicense | null; // Optional, only needed for limit checks
 }
 
 interface CreateDeploymentContext {
@@ -138,6 +138,7 @@ export class DeploymentController {
   /**
    * Validate deployment limits for the user
    * Project owners bypass all license limitations
+   * Test deployments don't consume license deployments
    */
   private async validateDeploymentLimits(context: CreateDeploymentContext): Promise<void> {
     const { dto, user, entities } = context;
@@ -148,6 +149,14 @@ export class DeploymentController {
         `User ${user.id} is the project owner for project ${entities.project.id}. Bypassing license validation.`,
       );
       return; // Skip all license validation for project owners
+    }
+
+    // Test deployments don't consume license deployments
+    if (dto.isTest) {
+      this.logger.log(
+        `Test deployment requested for project ${entities.project.id}. Bypassing deployment limit checks.`,
+      );
+      return;
     }
 
     // Find active UserLicense for this user and license
@@ -356,7 +365,7 @@ export class DeploymentController {
   async getDeployment(@Param('deploymentId') deploymentId: string, @CurrentUser() user: User) {
     const deployment = await this.deploymentService.getDeployment(deploymentId);
 
-    if (deployment.ownerId !== user.id) {
+    if (deployment.owner_id !== user.id) {
       throw new ForbiddenException('You do not have permission to access this deployment');
     }
 
@@ -367,7 +376,7 @@ export class DeploymentController {
   async retryDeployment(@Param('deploymentId') deploymentId: string, @CurrentUser() user: User) {
     const deployment = await this.deploymentService.getDeployment(deploymentId);
 
-    if (deployment.ownerId !== user.id) {
+    if (deployment.owner_id !== user.id) {
       throw new ForbiddenException('You do not have permission to retry this deployment');
     }
 
@@ -450,7 +459,7 @@ export class DeploymentController {
   async getDeploymentLogs(@Param('deploymentId') deploymentId: string, @CurrentUser() user: User) {
     const deployment = await this.deploymentService.getDeployment(deploymentId);
 
-    if (deployment.ownerId !== user.id) {
+    if (deployment.owner_id !== user.id) {
       throw new ForbiddenException('You do not have permission to access this deployment');
     }
 
