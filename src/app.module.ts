@@ -10,7 +10,7 @@ import { EnvironmentVariables, validate } from './config/env.validation';
 import { CoreModule } from './core/core.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { CategoriesModule } from './modules/categories/categories.module';
-import { DeploymentModule } from './modules/deployments/deployment-module.module';
+import { DeploymentModule } from './modules/deployments/deployment.module';
 import { FirebaseModule } from './modules/firebase/firebase.module';
 import { HealthModule } from './modules/health/health.module';
 import { LicenseModule } from './modules/license/license.module';
@@ -19,6 +19,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { OrderModule } from './modules/order/order.module';
 import { PaymentModule } from './modules/payment/payment.module';
 import { ProjectsModule } from './modules/projects/projects.module';
+import { StatisticsModule } from './modules/statistics/statistics.module';
 import { SubscriptionModule } from './modules/subscription/subscription.module';
 import { TestHelpersModule } from './modules/test-helpers/test-helpers.module';
 import { UserModule } from './modules/users/users.module';
@@ -78,6 +79,7 @@ import { UserModule } from './modules/users/users.module';
     HealthModule,
     NotificationsModule,
     SubscriptionModule,
+    StatisticsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

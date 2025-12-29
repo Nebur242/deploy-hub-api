@@ -25,17 +25,17 @@ export class ProjectConfigurationService {
       throw new NotFoundException(`Project configuration with ID ${id} not found`);
     }
 
-    // Decrypt sensitive data
+    // Decrypt sensitive data (using safeDecrypt to handle both encrypted and plain text)
     config.github_accounts = config.github_accounts.map(githubAccount => ({
       ...githubAccount,
-      access_token: this.encryptService.decrypt(githubAccount.access_token),
+      access_token: this.encryptService.safeDecrypt(githubAccount.access_token),
     }));
     config.deployment_option.environment_variables =
       config.deployment_option.environment_variables.map(variable => ({
         ...variable,
         default_value:
           variable.is_secret && variable.default_value
-            ? this.encryptService.decrypt(variable.default_value)
+            ? this.encryptService.safeDecrypt(variable.default_value)
             : variable.default_value,
       }));
 
@@ -47,17 +47,17 @@ export class ProjectConfigurationService {
       where: { project_id: projectId },
     });
     return configs.map(config => {
-      // Decrypt sensitive data
+      // Decrypt sensitive data (using safeDecrypt to handle both encrypted and plain text)
       config.github_accounts = config.github_accounts.map(githubAccount => ({
         ...githubAccount,
-        access_token: this.encryptService.decrypt(githubAccount.access_token),
+        access_token: this.encryptService.safeDecrypt(githubAccount.access_token),
       }));
       config.deployment_option.environment_variables =
         config.deployment_option.environment_variables.map(variable => ({
           ...variable,
           default_value:
             variable.is_secret && variable.default_value
-              ? this.encryptService.decrypt(variable.default_value)
+              ? this.encryptService.safeDecrypt(variable.default_value)
               : variable.default_value,
         }));
       return config;

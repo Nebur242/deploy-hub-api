@@ -11,7 +11,7 @@ import { CreateDeploymentDto } from '../dto/create-deployment.dto';
 export interface DeploymentEntities {
   project: Project;
   configuration: ProjectConfiguration;
-  license: License;
+  license: License | null;
   userLicense: UserLicense | null;
 }
 

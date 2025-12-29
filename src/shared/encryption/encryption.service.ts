@@ -65,4 +65,28 @@ export class EncryptionService {
       throw error;
     }
   }
+
+  /**
+   * Check if text is in encrypted format (iv:authTag:data)
+   */
+  isEncrypted(text: string): boolean {
+    if (!text) {
+      return false;
+    }
+    const parts = text.split(':');
+    return parts.length === 3 && parts[0].length === 32 && parts[1].length === 32;
+  }
+
+  /**
+   * Safely decrypt text - returns original if not encrypted
+   */
+  safeDecrypt(text: string): string {
+    if (!text) {
+      return text;
+    }
+    if (!this.isEncrypted(text)) {
+      return text;
+    }
+    return this.decrypt(text);
+  }
 }

@@ -9,12 +9,12 @@ import {
   IsOptional,
   IsUUID,
   IsBoolean,
+  IsArray,
 } from 'class-validator';
 
 import { DeplomentEnvironment } from '../entities/deployment.entity';
 
 export class CreateDeploymentDto {
-  // User identification
   @IsEnum(DeplomentEnvironment)
   @IsNotEmpty()
   environment: `${DeplomentEnvironment}`;
@@ -26,7 +26,7 @@ export class CreateDeploymentDto {
   })
   @IsString()
   @IsNotEmpty()
-  deploymentUrl?: string;
+  deployment_url?: string;
 
   @IsString()
   @IsNotEmpty()
@@ -34,23 +34,26 @@ export class CreateDeploymentDto {
 
   @IsString()
   @IsUUID()
-  projectId: string;
+  project_id: string;
 
+  @IsOptional()
   @IsString()
   @IsUUID()
-  licenseId: string;
+  license_id?: string;
 
+  @IsOptional()
   @IsString()
   @IsUUID()
-  userLicenseId: string;
+  user_license_id?: string;
 
   @IsString()
   @IsNotEmpty()
-  configurationId: string;
+  configuration_id: string;
 
+  @IsArray()
   @ValidateNested({ each: true })
   @Type(() => EnvironmentVariableDto)
-  environmentVariables: EnvironmentVariableDto[];
+  environment_variables: EnvironmentVariableDto[];
 
   @IsOptional()
   @IsBoolean()
@@ -60,12 +63,12 @@ export class CreateDeploymentDto {
     example: false,
     default: false,
   })
-  isTest?: boolean;
+  is_test?: boolean;
 }
 
 export class ServiceCreateDeploymentDto extends CreateDeploymentDto {
-  ownerId: string;
-  siteId: string | null;
+  owner_id: string;
+  site_id: string | null;
 }
 
 // batch-deployment.dto.ts

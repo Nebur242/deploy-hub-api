@@ -29,13 +29,20 @@ export class GitHubAccountManagerService {
    * Decrypts access tokens and adds runtime metadata
    */
   prepareAccountsForDeployment(accounts: BaseGitHubAccount[]): GitHubAccountWithMetadata[] {
-    return accounts.map(account => ({
-      ...account,
-      access_token: this.encryptionService.decrypt(account.access_token),
-      available: true,
-      failureCount: 0,
-      lastUsed: new Date(),
-    }));
+    this.logger.log(`[ACCOUNT] Preparing ${accounts.length} accounts for deployment`);
+    return accounts.map((account, index) => {
+      const decryptedToken = this.encryptionService.safeDecrypt(account.access_token);
+      this.logger.log(
+        `[ACCOUNT] Account ${index + 1}: ${account.username}/${account.repository}, token length: ${decryptedToken.length}`,
+      );
+      return {
+        ...account,
+        access_token: decryptedToken,
+        available: true,
+        failureCount: 0,
+        lastUsed: new Date(),
+      };
+    });
   }
 
   /**
@@ -65,22 +72,24 @@ export class GitHubAccountManagerService {
   /**
    * Decrypt a GitHub account's access token
    * Used when reading account info from deployment records
+   * Uses safeDecrypt to handle both encrypted and plain text tokens
    */
   decryptAccountToken(account: GitHubAccountWithMetadata): GitHubAccountWithMetadata {
     return {
       ...account,
-      access_token: this.encryptionService.decrypt(account.access_token),
+      access_token: this.encryptionService.safeDecrypt(account.access_token),
     };
   }
 
   /**
    * Get the decrypted access token from a deployment's GitHub account
+   * Uses safeDecrypt to handle both encrypted and plain text tokens
    */
   getDecryptedToken(deployment: Deployment): string | null {
     if (!deployment.github_account?.access_token) {
       return null;
     }
-    return this.encryptionService.decrypt(deployment.github_account.access_token);
+    return this.encryptionService.safeDecrypt(deployment.github_account.access_token);
   }
 
   /**
@@ -91,10 +100,14 @@ export class GitHubAccountManagerService {
     accounts: BaseGitHubAccount[],
     recentDeployments: Deployment[],
   ): GitHubAccountWithMetadata[] {
+    this.logger.log(
+      `[ACCOUNT] Ordering ${accounts.length} accounts based on ${recentDeployments.length} recent deployments`,
+    );
     const preparedAccounts = this.prepareAccountsForDeployment(accounts);
 
     // If there's only one account or no recent deployments, return as-is
     if (preparedAccounts.length <= 1 || recentDeployments.length === 0) {
+      this.logger.log(`[ACCOUNT] Using default order (single account or no history)`);
       return [...preparedAccounts];
     }
 
@@ -104,16 +117,25 @@ export class GitHubAccountManagerService {
 
     if (lastDeployment?.github_account?.username) {
       const lastUsername = lastDeployment.github_account.username;
+      this.logger.log(`[ACCOUNT] Last used account: ${lastUsername}`);
       const lastIndex = preparedAccounts.findIndex(a => a.username === lastUsername);
 
       if (lastIndex !== -1) {
         // Start with the next account in the sequence (round-robin)
         startIndex = (lastIndex + 1) % preparedAccounts.length;
+        this.logger.log(
+          `[ACCOUNT] Round-robin: starting from index ${startIndex} (${preparedAccounts[startIndex].username})`,
+        );
       }
     }
 
     // Reorder accounts to implement round-robin
-    return [...preparedAccounts.slice(startIndex), ...preparedAccounts.slice(0, startIndex)];
+    const ordered = [
+      ...preparedAccounts.slice(startIndex),
+      ...preparedAccounts.slice(0, startIndex),
+    ];
+    this.logger.log(`[ACCOUNT] Final order: ${ordered.map(a => a.username).join(' -> ')}`);
+    return ordered;
   }
 
   /**
@@ -153,11 +175,15 @@ export class GitHubAccountManagerService {
     orderedAccounts: GitHubAccountWithMetadata[],
   ): GitHubAccountWithMetadata | null {
     if (orderedAccounts.length === 0) {
-      this.logger.warn('No GitHub accounts available for deployment');
+      this.logger.warn('[ACCOUNT] No GitHub accounts available for deployment');
       return null;
     }
 
-    return orderedAccounts[0];
+    const selected = orderedAccounts[0];
+    this.logger.log(
+      `[ACCOUNT] Selected account for deployment: ${selected.username}/${selected.repository}`,
+    );
+    return selected;
   }
 
   /**
@@ -165,10 +191,11 @@ export class GitHubAccountManagerService {
    */
   validateAccountsAvailable(accounts: BaseGitHubAccount[]): boolean {
     if (!accounts || accounts.length === 0) {
-      this.logger.error('No GitHub accounts configured for deployment');
+      this.logger.error('[ACCOUNT] No GitHub accounts configured for deployment');
       return false;
     }
 
+    this.logger.log(`[ACCOUNT] Validated ${accounts.length} accounts available`);
     return true;
   }
 
