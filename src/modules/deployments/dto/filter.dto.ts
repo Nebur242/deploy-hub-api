@@ -5,11 +5,11 @@ import { DeploymentStatus } from '../entities/deployment.entity';
 export class FilterDeploymentDto {
   @IsOptional()
   @IsString()
-  projectId?: string;
+  project_id?: string;
 
   @IsOptional()
   @IsString()
-  ownerId?: string;
+  owner_id?: string;
 
   @IsOptional()
   @IsString()

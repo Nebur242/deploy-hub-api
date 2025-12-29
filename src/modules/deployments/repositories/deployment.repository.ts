@@ -216,16 +216,16 @@ export class DeploymentRepository {
     const queryBuilder = this.repository.createQueryBuilder('deployment');
 
     // Filter by project if provided
-    if (filterDto.projectId) {
+    if (filterDto.project_id) {
       queryBuilder.where('deployment.project_id = :projectId', {
-        projectId: filterDto.projectId,
+        projectId: filterDto.project_id,
       });
     }
 
     // Apply optional filters
-    if (filterDto.ownerId) {
+    if (filterDto.owner_id) {
       queryBuilder.andWhere('deployment.owner_id = :ownerId', {
-        ownerId: filterDto.ownerId,
+        ownerId: filterDto.owner_id,
       });
     }
 

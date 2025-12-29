@@ -111,7 +111,7 @@ export class DeploymentController {
     return this.deploymentService.getDeployments(
       {
         ...filterDto,
-        ownerId: user.id,
+        owner_id: user.id,
       },
       {
         page,
