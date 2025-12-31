@@ -1,4 +1,4 @@
-import { Currency } from '@app/shared/enums';
+import { Currency, LicensePeriod } from '@app/shared/enums';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsNotEmpty,
@@ -61,15 +61,15 @@ export class CreateLicenseDto {
   deployment_limit: number = 5;
 
   @ApiPropertyOptional({
-    description: 'Duration of the license in days (0 means unlimited)',
-    example: 365,
-    default: 0,
-    minimum: 0,
+    description:
+      'Billing period for the license (forever = one-time purchase, others = recurring subscription)',
+    enum: LicensePeriod,
+    example: LicensePeriod.MONTHLY,
+    default: LicensePeriod.FOREVER,
   })
-  @IsNumber()
-  @Min(0)
+  @IsEnum(LicensePeriod)
   @IsOptional()
-  duration: number = 0;
+  period: LicensePeriod = LicensePeriod.FOREVER;
 
   @ApiPropertyOptional({
     description: 'List of features included in this license',

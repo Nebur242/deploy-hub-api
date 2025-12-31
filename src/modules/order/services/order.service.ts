@@ -1,6 +1,6 @@
 import { LicenseService } from '@app/modules/license/services/license.service';
 import { OrderStatus } from '@app/shared/enums';
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IPaginationOptions, paginate, Pagination } from 'nestjs-typeorm-paginate';
 import { Repository } from 'typeorm';
@@ -9,8 +9,28 @@ import { CreateOrderDto } from '../dto/create-order.dto';
 import { FilterOrdersDto } from '../dto/filter-orders.dto';
 import { Order } from '../entities/order.entity';
 
+/**
+ * Raw query result interfaces for sales analytics
+ */
+interface SalesTrendRawResult {
+  date: string;
+  orderCount: string;
+  revenue: string;
+}
+
+interface TopSellingLicenseRawResult {
+  licenseId: string;
+  licenseName: string | null;
+  projectId: string | null;
+  projectName: string | null;
+  orderCount: string;
+  revenue: string;
+}
+
 @Injectable()
 export class OrderService {
+  private readonly logger = new Logger(OrderService.name);
+
   constructor(
     @InjectRepository(Order)
     private readonly orderRepository: Repository<Order>,
@@ -176,12 +196,9 @@ export class OrderService {
       order.completed_at = new Date();
       order.is_active = true;
 
-      // Calculate the expiration date based on the license duration
-      if (order.license?.duration) {
-        const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + order.license.duration);
-        order.expires_at = expiresAt;
-      }
+      // For subscription-based licenses, expiration is managed by Stripe
+      // For one-time purchases (forever), no expiration is set
+      // expires_at remains null for forever licenses
     }
 
     // If cancelling or refunding, deactivate the license
@@ -190,5 +207,254 @@ export class OrderService {
     }
 
     return this.orderRepository.save(order);
+  }
+
+  /**
+   * Find orders for licenses owned by a specific user (for sellers/owners)
+   */
+  findOrdersByOwner(
+    ownerId: string,
+    filter: FilterOrdersDto,
+    paginationOptions: IPaginationOptions,
+  ): Promise<Pagination<Order>> {
+    const { status, license_id, currency, is_active, search } = filter;
+
+    const queryBuilder = this.orderRepository
+      .createQueryBuilder('order')
+      .leftJoinAndSelect('order.license', 'license')
+      .leftJoinAndSelect('license.projects', 'project')
+      .leftJoinAndSelect('order.user', 'buyer')
+      .where('license.owner_id = :ownerId', { ownerId });
+
+    // Apply filters if provided
+    if (status) {
+      queryBuilder.andWhere('order.status = :status', { status });
+    }
+
+    if (license_id) {
+      queryBuilder.andWhere('order.license_id = :licenseId', { licenseId: license_id });
+    }
+
+    if (currency) {
+      queryBuilder.andWhere('order.currency = :currency', { currency });
+    }
+
+    if (is_active !== undefined) {
+      queryBuilder.andWhere('order.is_active = :isActive', { isActive: is_active });
+    }
+
+    // Apply search if provided
+    if (search) {
+      queryBuilder.andWhere(
+        '(license.name ILIKE :search OR order.reference_number ILIKE :search OR buyer.email ILIKE :search)',
+        { search: `%${search}%` },
+      );
+    }
+
+    queryBuilder.orderBy('order.created_at', 'DESC');
+
+    return paginate<Order>(queryBuilder, paginationOptions);
+  }
+
+  /**
+   * Find a single order by ID (owner access)
+   */
+  async findOneByOwner(id: string, ownerId: string): Promise<Order> {
+    const order = await this.orderRepository
+      .createQueryBuilder('order')
+      .leftJoinAndSelect('order.license', 'license')
+      .leftJoinAndSelect('license.projects', 'project')
+      .leftJoinAndSelect('order.user', 'buyer')
+      .leftJoinAndSelect('order.payments', 'payment')
+      .where('order.id = :id', { id })
+      .andWhere('license.owner_id = :ownerId', { ownerId })
+      .getOne();
+
+    if (!order) {
+      throw new NotFoundException(`Order with ID ${id} not found or not accessible`);
+    }
+
+    return order;
+  }
+
+  /**
+   * Get sales analytics for an owner
+   */
+  async getSalesAnalytics(
+    ownerId: string,
+    startDate?: Date,
+    endDate?: Date,
+  ): Promise<{
+    totalOrders: number;
+    completedOrders: number;
+    pendingOrders: number;
+    failedOrders: number;
+    cancelledOrders: number;
+    refundedOrders: number;
+    totalRevenue: number;
+    pendingRevenue: number;
+    averageOrderValue: number;
+    conversionRate: number;
+  }> {
+    const queryBuilder = this.orderRepository
+      .createQueryBuilder('order')
+      .leftJoin('order.license', 'license')
+      .where('license.owner_id = :ownerId', { ownerId });
+
+    if (startDate && endDate) {
+      queryBuilder.andWhere('order.created_at BETWEEN :startDate AND :endDate', {
+        startDate,
+        endDate,
+      });
+    }
+
+    const orders = await queryBuilder.getMany();
+
+    const totalOrders = orders.length;
+    const completedOrders = orders.filter(o => o.status === OrderStatus.COMPLETED).length;
+    const pendingOrders = orders.filter(o => o.status === OrderStatus.PENDING).length;
+    const failedOrders = orders.filter(o => o.status === OrderStatus.FAILED).length;
+    const cancelledOrders = orders.filter(o => o.status === OrderStatus.CANCELLED).length;
+    const refundedOrders = orders.filter(o => o.status === OrderStatus.REFUNDED).length;
+
+    const completedOrdersList = orders.filter(o => o.status === OrderStatus.COMPLETED);
+    const totalRevenue = completedOrdersList.reduce((sum, o) => sum + o.amount, 0);
+    const pendingRevenue = orders
+      .filter(o => o.status === OrderStatus.PENDING)
+      .reduce((sum, o) => sum + o.amount, 0);
+
+    const averageOrderValue = completedOrders > 0 ? totalRevenue / completedOrders : 0;
+    const conversionRate = totalOrders > 0 ? (completedOrders / totalOrders) * 100 : 0;
+
+    return {
+      totalOrders,
+      completedOrders,
+      pendingOrders,
+      failedOrders,
+      cancelledOrders,
+      refundedOrders,
+      totalRevenue,
+      pendingRevenue,
+      averageOrderValue: Math.round(averageOrderValue * 100) / 100,
+      conversionRate: Math.round(conversionRate * 100) / 100,
+    };
+  }
+
+  /**
+   * Get sales trends over time for an owner
+   */
+  async getSalesTrends(
+    ownerId: string,
+    startDate: Date,
+    endDate: Date,
+    groupBy: 'day' | 'week' | 'month' = 'day',
+  ): Promise<{ date: string; orderCount: number; revenue: number }[]> {
+    let dateFormat: string;
+    switch (groupBy) {
+      case 'week':
+        dateFormat = 'YYYY-WW';
+        break;
+      case 'month':
+        dateFormat = 'YYYY-MM';
+        break;
+      default:
+        dateFormat = 'YYYY-MM-DD';
+    }
+
+    const result = await this.orderRepository
+      .createQueryBuilder('order')
+      .select(`TO_CHAR(order.created_at, '${dateFormat}')`, 'date')
+      .addSelect('COUNT(*)', 'orderCount')
+      .addSelect(
+        'COALESCE(SUM(CASE WHEN order.status = :completed THEN order.amount ELSE 0 END), 0)',
+        'revenue',
+      )
+      .leftJoin('order.license', 'license')
+      .where('license.owner_id = :ownerId', { ownerId })
+      .andWhere('order.created_at BETWEEN :startDate AND :endDate', { startDate, endDate })
+      .setParameter('completed', OrderStatus.COMPLETED)
+      .groupBy(`TO_CHAR(order.created_at, '${dateFormat}')`)
+      .orderBy(`TO_CHAR(order.created_at, '${dateFormat}')`, 'ASC')
+      .getRawMany<SalesTrendRawResult>();
+
+    return result.map(r => ({
+      date: r.date,
+      orderCount: parseInt(r.orderCount, 10),
+      revenue: parseFloat(r.revenue),
+    }));
+  }
+
+  /**
+   * Get top selling licenses for an owner
+   */
+  async getTopSellingLicenses(
+    ownerId: string,
+    limit: number = 5,
+    startDate?: Date,
+    endDate?: Date,
+  ): Promise<
+    {
+      licenseId: string;
+      licenseName: string;
+      projectId: string;
+      projectName: string;
+      orderCount: number;
+      revenue: number;
+    }[]
+  > {
+    const queryBuilder = this.orderRepository
+      .createQueryBuilder('order')
+      .select('order.license_id', 'licenseId')
+      .addSelect('license.name', 'licenseName')
+      .addSelect('COUNT(*)', 'orderCount')
+      .addSelect(
+        'COALESCE(SUM(CASE WHEN order.status = :completed THEN order.amount ELSE 0 END), 0)',
+        'revenue',
+      )
+      .leftJoin('order.license', 'license')
+      .leftJoin('license.projects', 'project')
+      .addSelect('project.id', 'projectId')
+      .addSelect('project.name', 'projectName')
+      .where('license.owner_id = :ownerId', { ownerId })
+      .setParameter('completed', OrderStatus.COMPLETED);
+
+    if (startDate && endDate) {
+      queryBuilder.andWhere('order.created_at BETWEEN :startDate AND :endDate', {
+        startDate,
+        endDate,
+      });
+    }
+
+    const result = await queryBuilder
+      .groupBy('order.license_id')
+      .addGroupBy('license.name')
+      .addGroupBy('project.id')
+      .addGroupBy('project.name')
+      .orderBy('revenue', 'DESC')
+      .limit(limit)
+      .getRawMany<TopSellingLicenseRawResult>();
+
+    return result.map(r => ({
+      licenseId: r.licenseId,
+      licenseName: r.licenseName || 'Unknown License',
+      projectId: r.projectId || '',
+      projectName: r.projectName || 'Unknown Project',
+      orderCount: parseInt(r.orderCount, 10),
+      revenue: parseFloat(r.revenue),
+    }));
+  }
+
+  /**
+   * Get recent orders for owner's licenses
+   */
+  getRecentOrdersByOwner(ownerId: string, limit: number = 10): Promise<Order[]> {
+    return this.orderRepository
+      .createQueryBuilder('order')
+      .leftJoinAndSelect('order.license', 'license')
+      .leftJoinAndSelect('order.user', 'buyer')
+      .where('license.owner_id = :ownerId', { ownerId })
+      .orderBy('order.created_at', 'DESC')
+      .take(limit)
+      .getMany();
   }
 }

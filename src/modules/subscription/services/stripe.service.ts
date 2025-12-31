@@ -1,4 +1,9 @@
-import { BillingInterval, SubscriptionPlan, SubscriptionStatus } from '@app/shared/enums';
+import {
+  BillingInterval,
+  LicensePeriod,
+  SubscriptionPlan,
+  SubscriptionStatus,
+} from '@app/shared/enums';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
@@ -379,27 +384,61 @@ export class StripeService {
 
   /**
    * Create a Stripe price for a license product
+   * If period is not 'forever', creates a recurring subscription price
    */
   async createLicensePrice(
     productId: string,
     amount: number,
     currency: string,
     licenseId: string,
+    period: LicensePeriod = LicensePeriod.FOREVER,
   ): Promise<Stripe.Price> {
     // Convert amount to cents (Stripe uses smallest currency unit)
     const unitAmount = Math.round(amount * 100);
 
-    const price = await this.stripe.prices.create({
+    const priceData: Stripe.PriceCreateParams = {
       product: productId,
       unit_amount: unitAmount,
       currency: currency.toLowerCase(),
       metadata: {
         license_id: licenseId,
+        period: period,
       },
-    });
+    };
 
-    this.logger.log(`Created Stripe price ${price.id} for product ${productId}`);
+    // Add recurring configuration if not a one-time purchase
+    if (period !== LicensePeriod.FOREVER) {
+      priceData.recurring = {
+        interval: this.mapPeriodToStripeInterval(period),
+        interval_count: period === LicensePeriod.BIWEEKLY ? 2 : 1,
+      };
+    }
+
+    const price = await this.stripe.prices.create(priceData);
+
+    this.logger.log(
+      `Created Stripe ${period === LicensePeriod.FOREVER ? 'one-time' : 'recurring'} price ${price.id} for product ${productId}`,
+    );
     return price;
+  }
+
+  /**
+   * Map LicensePeriod to Stripe billing interval
+   */
+  private mapPeriodToStripeInterval(
+    period: LicensePeriod,
+  ): Stripe.PriceCreateParams.Recurring.Interval {
+    switch (period) {
+      case LicensePeriod.WEEKLY:
+      case LicensePeriod.BIWEEKLY:
+        return 'week';
+      case LicensePeriod.MONTHLY:
+        return 'month';
+      case LicensePeriod.YEARLY:
+        return 'year';
+      default:
+        return 'month';
+    }
   }
 
   /**
@@ -429,9 +468,16 @@ export class StripeService {
     currency: string,
     licenseId: string,
     oldPriceId?: string,
+    period: LicensePeriod = LicensePeriod.FOREVER,
   ): Promise<Stripe.Price> {
-    // Create new price
-    const newPrice = await this.createLicensePrice(productId, newAmount, currency, licenseId);
+    // Create new price with the same period configuration
+    const newPrice = await this.createLicensePrice(
+      productId,
+      newAmount,
+      currency,
+      licenseId,
+      period,
+    );
 
     // Deactivate old price if provided
     if (oldPriceId) {
@@ -452,7 +498,8 @@ export class StripeService {
   }
 
   /**
-   * Create a checkout session for purchasing a license (one-time payment)
+   * Create a checkout session for purchasing a license
+   * Mode is 'payment' for one-time (forever) or 'subscription' for recurring
    */
   async createLicenseCheckoutSession(
     customerId: string,
@@ -460,8 +507,11 @@ export class StripeService {
     licenseId: string,
     successUrl: string,
     cancelUrl: string,
+    period: LicensePeriod = LicensePeriod.FOREVER,
     metadata?: Record<string, string>,
   ): Promise<Stripe.Checkout.Session> {
+    const isSubscription = period !== LicensePeriod.FOREVER;
+
     const session = await this.stripe.checkout.sessions.create({
       customer: customerId,
       payment_method_types: ['card'],
@@ -471,17 +521,20 @@ export class StripeService {
           quantity: 1,
         },
       ],
-      mode: 'payment',
+      mode: isSubscription ? 'subscription' : 'payment',
       success_url: successUrl,
       cancel_url: cancelUrl,
       metadata: {
         license_id: licenseId,
-        type: 'license_purchase',
+        type: isSubscription ? 'license_subscription' : 'license_purchase',
+        period: period,
         ...metadata,
       },
     });
 
-    this.logger.log(`Created license checkout session ${session.id} for license ${licenseId}`);
+    this.logger.log(
+      `Created license ${isSubscription ? 'subscription' : 'checkout'} session ${session.id} for license ${licenseId}`,
+    );
     return session;
   }
 }

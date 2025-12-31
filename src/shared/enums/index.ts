@@ -62,3 +62,16 @@ export enum BillingInterval {
   MONTHLY = 'monthly',
   YEARLY = 'yearly',
 }
+
+/**
+ * License billing period - determines if license is one-time or subscription
+ * FOREVER = one-time purchase
+ * Others = recurring subscription
+ */
+export enum LicensePeriod {
+  WEEKLY = 'weekly',
+  BIWEEKLY = 'biweekly',
+  MONTHLY = 'monthly',
+  YEARLY = 'yearly',
+  FOREVER = 'forever',
+}

@@ -1,6 +1,6 @@
 import { Project } from '@app/modules/projects/entities/project.entity';
 import { User } from '@app/modules/users/entities/user.entity';
-import { Currency } from '@app/shared/enums';
+import { Currency, LicensePeriod } from '@app/shared/enums';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   Column,
@@ -63,12 +63,17 @@ export class License {
   deployment_limit: number;
 
   @ApiProperty({
-    description: 'License duration in days (0 means unlimited)',
-    example: 365,
-    default: 0,
+    description: 'License billing period (forever = one-time purchase, others = subscription)',
+    enum: LicensePeriod,
+    example: LicensePeriod.MONTHLY,
+    default: LicensePeriod.FOREVER,
   })
-  @Column({ default: 0 }) // 0 means unlimited
-  duration: number;
+  @Column({
+    type: 'enum',
+    enum: LicensePeriod,
+    default: LicensePeriod.FOREVER,
+  })
+  period: LicensePeriod;
 
   @ApiProperty({
     description: 'List of features included in this license',

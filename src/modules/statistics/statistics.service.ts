@@ -1,8 +1,9 @@
-import { DeploymentRepository } from '@app/modules/deployments/repositories/deployment.repository';
+import { DeploymentService } from '@app/modules/deployments/deployment.service';
 import { LicenseService } from '@app/modules/license/services/license.service';
 import { UserLicenseService } from '@app/modules/license/services/user-license.service';
-import { ProjectRepository } from '@app/modules/projects/repositories/project.repository';
-import { Injectable, Logger } from '@nestjs/common';
+import { OrderService } from '@app/modules/order/services/order.service';
+import { ProjectService } from '@app/modules/projects/services/project.service';
+import { forwardRef, Inject, Injectable, Logger } from '@nestjs/common';
 
 import {
   DashboardStatsDto,
@@ -11,7 +12,11 @@ import {
   EnvironmentStatsDto,
   LicenseStatsDto,
   ProjectStatsDto,
+  RecentOrderDto,
+  SalesStatsDto,
+  SalesTrendDto,
   StatsPeriod,
+  TopSellingLicenseDto,
   UserStatsDto,
 } from './dto/statistics.dto';
 
@@ -20,10 +25,14 @@ export class StatisticsService {
   private readonly logger = new Logger(StatisticsService.name);
 
   constructor(
-    private readonly deploymentRepository: DeploymentRepository,
-    private readonly projectRepository: ProjectRepository,
+    @Inject(forwardRef(() => DeploymentService))
+    private readonly deploymentService: DeploymentService,
+    @Inject(forwardRef(() => ProjectService))
+    private readonly projectService: ProjectService,
     private readonly licenseService: LicenseService,
     private readonly userLicenseService: UserLicenseService,
+    @Inject(forwardRef(() => OrderService))
+    private readonly orderService: OrderService,
   ) {}
 
   /**
@@ -70,13 +79,13 @@ export class StatisticsService {
   ): Promise<DeploymentStatsDto> {
     const dateRange = startDate && endDate ? { startDate, endDate } : this.getDateRange(period);
 
-    const stats = await this.deploymentRepository.getStatsByOwner(
+    const stats = await this.deploymentService.getStatsByOwner(
       ownerId,
       dateRange.startDate,
       dateRange.endDate,
     );
 
-    const avgDuration = await this.deploymentRepository.getAvgDuration(
+    const avgDuration = await this.deploymentService.getAvgDuration(
       ownerId,
       dateRange.startDate,
       dateRange.endDate,
@@ -119,7 +128,7 @@ export class StatisticsService {
       groupBy = 'day';
     }
 
-    return this.deploymentRepository.getDeploymentTrends(ownerId, startDate, endDate, groupBy);
+    return this.deploymentService.getDeploymentTrends(ownerId, startDate, endDate, groupBy);
   }
 
   /**
@@ -132,17 +141,17 @@ export class StatisticsService {
     const { startDate, endDate } = this.getDateRange(period);
 
     // Get total projects count
-    const total = await this.projectRepository.countByOwner(ownerId);
+    const total = await this.projectService.countByOwner(ownerId);
 
     // Get active projects (with deployments in period)
-    const activeWithDeployments = await this.deploymentRepository.countActiveProjects(
+    const activeWithDeployments = await this.deploymentService.countActiveProjects(
       ownerId,
       startDate,
       endDate,
     );
 
     // Get top projects by deployments
-    const topProjectsRaw = await this.deploymentRepository.getTopProjectsByDeployments(
+    const topProjectsRaw = await this.deploymentService.getTopProjectsByDeployments(
       ownerId,
       5,
       startDate,
@@ -223,11 +232,7 @@ export class StatisticsService {
   ): Promise<EnvironmentStatsDto[]> {
     const { startDate, endDate } = this.getDateRange(period);
 
-    const stats = await this.deploymentRepository.getStatsByEnvironment(
-      ownerId,
-      startDate,
-      endDate,
-    );
+    const stats = await this.deploymentService.getStatsByEnvironment(ownerId, startDate, endDate);
 
     return stats.map(s => ({
       environment: s.environment,
@@ -245,14 +250,27 @@ export class StatisticsService {
   ): Promise<DashboardStatsDto> {
     this.logger.log(`Getting dashboard stats for owner ${ownerId}, period: ${period}`);
 
-    const [deployments, projects, licenses, deploymentTrends, recentDeployments] =
-      await Promise.all([
-        this.getDeploymentStats(ownerId, period),
-        this.getProjectStats(ownerId, period),
-        this.getLicenseStats(ownerId),
-        this.getDeploymentTrends(ownerId, period),
-        this.deploymentRepository.getRecentDeployments(ownerId, 10),
-      ]);
+    const { startDate, endDate } = this.getDateRange(period);
+
+    const [
+      deployments,
+      projects,
+      licenses,
+      deploymentTrends,
+      recentDeployments,
+      salesAnalytics,
+      salesTrends,
+      recentOrders,
+    ] = await Promise.all([
+      this.getDeploymentStats(ownerId, period),
+      this.getProjectStats(ownerId, period),
+      this.getLicenseStats(ownerId),
+      this.getDeploymentTrends(ownerId, period),
+      this.deploymentService.getRecentDeployments(ownerId, 10),
+      this.getSalesStats(ownerId, startDate, endDate),
+      this.getSalesTrends(ownerId, period),
+      this.getRecentOrders(ownerId, 5),
+    ]);
 
     // Build recent activity from deployments
     const recentActivity = recentDeployments.map(d => ({
@@ -269,9 +287,158 @@ export class StatisticsService {
       deployments,
       projects,
       licenses,
+      sales: salesAnalytics,
       deploymentTrends,
+      salesTrends,
       recentActivity,
+      recentOrders,
     };
+  }
+
+  /**
+   * Get sales statistics for an owner
+   */
+  async getSalesStats(ownerId: string, startDate?: Date, endDate?: Date): Promise<SalesStatsDto> {
+    try {
+      const analytics = (await this.orderService.getSalesAnalytics(
+        ownerId,
+        startDate,
+        endDate,
+      )) as {
+        totalOrders: number;
+        completedOrders: number;
+        pendingOrders: number;
+        failedOrders: number;
+        totalRevenue: number;
+        averageOrderValue: number;
+        conversionRate: number;
+      };
+      return {
+        totalOrders: analytics.totalOrders,
+        completedOrders: analytics.completedOrders,
+        pendingOrders: analytics.pendingOrders,
+        failedOrders: analytics.failedOrders,
+        totalRevenue: analytics.totalRevenue,
+        averageOrderValue: analytics.averageOrderValue,
+        conversionRate: analytics.conversionRate,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Error getting sales stats for owner ${ownerId}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+      return {
+        totalOrders: 0,
+        completedOrders: 0,
+        pendingOrders: 0,
+        failedOrders: 0,
+        totalRevenue: 0,
+        averageOrderValue: 0,
+        conversionRate: 0,
+      };
+    }
+  }
+
+  /**
+   * Get sales trends over time for an owner
+   */
+  async getSalesTrends(
+    ownerId: string,
+    period: StatsPeriod = StatsPeriod.MONTH,
+  ): Promise<SalesTrendDto[]> {
+    const { startDate, endDate } = this.getDateRange(period);
+
+    // Determine grouping based on period
+    let groupBy: 'day' | 'week' | 'month' = 'day';
+    if (period === StatsPeriod.YEAR) {
+      groupBy = 'month';
+    } else if (period === StatsPeriod.MONTH) {
+      groupBy = 'day';
+    } else if (period === StatsPeriod.WEEK) {
+      groupBy = 'day';
+    }
+
+    try {
+      const trends = (await this.orderService.getSalesTrends(
+        ownerId,
+        startDate,
+        endDate,
+        groupBy,
+      )) as {
+        date: string;
+        orderCount: number;
+        revenue: number;
+      }[];
+      return trends.map(t => ({
+        date: t.date,
+        orderCount: t.orderCount,
+        revenue: t.revenue,
+      }));
+    } catch (error) {
+      this.logger.error(
+        `Error getting sales trends for owner ${ownerId}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+      return [];
+    }
+  }
+
+  /**
+   * Get top selling licenses for an owner
+   */
+  async getTopSellingLicenses(
+    ownerId: string,
+    limit: number = 5,
+    startDate?: Date,
+    endDate?: Date,
+  ): Promise<TopSellingLicenseDto[]> {
+    try {
+      return (await this.orderService.getTopSellingLicenses(
+        ownerId,
+        limit,
+        startDate,
+        endDate,
+      )) as TopSellingLicenseDto[];
+    } catch (error) {
+      this.logger.error(
+        `Error getting top selling licenses for owner ${ownerId}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+      return [];
+    }
+  }
+
+  /**
+   * Get recent orders for an owner
+   */
+  async getRecentOrders(ownerId: string, limit: number = 10): Promise<RecentOrderDto[]> {
+    try {
+      const orders = (await this.orderService.getRecentOrdersByOwner(ownerId, limit)) as Array<{
+        id: string;
+        user?: { first_name?: string; last_name?: string };
+        billing?: { first_name: string; last_name?: string };
+        license?: { name: string };
+        amount: number;
+        currency: string;
+        status: string;
+        created_at: Date;
+      }>;
+      return orders.map(order => ({
+        id: order.id,
+        buyerName: order.user?.first_name
+          ? `${order.user.first_name} ${order.user.last_name || ''}`.trim()
+          : order.billing?.first_name
+            ? `${order.billing.first_name} ${order.billing.last_name || ''}`.trim()
+            : 'Unknown',
+        licenseName: order.license?.name || 'Unknown License',
+        amount: order.amount,
+        currency: order.currency,
+        status: order.status,
+        createdAt: order.created_at,
+      }));
+    } catch (error) {
+      this.logger.error(
+        `Error getting recent orders for owner ${ownerId}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+      return [];
+    }
   }
 
   /**
@@ -314,7 +481,7 @@ export class StatisticsService {
   }> {
     const { startDate, endDate } = this.getDateRange(period);
 
-    const stats = await this.deploymentRepository.getProjectDeploymentStats(
+    const stats = await this.deploymentService.getProjectDeploymentStats(
       projectId,
       startDate,
       endDate,
@@ -340,10 +507,11 @@ export class StatisticsService {
    * @returns true if user owns the project, false otherwise
    */
   async verifyProjectAccess(projectId: string, userId: string): Promise<boolean> {
-    const project = await this.projectRepository.findOne(projectId);
-    if (!project) {
+    try {
+      const project = await this.projectService.findOne(projectId);
+      return project.owner_id === userId;
+    } catch {
       return false;
     }
-    return project.owner_id === userId;
   }
 }

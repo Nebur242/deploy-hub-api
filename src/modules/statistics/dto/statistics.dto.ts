@@ -105,6 +105,87 @@ export class LicenseStatsDto {
   }[];
 }
 
+// ===== Sales/Orders Statistics DTOs =====
+
+export class SalesStatsDto {
+  @ApiProperty({ description: 'Total number of orders' })
+  totalOrders: number;
+
+  @ApiProperty({ description: 'Number of completed orders' })
+  completedOrders: number;
+
+  @ApiProperty({ description: 'Number of pending orders' })
+  pendingOrders: number;
+
+  @ApiProperty({ description: 'Number of failed orders' })
+  failedOrders: number;
+
+  @ApiProperty({ description: 'Total revenue from completed orders' })
+  totalRevenue: number;
+
+  @ApiProperty({ description: 'Average order value' })
+  averageOrderValue: number;
+
+  @ApiProperty({ description: 'Conversion rate (completed/total)' })
+  conversionRate: number;
+}
+
+export class SalesTrendDto {
+  @ApiProperty({ description: 'Date label' })
+  date: string;
+
+  @ApiProperty({ description: 'Number of orders' })
+  orderCount: number;
+
+  @ApiProperty({ description: 'Revenue for this period' })
+  revenue: number;
+}
+
+export class TopSellingLicenseDto {
+  @ApiProperty({ description: 'License ID' })
+  licenseId: string;
+
+  @ApiProperty({ description: 'License name' })
+  licenseName: string;
+
+  @ApiProperty({ description: 'Project ID' })
+  projectId: string;
+
+  @ApiProperty({ description: 'Project name' })
+  projectName: string;
+
+  @ApiProperty({ description: 'Number of orders' })
+  orderCount: number;
+
+  @ApiProperty({ description: 'Total revenue' })
+  revenue: number;
+}
+
+export class RecentOrderDto {
+  @ApiProperty({ description: 'Order ID' })
+  id: string;
+
+  @ApiProperty({ description: 'Buyer name' })
+  buyerName: string;
+
+  @ApiProperty({ description: 'License name' })
+  licenseName: string;
+
+  @ApiProperty({ description: 'Order amount' })
+  amount: number;
+
+  @ApiProperty({ description: 'Order currency' })
+  currency: string;
+
+  @ApiProperty({ description: 'Order status' })
+  status: string;
+
+  @ApiProperty({ description: 'Order date' })
+  createdAt: Date;
+}
+
+// ===== End Sales/Orders Statistics DTOs =====
+
 export class UserStatsDto {
   @ApiProperty({ description: 'User deployment statistics' })
   deployments: DeploymentStatsDto;
@@ -149,11 +230,20 @@ export class DashboardStatsDto {
   @ApiProperty({ description: 'License statistics' })
   licenses: LicenseStatsDto;
 
+  @ApiPropertyOptional({ description: 'Sales statistics' })
+  sales?: SalesStatsDto;
+
   @ApiProperty({ description: 'Deployment trends over time' })
   deploymentTrends: DeploymentTrendDto[];
 
+  @ApiPropertyOptional({ description: 'Sales trends over time' })
+  salesTrends?: SalesTrendDto[];
+
   @ApiProperty({ description: 'Recent deployment activity', type: [RecentActivityDto] })
   recentActivity: RecentActivityDto[];
+
+  @ApiPropertyOptional({ description: 'Recent sales/orders', type: [RecentOrderDto] })
+  recentOrders?: RecentOrderDto[];
 }
 
 export class EnvironmentStatsDto {

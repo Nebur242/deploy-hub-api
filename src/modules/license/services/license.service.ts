@@ -153,7 +153,7 @@ export class LicenseService {
         {
           owner_id: user.id,
           deployment_limit: String(savedLicense.deployment_limit),
-          duration: String(savedLicense.duration),
+          period: savedLicense.period,
         },
       );
 
@@ -162,6 +162,7 @@ export class LicenseService {
         savedLicense.price,
         savedLicense.currency,
         savedLicense.id,
+        savedLicense.period,
       );
 
       savedLicense.stripe_product_id = stripeProduct.id;
@@ -401,8 +402,9 @@ export class LicenseService {
     // Update license option fields by applying all defined properties from DTO
     const { project_ids: _projectIds, ...licenseUpdates } = updateLicenseDto;
 
-    // Store original price before update for Stripe sync
+    // Store original price and period before update for Stripe sync
     const originalPrice = license.price;
+    const originalPeriod = license.period;
 
     // Directly apply all updates from the DTO to the license object
     Object.assign(license, licenseUpdates);
@@ -417,19 +419,25 @@ export class LicenseService {
             metadata: {
               license_name: license.name,
               deployment_limit: String(license.deployment_limit),
-              duration: String(license.duration),
+              period: license.period,
             },
           });
         }
 
-        // Create new price if price changed (Stripe prices are immutable)
-        if (updateLicenseDto.price !== undefined && updateLicenseDto.price !== originalPrice) {
+        // Create new price if price or period changed (Stripe prices are immutable)
+        const priceChanged =
+          updateLicenseDto.price !== undefined && updateLicenseDto.price !== originalPrice;
+        const periodChanged =
+          updateLicenseDto.period !== undefined && updateLicenseDto.period !== originalPeriod;
+
+        if (priceChanged || periodChanged) {
           const newPrice = await this.stripeService.updateLicensePrice(
             license.stripe_product_id,
-            updateLicenseDto.price,
+            license.price,
             license.currency,
             license.id,
             license.stripe_price_id,
+            license.period,
           );
           license.stripe_price_id = newPrice.id;
           this.logger.log(`Updated Stripe price to ${newPrice.id} for license ${id}`);

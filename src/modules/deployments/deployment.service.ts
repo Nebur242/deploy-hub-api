@@ -885,4 +885,108 @@ export class DeploymentService {
       message: 'Deployment cancelled successfully',
     };
   }
+
+  // ==================== STATISTICS METHODS ====================
+
+  /**
+   * Get deployment statistics by owner within a date range
+   */
+  getStatsByOwner(
+    ownerId: string,
+    startDate?: Date,
+    endDate?: Date,
+  ): Promise<{
+    total: number;
+    successful: number;
+    failed: number;
+    pending: number;
+    running: number;
+    canceled: number;
+  }> {
+    return this.deploymentRepository.getStatsByOwner(ownerId, startDate, endDate);
+  }
+
+  /**
+   * Get average deployment duration for completed deployments
+   */
+  getAvgDuration(ownerId: string, startDate?: Date, endDate?: Date): Promise<number> {
+    return this.deploymentRepository.getAvgDuration(ownerId, startDate, endDate);
+  }
+
+  /**
+   * Get deployment trends over time (daily/weekly/monthly counts)
+   */
+  getDeploymentTrends(
+    ownerId: string,
+    startDate: Date,
+    endDate: Date,
+    groupBy: 'day' | 'week' | 'month' = 'day',
+  ): Promise<{ date: string; count: number; successful: number; failed: number }[]> {
+    return this.deploymentRepository.getDeploymentTrends(ownerId, startDate, endDate, groupBy);
+  }
+
+  /**
+   * Count unique projects with deployments in a period
+   */
+  countActiveProjects(ownerId: string, startDate?: Date, endDate?: Date): Promise<number> {
+    return this.deploymentRepository.countActiveProjects(ownerId, startDate, endDate);
+  }
+
+  /**
+   * Get top projects by deployment count
+   */
+  getTopProjectsByDeployments(
+    ownerId: string,
+    limit?: number,
+    startDate?: Date,
+    endDate?: Date,
+  ): Promise<
+    {
+      projectId: string;
+      projectName: string;
+      deploymentCount: number;
+      successCount: number;
+    }[]
+  > {
+    return this.deploymentRepository.getTopProjectsByDeployments(
+      ownerId,
+      limit,
+      startDate,
+      endDate,
+    );
+  }
+
+  /**
+   * Get deployment stats by environment
+   */
+  getStatsByEnvironment(
+    ownerId: string,
+    startDate?: Date,
+    endDate?: Date,
+  ): Promise<{ environment: string; count: number; successCount: number }[]> {
+    return this.deploymentRepository.getStatsByEnvironment(ownerId, startDate, endDate);
+  }
+
+  /**
+   * Get recent deployments for activity feed
+   */
+  getRecentDeployments(ownerId: string, limit?: number): Promise<Deployment[]> {
+    return this.deploymentRepository.getRecentDeployments(ownerId, limit);
+  }
+
+  /**
+   * Get deployment count for a specific project
+   */
+  getProjectDeploymentStats(
+    projectId: string,
+    startDate?: Date,
+    endDate?: Date,
+  ): Promise<{
+    total: number;
+    successful: number;
+    failed: number;
+    avgDuration: number;
+  }> {
+    return this.deploymentRepository.getProjectDeploymentStats(projectId, startDate, endDate);
+  }
 }
