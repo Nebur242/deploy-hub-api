@@ -7,6 +7,7 @@ import { PaymentModule } from '../payment/payment.module';
 import { ProjectsModule } from '../projects/projects.module';
 import { SubscriptionService } from '../subscription/services/subscription.service';
 import { SubscriptionModule } from '../subscription/subscription.module';
+import { AdminLicenseController } from './controllers/admin-license.controller';
 import { LicenseController } from './controllers/license.controller';
 import { PublicLicenseController } from './controllers/public-license.controller';
 import { UserLicenseController } from './controllers/user-license.controller';
@@ -24,7 +25,12 @@ import { UserLicenseService } from './services/user-license.service';
     forwardRef(() => SubscriptionModule),
   ],
   providers: [LicenseService, UserLicenseService],
-  controllers: [LicenseController, UserLicenseController, PublicLicenseController],
+  controllers: [
+    LicenseController,
+    UserLicenseController,
+    PublicLicenseController,
+    AdminLicenseController,
+  ],
   exports: [LicenseService, UserLicenseService],
 })
 export class LicenseModule implements OnModuleInit {

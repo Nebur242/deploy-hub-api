@@ -463,4 +463,69 @@ export class LicenseService {
       .where('project.owner_id = :ownerId', { ownerId })
       .getMany();
   }
+
+  /**
+   * Admin - Update a license without ownership check
+   */
+  async adminUpdate(id: string, updateLicenseDto: UpdateLicenseDto): Promise<License> {
+    const license = await this.licenseRepository.findOne({
+      where: { id },
+      relations: ['projects'],
+    });
+
+    if (!license) {
+      throw new NotFoundException(`License option with ID ${id} not found`);
+    }
+
+    // Validate pricing updates if provided
+    if (updateLicenseDto.price !== undefined && updateLicenseDto.price < 0) {
+      throw new BadRequestException('Price cannot be negative');
+    }
+
+    // Handle project updates if provided
+    if (updateLicenseDto.project_ids) {
+      const projects = await Promise.all(
+        updateLicenseDto.project_ids.map(async projectId => {
+          const project = await this.projectRepository.findOne(projectId);
+          if (!project) {
+            throw new NotFoundException(`Project with ID ${projectId} not found`);
+          }
+          return project;
+        }),
+      );
+      license.projects = projects;
+    }
+
+    // Update license option fields
+    const { project_ids: _projectIds, ...licenseUpdates } = updateLicenseDto;
+    Object.assign(license, licenseUpdates);
+
+    return this.licenseRepository.save(license);
+  }
+
+  /**
+   * Admin - Delete a license without ownership check
+   */
+  async adminRemove(id: string): Promise<void> {
+    const license = await this.licenseRepository.findOne({
+      where: { id },
+      relations: ['projects'],
+    });
+
+    if (!license) {
+      throw new NotFoundException(`License option with ID ${id} not found`);
+    }
+
+    // Archive Stripe product if exists
+    if (license.stripe_product_id) {
+      try {
+        await this.stripeService.archiveLicenseProduct(license.stripe_product_id);
+        this.logger.log(`Archived Stripe product ${license.stripe_product_id} for license ${id}`);
+      } catch (error) {
+        this.logger.error(`Failed to archive Stripe product for license ${id}:`, error);
+      }
+    }
+
+    await this.licenseRepository.remove(license);
+  }
 }

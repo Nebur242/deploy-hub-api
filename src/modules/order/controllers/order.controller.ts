@@ -140,6 +140,46 @@ export class OrderController {
     return this.orderService.getRecentOrdersByOwner(user.id, limit || 10);
   }
 
+  @Get('owner/customers')
+  @ApiOperation({ summary: 'Get customers who purchased owner licenses' })
+  @ApiResponse({ status: 200, description: 'Returns paginated list of customers' })
+  @ApiQuery({ name: 'search', required: false, type: String })
+  @ApiQuery({ name: 'status', required: false, enum: OrderStatus })
+  @ApiQuery({ name: 'sortBy', required: false, type: String })
+  @ApiQuery({ name: 'sortDirection', required: false, enum: ['ASC', 'DESC'] })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  getCustomers(
+    @CurrentUser() user: User,
+    @Query('search') search?: string,
+    @Query('status') status?: OrderStatus,
+    @Query('sortBy') sortBy?: string,
+    @Query('sortDirection') sortDirection?: 'ASC' | 'DESC',
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
+    if (!user || !user.id) {
+      throw new UnauthorizedException('User not authenticated or missing ID');
+    }
+    return this.orderService.getCustomersByOwner(
+      user.id,
+      { search, status, sortBy, sortDirection },
+      { page: page || 1, limit: limit || 10 },
+    );
+  }
+
+  @Get('owner/customers/:customerId')
+  @ApiOperation({ summary: 'Get customer details with order history' })
+  @ApiResponse({ status: 200, description: 'Returns customer details' })
+  @ApiResponse({ status: 404, description: 'Customer not found' })
+  @ApiParam({ name: 'customerId', description: 'Customer User ID' })
+  getCustomerDetails(@CurrentUser() user: User, @Param('customerId') customerId: string) {
+    if (!user || !user.id) {
+      throw new UnauthorizedException('User not authenticated or missing ID');
+    }
+    return this.orderService.getCustomerDetailsByOwner(user.id, customerId);
+  }
+
   @Get('owner/:id')
   @ApiOperation({ summary: 'Get a specific order for owner licenses' })
   @ApiResponse({ status: 200, description: 'Returns order details' })

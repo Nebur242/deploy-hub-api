@@ -27,6 +27,47 @@ interface TopSellingLicenseRawResult {
   revenue: string;
 }
 
+/**
+ * Customer stats interfaces
+ */
+interface CustomerStatsRaw {
+  userId: string;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  profilePicture: string | null;
+  userCreatedAt: string;
+  totalOrders: string;
+  completedOrders: string;
+  totalSpent: string;
+  firstPurchase: string | null;
+  lastPurchase: string | null;
+}
+
+export interface CustomerStats {
+  userId: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  profilePicture: string | null;
+  userCreatedAt: Date;
+  totalOrders: number;
+  completedOrders: number;
+  totalSpent: number;
+  firstPurchase: Date | null;
+  lastPurchase: Date | null;
+}
+
+export interface CustomerDetails extends CustomerStats {
+  company: string | null;
+  orders: Order[];
+  licensesOwned: {
+    licenseId: string;
+    licenseName: string;
+    purchaseCount: number;
+  }[];
+}
+
 @Injectable()
 export class OrderService {
   private readonly logger = new Logger(OrderService.name);
@@ -456,5 +497,222 @@ export class OrderService {
       .orderBy('order.created_at', 'DESC')
       .take(limit)
       .getMany();
+  }
+
+  /**
+   * Get customers (buyers) for an owner's licenses with pagination
+   */
+  async getCustomersByOwner(
+    ownerId: string,
+    filter: {
+      search?: string;
+      status?: OrderStatus;
+      sortBy?: string;
+      sortDirection?: 'ASC' | 'DESC';
+    },
+    paginationOptions: IPaginationOptions,
+  ): Promise<Pagination<CustomerStats>> {
+    const { search, status, sortBy = 'totalSpent', sortDirection = 'DESC' } = filter;
+
+    // First, get unique customers with their stats
+    const subQuery = this.orderRepository
+      .createQueryBuilder('order')
+      .select('order.user_id', 'userId')
+      .addSelect('buyer.email', 'email')
+      .addSelect('buyer.first_name', 'firstName')
+      .addSelect('buyer.last_name', 'lastName')
+      .addSelect('buyer.profile_picture', 'profilePicture')
+      .addSelect('buyer.created_at', 'userCreatedAt')
+      .addSelect('COUNT(DISTINCT order.id)', 'totalOrders')
+      .addSelect(
+        'COUNT(DISTINCT CASE WHEN order.status = :completed THEN order.id END)',
+        'completedOrders',
+      )
+      .addSelect(
+        'COALESCE(SUM(CASE WHEN order.status = :completed THEN order.amount ELSE 0 END), 0)',
+        'totalSpent',
+      )
+      .addSelect('MIN(order.created_at)', 'firstPurchase')
+      .addSelect('MAX(order.created_at)', 'lastPurchase')
+      .leftJoin('order.license', 'license')
+      .leftJoin('order.user', 'buyer')
+      .where('license.owner_id = :ownerId', { ownerId })
+      .setParameter('completed', OrderStatus.COMPLETED)
+      .groupBy('order.user_id')
+      .addGroupBy('buyer.email')
+      .addGroupBy('buyer.first_name')
+      .addGroupBy('buyer.last_name')
+      .addGroupBy('buyer.profile_picture')
+      .addGroupBy('buyer.created_at');
+
+    if (search) {
+      subQuery.andWhere(
+        '(buyer.email ILIKE :search OR buyer.first_name ILIKE :search OR buyer.last_name ILIKE :search)',
+        { search: `%${search}%` },
+      );
+    }
+
+    if (status) {
+      subQuery.andWhere('order.status = :status', { status });
+    }
+
+    // Map sort fields
+    const sortFieldMap: Record<string, string> = {
+      totalSpent: 'totalSpent',
+      totalOrders: 'totalOrders',
+      lastPurchase: 'lastPurchase',
+      firstPurchase: 'firstPurchase',
+      email: 'email',
+    };
+
+    const actualSortField = sortFieldMap[sortBy] || 'totalSpent';
+    subQuery.orderBy(`"${actualSortField}"`, sortDirection);
+
+    // Get total count for pagination
+    const countQuery = this.orderRepository
+      .createQueryBuilder('order')
+      .select('COUNT(DISTINCT order.user_id)', 'count')
+      .leftJoin('order.license', 'license')
+      .leftJoin('order.user', 'buyer')
+      .where('license.owner_id = :ownerId', { ownerId });
+
+    if (search) {
+      countQuery.andWhere(
+        '(buyer.email ILIKE :search OR buyer.first_name ILIKE :search OR buyer.last_name ILIKE :search)',
+        { search: `%${search}%` },
+      );
+    }
+
+    const countResult = await countQuery.getRawOne<{ count: string }>();
+    const totalItems = parseInt(countResult?.count || '0', 10);
+
+    // Apply pagination
+    const page = Number(paginationOptions.page) || 1;
+    const limit = Number(paginationOptions.limit) || 10;
+    const offset = (page - 1) * limit;
+
+    subQuery.offset(offset).limit(limit);
+
+    const results = await subQuery.getRawMany<CustomerStatsRaw>();
+
+    const items: CustomerStats[] = results.map(r => ({
+      userId: r.userId,
+      email: r.email,
+      firstName: r.firstName || '',
+      lastName: r.lastName || '',
+      profilePicture: r.profilePicture || null,
+      userCreatedAt: new Date(r.userCreatedAt),
+      totalOrders: parseInt(r.totalOrders, 10),
+      completedOrders: parseInt(r.completedOrders, 10),
+      totalSpent: parseFloat(r.totalSpent),
+      firstPurchase: r.firstPurchase ? new Date(r.firstPurchase) : null,
+      lastPurchase: r.lastPurchase ? new Date(r.lastPurchase) : null,
+    }));
+
+    const totalPages = Math.ceil(totalItems / limit);
+
+    return {
+      items,
+      meta: {
+        totalItems,
+        itemCount: items.length,
+        itemsPerPage: limit,
+        totalPages,
+        currentPage: page,
+      },
+    };
+  }
+
+  /**
+   * Get customer details with their order history for an owner
+   */
+  async getCustomerDetailsByOwner(
+    ownerId: string,
+    customerId: string,
+  ): Promise<CustomerDetails | null> {
+    // Get customer stats
+    const statsResult = await this.orderRepository
+      .createQueryBuilder('order')
+      .select('order.user_id', 'userId')
+      .addSelect('buyer.email', 'email')
+      .addSelect('buyer.first_name', 'firstName')
+      .addSelect('buyer.last_name', 'lastName')
+      .addSelect('buyer.profile_picture', 'profilePicture')
+      .addSelect('buyer.company', 'company')
+      .addSelect('buyer.created_at', 'userCreatedAt')
+      .addSelect('COUNT(DISTINCT order.id)', 'totalOrders')
+      .addSelect(
+        'COUNT(DISTINCT CASE WHEN order.status = :completed THEN order.id END)',
+        'completedOrders',
+      )
+      .addSelect(
+        'COALESCE(SUM(CASE WHEN order.status = :completed THEN order.amount ELSE 0 END), 0)',
+        'totalSpent',
+      )
+      .addSelect('MIN(order.created_at)', 'firstPurchase')
+      .addSelect('MAX(order.created_at)', 'lastPurchase')
+      .leftJoin('order.license', 'license')
+      .leftJoin('order.user', 'buyer')
+      .where('license.owner_id = :ownerId', { ownerId })
+      .andWhere('order.user_id = :customerId', { customerId })
+      .setParameter('completed', OrderStatus.COMPLETED)
+      .groupBy('order.user_id')
+      .addGroupBy('buyer.email')
+      .addGroupBy('buyer.first_name')
+      .addGroupBy('buyer.last_name')
+      .addGroupBy('buyer.profile_picture')
+      .addGroupBy('buyer.company')
+      .addGroupBy('buyer.created_at')
+      .getRawOne<CustomerStatsRaw & { company: string | null }>();
+
+    if (!statsResult) {
+      return null;
+    }
+
+    // Get order history
+    const orders = await this.orderRepository
+      .createQueryBuilder('order')
+      .leftJoinAndSelect('order.license', 'license')
+      .leftJoin('license.projects', 'project')
+      .addSelect(['project.id', 'project.name'])
+      .where('license.owner_id = :ownerId', { ownerId })
+      .andWhere('order.user_id = :customerId', { customerId })
+      .orderBy('order.created_at', 'DESC')
+      .getMany();
+
+    // Get licenses purchased
+    const licenses = await this.orderRepository
+      .createQueryBuilder('order')
+      .select('DISTINCT license.id', 'licenseId')
+      .addSelect('license.name', 'licenseName')
+      .addSelect('COUNT(order.id)', 'purchaseCount')
+      .leftJoin('order.license', 'license')
+      .where('license.owner_id = :ownerId', { ownerId })
+      .andWhere('order.user_id = :customerId', { customerId })
+      .andWhere('order.status = :completed', { completed: OrderStatus.COMPLETED })
+      .groupBy('license.id')
+      .addGroupBy('license.name')
+      .getRawMany<{ licenseId: string; licenseName: string; purchaseCount: string }>();
+
+    return {
+      userId: statsResult.userId,
+      email: statsResult.email,
+      firstName: statsResult.firstName || '',
+      lastName: statsResult.lastName || '',
+      profilePicture: statsResult.profilePicture || null,
+      company: statsResult.company || null,
+      userCreatedAt: new Date(statsResult.userCreatedAt),
+      totalOrders: parseInt(statsResult.totalOrders, 10),
+      completedOrders: parseInt(statsResult.completedOrders, 10),
+      totalSpent: parseFloat(statsResult.totalSpent),
+      firstPurchase: statsResult.firstPurchase ? new Date(statsResult.firstPurchase) : null,
+      lastPurchase: statsResult.lastPurchase ? new Date(statsResult.lastPurchase) : null,
+      orders,
+      licensesOwned: licenses.map(l => ({
+        licenseId: l.licenseId,
+        licenseName: l.licenseName,
+        purchaseCount: parseInt(l.purchaseCount, 10),
+      })),
+    };
   }
 }

@@ -1,8 +1,9 @@
 import { CurrentUser } from '@app/core/decorators/current-user.decorator';
 import { Admin, Authenticated } from '@app/core/guards/roles-auth.guard';
-import { CreateOrderDto } from '@app/modules/order/dto';
+import { CreateOrderDto, FilterOrdersDto } from '@app/modules/order/dto';
 import { OrderService } from '@app/modules/order/services/order.service';
 import { User } from '@app/modules/users/entities/user.entity';
+import { OrderStatus } from '@app/shared/enums';
 import {
   Controller,
   Get,
@@ -14,6 +15,7 @@ import {
   Query,
   Inject,
   forwardRef,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -83,12 +85,60 @@ export class LicenseController {
     );
   }
 
+  // ===== License Purchases/Orders Endpoints =====
+  // These routes must be defined BEFORE the :id route to avoid route conflicts
+
+  @Get('purchases')
+  @Authenticated()
+  @ApiOperation({ summary: 'Get all purchases/orders for licenses owned by the current user' })
+  @ApiResponse({ status: 200, description: 'Returns paginated list of license purchases' })
+  getPurchases(@CurrentUser() user: User, @Query() filter: FilterOrdersDto) {
+    const { page = 1, limit = 10 } = filter;
+    return this.orderService.findOrdersByOwner(user.id, filter, { page, limit });
+  }
+
+  @Get('purchases/:id')
+  @Authenticated()
+  @ApiOperation({ summary: 'Get a specific purchase/order by ID' })
+  @ApiResponse({ status: 200, description: 'Returns purchase details' })
+  @ApiResponse({ status: 404, description: 'Purchase not found' })
+  @ApiParam({ name: 'id', description: 'Purchase/Order ID' })
+  getPurchaseById(@CurrentUser() user: User, @Param('id', new ParseUUIDPipe()) id: string) {
+    return this.orderService.findOneByOwner(id, user.id);
+  }
+
+  @Post('purchases/:id/confirm')
+  @Authenticated()
+  @ApiOperation({ summary: 'Confirm a purchase/order' })
+  @ApiResponse({ status: 200, description: 'Purchase confirmed' })
+  @ApiResponse({ status: 404, description: 'Purchase not found' })
+  @ApiParam({ name: 'id', description: 'Purchase/Order ID' })
+  async confirmPurchase(@CurrentUser() user: User, @Param('id', new ParseUUIDPipe()) id: string) {
+    // Verify ownership first
+    await this.orderService.findOneByOwner(id, user.id);
+    return this.orderService.updateStatus(id, OrderStatus.COMPLETED);
+  }
+
+  @Post('purchases/:id/cancel')
+  @Authenticated()
+  @ApiOperation({ summary: 'Cancel a purchase/order' })
+  @ApiResponse({ status: 200, description: 'Purchase cancelled' })
+  @ApiResponse({ status: 404, description: 'Purchase not found' })
+  @ApiParam({ name: 'id', description: 'Purchase/Order ID' })
+  async cancelPurchase(@CurrentUser() user: User, @Param('id', new ParseUUIDPipe()) id: string) {
+    // Verify ownership first
+    await this.orderService.findOneByOwner(id, user.id);
+    return this.orderService.updateStatus(id, OrderStatus.CANCELLED);
+  }
+
+  // ===== License CRUD Endpoints =====
+
   @Get(':id')
   @ApiOperation({ summary: 'Get a license option by ID' })
   @ApiResponse({ status: 200, description: 'Returns the license option' })
   @ApiResponse({ status: 404, description: 'License option not found' })
   @ApiParam({ name: 'id', description: 'License option ID' })
-  findOne(@Param('id') id: string) {
+  findOne(@Param('id', new ParseUUIDPipe()) id: string) {
     return this.licenseService.findOne(id);
   }
 
@@ -101,7 +151,7 @@ export class LicenseController {
   @ApiParam({ name: 'id', description: 'License option ID' })
   update(
     @CurrentUser() user: User,
-    @Param('id') id: string,
+    @Param('id', new ParseUUIDPipe()) id: string,
     @Body() updateLicenseDto: UpdateLicenseDto,
   ) {
     return this.licenseService.update(id, user.id, updateLicenseDto);
@@ -113,7 +163,7 @@ export class LicenseController {
   @ApiResponse({ status: 200, description: 'License option successfully deleted' })
   @ApiResponse({ status: 404, description: 'License option not found' })
   @ApiParam({ name: 'id', description: 'License option ID' })
-  remove(@CurrentUser() user: User, @Param('id') id: string) {
+  remove(@CurrentUser() user: User, @Param('id', new ParseUUIDPipe()) id: string) {
     return this.licenseService.remove(id, user.id);
   }
 
@@ -126,7 +176,7 @@ export class LicenseController {
   @Authenticated()
   purchase(
     @CurrentUser() user: User,
-    @Param('id') id: string,
+    @Param('id', new ParseUUIDPipe()) id: string,
     @Body() createOrderDto: CreateOrderDto,
   ) {
     // Create a simple order for the license

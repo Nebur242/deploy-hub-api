@@ -215,4 +215,21 @@ export class ProjectRepository {
       where: { owner_id: ownerId },
     });
   }
+
+  /**
+   * Admin - Find all projects with filtering (no owner restriction)
+   */
+  findAllAdmin(
+    options?: {
+      visibility?: Visibility;
+      techStack?: TechStack[];
+      categoryIds?: string[];
+      search?: string;
+      sortBy?: string;
+      sortDirection?: 'ASC' | 'DESC';
+    },
+    paginationOptions: IPaginationOptions = { page: 1, limit: 10 },
+  ) {
+    return this.findAll(options, paginationOptions);
+  }
 }
