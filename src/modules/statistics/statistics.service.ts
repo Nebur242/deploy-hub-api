@@ -1,7 +1,6 @@
 import { DeploymentRepository } from '@app/modules/deployments/repositories/deployment.repository';
 import { License } from '@app/modules/license/entities/license.entity';
 import { UserLicense } from '@app/modules/license/entities/user-license.entity';
-import { Project } from '@app/modules/projects/entities/project.entity';
 import { ProjectRepository } from '@app/modules/projects/repositories/project.repository';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -29,8 +28,6 @@ export class StatisticsService {
     private readonly licenseRepository: Repository<License>,
     @InjectRepository(UserLicense)
     private readonly userLicenseRepository: Repository<UserLicense>,
-    @InjectRepository(Project)
-    private readonly projectRepo: Repository<Project>,
   ) {}
 
   /**
@@ -355,5 +352,17 @@ export class StatisticsService {
       successRate,
       avgDurationSeconds: Math.round(stats.avgDuration),
     };
+  }
+
+  /**
+   * Verify that a user has access to a specific project
+   * @returns true if user owns the project, false otherwise
+   */
+  async verifyProjectAccess(projectId: string, userId: string): Promise<boolean> {
+    const project = await this.projectRepository.findOne(projectId);
+    if (!project) {
+      return false;
+    }
+    return project.owner_id === userId;
   }
 }

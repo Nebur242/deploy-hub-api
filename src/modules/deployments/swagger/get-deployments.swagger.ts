@@ -26,14 +26,14 @@ export function ApiGetDeployments() {
       example: 10,
     }),
     ApiQuery({
-      name: 'projectId',
+      name: 'project_id',
       required: true,
       type: String,
       description: 'Filter by project ID',
       example: '123e4567-e89b-12d3-a456-426614174000',
     }),
     ApiQuery({
-      name: 'ownerId',
+      name: 'owner_id',
       required: false,
       type: String,
       description: 'Filter by owner ID',

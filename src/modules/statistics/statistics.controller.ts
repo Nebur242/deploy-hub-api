@@ -1,7 +1,7 @@
 import { CurrentUser } from '@app/core/decorators/current-user.decorator';
 import { Authenticated } from '@app/core/guards/roles-auth.guard';
 import { User } from '@app/modules/users/entities/user.entity';
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Controller, ForbiddenException, Get, Param, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 import {
@@ -121,7 +121,12 @@ export class StatisticsController {
     status: 200,
     description: 'Project deployment statistics retrieved successfully',
   })
-  getProjectDeploymentStats(
+  @ApiResponse({
+    status: 403,
+    description: 'User does not have permission to access this project',
+  })
+  async getProjectDeploymentStats(
+    @CurrentUser() user: User,
     @Param('projectId') projectId: string,
     @Query() query: StatsQueryDto,
   ): Promise<{
@@ -131,6 +136,11 @@ export class StatisticsController {
     successRate: number;
     avgDurationSeconds: number;
   }> {
+    // Verify user has access to this project
+    const hasAccess = await this.statisticsService.verifyProjectAccess(projectId, user.id);
+    if (!hasAccess) {
+      throw new ForbiddenException('You do not have permission to access this project');
+    }
     return this.statisticsService.getProjectDeploymentStats(projectId, query.period);
   }
 

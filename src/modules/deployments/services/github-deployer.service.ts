@@ -127,36 +127,19 @@ export class GithubDeployerService {
       `[GITHUB] Workflow dispatched successfully after ${dispatchResult.attempts} attempt(s)`,
     );
 
-    // Get the exact new workflow run ID (with retry)
+    // Get the exact new workflow run ID (has internal retry logic)
     this.logger.log(`[GITHUB] Step 4: Waiting for new workflow run to appear...`);
-    const runIdResult = await retryWithBackoff(
-      () =>
-        this.getNewWorkflowRunId(
-          octokit,
-          githubAccount.username,
-          githubAccount.repository,
-          workflowId,
-          existingRunIds,
-          triggerTime,
-        ),
-      {
-        maxRetries: 5, // More retries for finding new run as it may take time to appear
-        baseDelayMs: 2000, // Longer delay to allow GitHub to register the run
-        isRetryable: isGitHubRetryableError,
-        logger: this.logger,
-        context: 'getNewWorkflowRunId',
-      },
+    const workflowRunId = await this.getNewWorkflowRunId(
+      octokit,
+      githubAccount.username,
+      githubAccount.repository,
+      workflowId,
+      existingRunIds,
+      triggerTime,
     );
 
-    if (!runIdResult.success) {
-      this.logger.error(
-        `[GITHUB] Failed to get new workflow run ID: ${runIdResult.error?.message}`,
-      );
-      throw runIdResult.error || new Error('Failed to get new workflow run ID');
-    }
-
-    this.logger.log(`[GITHUB] New workflow run found: ${runIdResult.data!}`);
-    return { workflowRunId: runIdResult.data! };
+    this.logger.log(`[GITHUB] New workflow run found: ${workflowRunId}`);
+    return { workflowRunId };
   }
 
   /**

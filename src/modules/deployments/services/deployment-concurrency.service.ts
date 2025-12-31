@@ -1,5 +1,4 @@
 import { Injectable, Logger, ConflictException } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 
 import { DeploymentStatus, DeplomentEnvironment } from '../entities/deployment.entity';
 import { DeploymentRepository } from '../repositories/deployment.repository';
@@ -91,10 +90,7 @@ export class DeploymentConcurrencyService {
 
   private cleanupInterval: ReturnType<typeof setInterval> | null = null;
 
-  constructor(
-    private readonly deploymentRepository: DeploymentRepository,
-    private readonly eventEmitter: EventEmitter2,
-  ) {
+  constructor(private readonly deploymentRepository: DeploymentRepository) {
     // Start periodic cleanup of expired locks
     this.startCleanupInterval();
   }
