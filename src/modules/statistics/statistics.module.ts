@@ -1,19 +1,19 @@
-import { Deployment } from '@app/modules/deployments/entities/deployment.entity';
-import { DeploymentRepository } from '@app/modules/deployments/repositories/deployment.repository';
-import { License } from '@app/modules/license/entities/license.entity';
-import { UserLicense } from '@app/modules/license/entities/user-license.entity';
-import { Project } from '@app/modules/projects/entities/project.entity';
-import { ProjectRepository } from '@app/modules/projects/repositories/project.repository';
-import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { DeploymentModule } from '@app/modules/deployments/deployment.module';
+import { LicenseModule } from '@app/modules/license/license.module';
+import { ProjectsModule } from '@app/modules/projects/projects.module';
+import { forwardRef, Module } from '@nestjs/common';
 
 import { StatisticsController } from './statistics.controller';
 import { StatisticsService } from './statistics.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Deployment, License, UserLicense, Project])],
+  imports: [
+    forwardRef(() => DeploymentModule),
+    forwardRef(() => LicenseModule),
+    forwardRef(() => ProjectsModule),
+  ],
   controllers: [StatisticsController],
-  providers: [StatisticsService, DeploymentRepository, ProjectRepository],
+  providers: [StatisticsService],
   exports: [StatisticsService],
 })
 export class StatisticsModule {}

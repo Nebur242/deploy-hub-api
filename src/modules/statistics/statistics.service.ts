@@ -1,10 +1,8 @@
 import { DeploymentRepository } from '@app/modules/deployments/repositories/deployment.repository';
-import { License } from '@app/modules/license/entities/license.entity';
-import { UserLicense } from '@app/modules/license/entities/user-license.entity';
+import { LicenseService } from '@app/modules/license/services/license.service';
+import { UserLicenseService } from '@app/modules/license/services/user-license.service';
 import { ProjectRepository } from '@app/modules/projects/repositories/project.repository';
 import { Injectable, Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 
 import {
   DashboardStatsDto,
@@ -24,10 +22,8 @@ export class StatisticsService {
   constructor(
     private readonly deploymentRepository: DeploymentRepository,
     private readonly projectRepository: ProjectRepository,
-    @InjectRepository(License)
-    private readonly licenseRepository: Repository<License>,
-    @InjectRepository(UserLicense)
-    private readonly userLicenseRepository: Repository<UserLicense>,
+    private readonly licenseService: LicenseService,
+    private readonly userLicenseService: UserLicenseService,
   ) {}
 
   /**
@@ -171,25 +167,12 @@ export class StatisticsService {
    * Get license statistics for an owner
    */
   async getLicenseStats(ownerId: string): Promise<LicenseStatsDto> {
-    // Get all licenses for owner's projects
-    const licenses = await this.licenseRepository
-      .createQueryBuilder('license')
-      .leftJoin('license.projects', 'project')
-      .where('project.owner_id = :ownerId', { ownerId })
-      .getMany();
-
+    // Get all licenses for owner's projects using the license service
+    const licenses = await this.licenseService.getLicensesByOwnerProjects(ownerId);
     const licenseIds = licenses.map(l => l.id);
 
-    // Get user licenses (sold licenses)
-    let userLicenses: UserLicense[] = [];
-    if (licenseIds.length > 0) {
-      userLicenses = await this.userLicenseRepository
-        .createQueryBuilder('userLicense')
-        .leftJoinAndSelect('userLicense.license', 'license')
-        .leftJoinAndSelect('license.projects', 'project')
-        .where('userLicense.license_id IN (:...licenseIds)', { licenseIds })
-        .getMany();
-    }
+    // Get user licenses (sold licenses) using the user license service
+    const userLicenses = await this.userLicenseService.getUserLicensesByLicenseIds(licenseIds);
 
     // Calculate total revenue
     const totalRevenue = userLicenses.reduce((sum, ul) => {
@@ -295,10 +278,8 @@ export class StatisticsService {
    * Get user-specific statistics (for license buyers)
    */
   async getUserStats(userId: string): Promise<UserStatsDto> {
-    // Get user's licenses (owner_id is the buyer/user who owns the license)
-    const userLicenses = await this.userLicenseRepository.find({
-      where: { owner_id: userId },
-    });
+    // Get user's licenses using the user license service
+    const userLicenses = await this.userLicenseService.findAllByOwner(userId);
 
     const activeLicenses = userLicenses.filter(ul => ul.active).length;
     const deploymentsRemaining = userLicenses.reduce((sum, ul) => {

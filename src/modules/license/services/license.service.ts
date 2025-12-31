@@ -267,4 +267,16 @@ export class LicenseService {
     // Save the changes
     return this.licenseRepository.save(license);
   }
+
+  /**
+   * Get all licenses for projects owned by a specific user
+   * Used for statistics calculations
+   */
+  getLicensesByOwnerProjects(ownerId: string): Promise<License[]> {
+    return this.licenseRepository
+      .createQueryBuilder('license')
+      .leftJoin('license.projects', 'project')
+      .where('project.owner_id = :ownerId', { ownerId })
+      .getMany();
+  }
 }

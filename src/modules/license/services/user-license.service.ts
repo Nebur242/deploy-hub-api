@@ -149,4 +149,30 @@ export class UserLicenseService {
   save(userLicense: UserLicense): Promise<UserLicense> {
     return this.userLicenseRepository.save(userLicense);
   }
+
+  /**
+   * Get user licenses for specific license IDs with license and project relations
+   * Used for statistics calculations
+   */
+  getUserLicensesByLicenseIds(licenseIds: string[]): Promise<UserLicense[]> {
+    if (licenseIds.length === 0) {
+      return Promise.resolve([]);
+    }
+
+    return this.userLicenseRepository
+      .createQueryBuilder('userLicense')
+      .leftJoinAndSelect('userLicense.license', 'license')
+      .leftJoinAndSelect('license.projects', 'project')
+      .where('userLicense.license_id IN (:...licenseIds)', { licenseIds })
+      .getMany();
+  }
+
+  /**
+   * Get all user licenses for a specific owner (for user statistics)
+   */
+  findAllByOwner(ownerId: string): Promise<UserLicense[]> {
+    return this.userLicenseRepository.find({
+      where: { owner_id: ownerId },
+    });
+  }
 }
