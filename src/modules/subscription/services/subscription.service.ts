@@ -15,10 +15,16 @@ import { Subscription } from '../entities/subscription.entity';
 // Type alias for clarity
 type StripeSubscription = StripeNS.Subscription;
 
+// Interface for license service to avoid circular import
+interface ILicenseService {
+  calculateAllocatedDeployments(ownerId: string): Promise<number>;
+}
+
 @Injectable()
 export class SubscriptionService {
   private readonly logger = new Logger(SubscriptionService.name);
   private readonly apiBaseUrl: string;
+  private licenseService: ILicenseService | null = null;
 
   constructor(
     @InjectRepository(Subscription)
@@ -29,6 +35,23 @@ export class SubscriptionService {
     private readonly projectService: ProjectService,
   ) {
     this.apiBaseUrl = this.configService.get<string>('API_BASE_URL') || '';
+  }
+
+  /**
+   * Set license service (called from license module to avoid circular dependency)
+   */
+  setLicenseService(licenseService: ILicenseService): void {
+    this.licenseService = licenseService;
+  }
+
+  /**
+   * Get allocated deployments from license service
+   */
+  getAllocatedDeployments(userId: string): Promise<number> {
+    if (!this.licenseService) {
+      return Promise.resolve(0);
+    }
+    return this.licenseService.calculateAllocatedDeployments(userId);
   }
 
   /**
@@ -89,6 +112,65 @@ export class SubscriptionService {
     }
 
     return subscription;
+  }
+
+  /**
+   * Get subscription with deployment pool information
+   */
+  async getSubscriptionWithPoolInfo(userId: string): Promise<
+    Subscription & {
+      deployment_pool: {
+        total: number;
+        allocated: number;
+        available: number;
+      };
+    }
+  > {
+    const subscription = await this.getSubscription(userId);
+    const allocated = await this.getAllocatedDeployments(userId);
+    const total = subscription.max_deployments_per_month;
+
+    return {
+      ...subscription,
+      deployment_pool: {
+        total,
+        allocated,
+        available: total === -1 ? -1 : Math.max(0, total - allocated),
+      },
+    };
+  }
+
+  /**
+   * Validate if user can downgrade to a new plan
+   */
+  async validatePlanDowngrade(userId: string, newPlan: SubscriptionPlan): Promise<void> {
+    const newPlanConfig = this.stripeService.getPlanConfig(newPlan);
+    if (!newPlanConfig) {
+      throw new BadRequestException(`Invalid plan: ${newPlan}`);
+    }
+
+    // Check deployment pool allocation
+    const allocatedDeployments = await this.getAllocatedDeployments(userId);
+    if (
+      newPlanConfig.maxDeploymentsPerMonth !== -1 &&
+      allocatedDeployments > newPlanConfig.maxDeploymentsPerMonth
+    ) {
+      throw new BadRequestException(
+        `Cannot downgrade to ${newPlanConfig.name} plan. You have ${allocatedDeployments} deployments ` +
+          `allocated across your licenses, but the ${newPlanConfig.name} plan only allows ` +
+          `${newPlanConfig.maxDeploymentsPerMonth}. Please reduce your license deployment limits first.`,
+      );
+    }
+
+    // Check project count
+    const projectCount = await this.projectService.countByOwner(userId);
+    if (newPlanConfig.maxProjects !== -1 && projectCount > newPlanConfig.maxProjects) {
+      throw new BadRequestException(
+        `Cannot downgrade to ${newPlanConfig.name} plan. You have ${projectCount} projects, ` +
+          `but the ${newPlanConfig.name} plan only allows ${newPlanConfig.maxProjects}. ` +
+          `Please delete some projects first.`,
+      );
+    }
   }
 
   /**
@@ -163,6 +245,8 @@ export class SubscriptionService {
     // Handle cancellation
     if (dto.cancel_at_period_end !== undefined) {
       if (dto.cancel_at_period_end) {
+        // Validate downgrade to free plan before cancelling
+        await this.validatePlanDowngrade(userId, SubscriptionPlan.FREE);
         await this.stripeService.cancelSubscription(subscription.stripe_subscription_id, false);
       } else {
         await this.stripeService.reactivateSubscription(subscription.stripe_subscription_id);
@@ -177,8 +261,22 @@ export class SubscriptionService {
 
     // Handle plan change
     if (dto.plan && dto.billing_interval) {
+      // Check if this is a downgrade and validate
+      const currentPlanConfig = this.stripeService.getPlanConfig(subscription.plan);
+      const newPlanConfig = this.stripeService.getPlanConfig(dto.plan);
+
+      if (
+        currentPlanConfig &&
+        newPlanConfig &&
+        newPlanConfig.maxDeploymentsPerMonth < currentPlanConfig.maxDeploymentsPerMonth
+      ) {
+        // This is a downgrade - validate
+        await this.validatePlanDowngrade(userId, dto.plan);
+      }
+
       if (dto.plan === SubscriptionPlan.FREE) {
         // Downgrade to free - cancel subscription
+        await this.validatePlanDowngrade(userId, SubscriptionPlan.FREE);
         await this.stripeService.cancelSubscription(subscription.stripe_subscription_id, false);
         subscription.cancel_at_period_end = true;
       } else {

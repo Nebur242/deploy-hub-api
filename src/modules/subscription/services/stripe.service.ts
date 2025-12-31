@@ -352,4 +352,136 @@ export class StripeService {
   getAllPlans(): PlanConfig[] {
     return Array.from(this.plans.values());
   }
+
+  /**
+   * Create a Stripe product for a license
+   * Product name is the license ID for easy reference
+   */
+  async createLicenseProduct(
+    licenseId: string,
+    licenseName: string,
+    description: string,
+    metadata?: Record<string, string>,
+  ): Promise<Stripe.Product> {
+    const product = await this.stripe.products.create({
+      name: licenseId, // Using license ID as product name for easy lookup
+      description: description || licenseName,
+      metadata: {
+        license_id: licenseId,
+        license_name: licenseName,
+        ...metadata,
+      },
+    });
+
+    this.logger.log(`Created Stripe product ${product.id} for license ${licenseId}`);
+    return product;
+  }
+
+  /**
+   * Create a Stripe price for a license product
+   */
+  async createLicensePrice(
+    productId: string,
+    amount: number,
+    currency: string,
+    licenseId: string,
+  ): Promise<Stripe.Price> {
+    // Convert amount to cents (Stripe uses smallest currency unit)
+    const unitAmount = Math.round(amount * 100);
+
+    const price = await this.stripe.prices.create({
+      product: productId,
+      unit_amount: unitAmount,
+      currency: currency.toLowerCase(),
+      metadata: {
+        license_id: licenseId,
+      },
+    });
+
+    this.logger.log(`Created Stripe price ${price.id} for product ${productId}`);
+    return price;
+  }
+
+  /**
+   * Update a Stripe product
+   */
+  async updateLicenseProduct(
+    productId: string,
+    updates: {
+      name?: string;
+      description?: string;
+      active?: boolean;
+      metadata?: Record<string, string>;
+    },
+  ): Promise<Stripe.Product> {
+    const product = await this.stripe.products.update(productId, updates);
+    this.logger.log(`Updated Stripe product ${productId}`);
+    return product;
+  }
+
+  /**
+   * Create a new price for an existing product (prices are immutable in Stripe)
+   * Deactivates the old price if provided
+   */
+  async updateLicensePrice(
+    productId: string,
+    newAmount: number,
+    currency: string,
+    licenseId: string,
+    oldPriceId?: string,
+  ): Promise<Stripe.Price> {
+    // Create new price
+    const newPrice = await this.createLicensePrice(productId, newAmount, currency, licenseId);
+
+    // Deactivate old price if provided
+    if (oldPriceId) {
+      await this.stripe.prices.update(oldPriceId, { active: false });
+      this.logger.log(`Deactivated old price ${oldPriceId}`);
+    }
+
+    return newPrice;
+  }
+
+  /**
+   * Archive/deactivate a Stripe product
+   */
+  async archiveLicenseProduct(productId: string): Promise<Stripe.Product> {
+    const product = await this.stripe.products.update(productId, { active: false });
+    this.logger.log(`Archived Stripe product ${productId}`);
+    return product;
+  }
+
+  /**
+   * Create a checkout session for purchasing a license (one-time payment)
+   */
+  async createLicenseCheckoutSession(
+    customerId: string,
+    priceId: string,
+    licenseId: string,
+    successUrl: string,
+    cancelUrl: string,
+    metadata?: Record<string, string>,
+  ): Promise<Stripe.Checkout.Session> {
+    const session = await this.stripe.checkout.sessions.create({
+      customer: customerId,
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price: priceId,
+          quantity: 1,
+        },
+      ],
+      mode: 'payment',
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+      metadata: {
+        license_id: licenseId,
+        type: 'license_purchase',
+        ...metadata,
+      },
+    });
+
+    this.logger.log(`Created license checkout session ${session.id} for license ${licenseId}`);
+    return session;
+  }
 }

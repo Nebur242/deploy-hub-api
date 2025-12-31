@@ -16,13 +16,13 @@ export class SubscriptionController {
   constructor(private readonly subscriptionService: SubscriptionService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Get current subscription' })
+  @ApiOperation({ summary: 'Get current subscription with deployment pool info' })
   @ApiResponse({
     status: 200,
-    description: 'Returns the current subscription for the authenticated user',
+    description: 'Returns the current subscription with deployment pool information',
   })
-  getSubscription(@CurrentUser() user: User): Promise<Subscription> {
-    return this.subscriptionService.getSubscription(user.id);
+  getSubscription(@CurrentUser() user: User) {
+    return this.subscriptionService.getSubscriptionWithPoolInfo(user.id);
   }
 
   @Get('plans')
