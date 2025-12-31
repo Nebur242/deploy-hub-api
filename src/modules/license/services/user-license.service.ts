@@ -91,4 +91,88 @@ export class UserLicenseService {
 
     return paginate<UserLicense>(queryBuilder, options);
   }
+
+  /**
+   * Find active user license for a specific license and owner
+   */
+  findActiveUserLicense(licenseId: string, ownerId: string): Promise<UserLicense | null> {
+    return this.userLicenseRepository.findOne({
+      where: {
+        license_id: licenseId,
+        owner_id: ownerId,
+        active: true,
+      },
+    });
+  }
+
+  /**
+   * Increment deployment count for a user license
+   * @param userLicenseId - The ID of the user license
+   * @param deploymentId - The ID of the deployment to add to the history
+   * @returns The updated user license
+   */
+  async incrementDeploymentCount(
+    userLicenseId: string,
+    deploymentId: string,
+  ): Promise<UserLicense> {
+    const userLicense = await this.getUserLicenseById(userLicenseId);
+
+    userLicense.count = userLicense.count + 1;
+    userLicense.deployments = [...(userLicense.deployments || []), deploymentId];
+
+    return this.userLicenseRepository.save(userLicense);
+  }
+
+  /**
+   * Check if user license has available deployments
+   * @param userLicenseId - The ID of the user license
+   * @returns True if deployments are available
+   */
+  async hasAvailableDeployments(userLicenseId: string): Promise<boolean> {
+    const userLicense = await this.getUserLicenseById(userLicenseId);
+    return userLicense.active && userLicense.count < userLicense.max_deployments;
+  }
+
+  /**
+   * Get remaining deployment count for a user license
+   * @param userLicenseId - The ID of the user license
+   * @returns Number of remaining deployments
+   */
+  async getRemainingDeployments(userLicenseId: string): Promise<number> {
+    const userLicense = await this.getUserLicenseById(userLicenseId);
+    return Math.max(0, userLicense.max_deployments - userLicense.count);
+  }
+
+  /**
+   * Save a user license
+   */
+  save(userLicense: UserLicense): Promise<UserLicense> {
+    return this.userLicenseRepository.save(userLicense);
+  }
+
+  /**
+   * Get user licenses for specific license IDs with license and project relations
+   * Used for statistics calculations
+   */
+  getUserLicensesByLicenseIds(licenseIds: string[]): Promise<UserLicense[]> {
+    if (licenseIds.length === 0) {
+      return Promise.resolve([]);
+    }
+
+    return this.userLicenseRepository
+      .createQueryBuilder('userLicense')
+      .leftJoinAndSelect('userLicense.license', 'license')
+      .leftJoinAndSelect('license.projects', 'project')
+      .where('userLicense.license_id IN (:...licenseIds)', { licenseIds })
+      .getMany();
+  }
+
+  /**
+   * Get all user licenses for a specific owner (for user statistics)
+   */
+  findAllByOwner(ownerId: string): Promise<UserLicense[]> {
+    return this.userLicenseRepository.find({
+      where: { owner_id: ownerId },
+    });
+  }
 }

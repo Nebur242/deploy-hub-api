@@ -41,6 +41,8 @@ describe('EnvironmentVariables', function (this: void) {
         REDIS_PASSWORD: 'redis-password',
         REDIS_DB: 0,
         SMTP_PORT: 587, // As number
+        STRIPE_SECRET_KEY: 'sk_test_stripe_secret_key',
+        STRIPE_WEBHOOK_SECRET: 'whsec_test_webhook_secret',
       };
 
       // Act
@@ -92,6 +94,8 @@ describe('EnvironmentVariables', function (this: void) {
         REDIS_PASSWORD: 'redis-password',
         REDIS_DB: 0,
         SMTP_PORT: 587, // As number
+        STRIPE_SECRET_KEY: 'sk_test_stripe_secret_key',
+        STRIPE_WEBHOOK_SECRET: 'whsec_test_webhook_secret',
       };
 
       // Act
@@ -142,6 +146,8 @@ describe('EnvironmentVariables', function (this: void) {
         REDIS_PASSWORD: '', // Empty password should be allowed in local env
         REDIS_DB: 0,
         SMTP_PORT: 587, // As number
+        STRIPE_SECRET_KEY: 'sk_test_stripe_secret_key',
+        STRIPE_WEBHOOK_SECRET: 'whsec_test_webhook_secret',
       };
 
       // Act & Assert - should not throw error
@@ -294,6 +300,8 @@ describe('EnvironmentVariables', function (this: void) {
         REDIS_PASSWORD: 'redis-password',
         REDIS_DB: '0', // As string to test transformation
         SMTP_PORT: 587, // As number
+        STRIPE_SECRET_KEY: 'sk_test_stripe_secret_key',
+        STRIPE_WEBHOOK_SECRET: 'whsec_test_webhook_secret',
       };
 
       // Act
@@ -344,6 +352,8 @@ describe('EnvironmentVariables', function (this: void) {
         REDIS_PASSWORD: 'redis-password',
         REDIS_DB: 0,
         SMTP_PORT: 587, // As number
+        STRIPE_SECRET_KEY: 'sk_test_stripe_secret_key',
+        STRIPE_WEBHOOK_SECRET: 'whsec_test_webhook_secret',
       };
 
       // Act
@@ -392,6 +402,8 @@ describe('EnvironmentVariables', function (this: void) {
         REDIS_PASSWORD: 'redis-password',
         REDIS_DB: 0,
         SMTP_PORT: 587, // As number
+        STRIPE_SECRET_KEY: 'sk_test_stripe_secret_key',
+        STRIPE_WEBHOOK_SECRET: 'whsec_test_webhook_secret',
       };
 
       // Act
@@ -438,6 +450,8 @@ describe('EnvironmentVariables', function (this: void) {
         REDIS_PASSWORD: 'redis-password',
         REDIS_DB: 0,
         SMTP_PORT: 587, // As number
+        STRIPE_SECRET_KEY: 'sk_test_stripe_secret_key',
+        STRIPE_WEBHOOK_SECRET: 'whsec_test_webhook_secret',
       };
 
       // Act
@@ -492,6 +506,8 @@ describe('EnvironmentVariables', function (this: void) {
         SMTP_FROM_EMAIL: 'no-reply@example.com',
         SMTP_REJECT_UNAUTHORIZED: true,
         EMAIL_TEMPLATES_DIR: './templates',
+        STRIPE_SECRET_KEY: 'sk_test_stripe_secret_key',
+        STRIPE_WEBHOOK_SECRET: 'whsec_test_webhook_secret',
       };
 
       // Act

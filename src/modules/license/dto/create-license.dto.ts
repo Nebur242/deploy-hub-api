@@ -1,4 +1,4 @@
-import { Currency } from '@app/shared/enums';
+import { Currency, LicensePeriod } from '@app/shared/enums';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsNotEmpty,
@@ -50,26 +50,26 @@ export class CreateLicenseDto {
   currency: Currency = Currency.USD;
 
   @ApiPropertyOptional({
-    description: 'Maximum number of deployments allowed with this license',
-    example: 5,
-    default: 1,
-    minimum: 1,
+    description: 'Maximum number of deployments allowed with this license (minimum 5)',
+    example: 10,
+    default: 5,
+    minimum: 5,
   })
   @IsNumber()
-  @Min(1)
+  @Min(5, { message: 'Deployment limit must be at least 5' })
   @IsOptional()
-  deployment_limit: number = 1;
+  deployment_limit: number = 5;
 
   @ApiPropertyOptional({
-    description: 'Duration of the license in days (0 means unlimited)',
-    example: 365,
-    default: 0,
-    minimum: 0,
+    description:
+      'Billing period for the license (forever = one-time purchase, others = recurring subscription)',
+    enum: LicensePeriod,
+    example: LicensePeriod.MONTHLY,
+    default: LicensePeriod.FOREVER,
   })
-  @IsNumber()
-  @Min(0)
+  @IsEnum(LicensePeriod)
   @IsOptional()
-  duration: number = 0;
+  period: LicensePeriod = LicensePeriod.FOREVER;
 
   @ApiPropertyOptional({
     description: 'List of features included in this license',

@@ -51,14 +51,16 @@ export class Deployment {
   @JoinColumn({ name: 'project_id' })
   project: Project;
 
-  @Column({ name: 'license_id' })
-  license_id: string;
+  @Column({ name: 'license_id', nullable: true })
+  license_id: string | null;
 
   @ManyToOne(() => License, license => license.id, {
     onDelete: 'SET NULL',
     onUpdate: 'CASCADE',
+    nullable: true,
   })
-  license: License;
+  @JoinColumn({ name: 'license_id' })
+  license: License | null;
 
   @Column({ name: 'user_license_id', nullable: true })
   user_license_id: string;

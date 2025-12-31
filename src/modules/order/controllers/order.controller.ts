@@ -12,7 +12,14 @@ import {
   Query,
   UnauthorizedException,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 
 import { CreateOrderDto } from '../dto/create-order.dto';
 import { FilterOrdersDto } from '../dto/filter-orders.dto';
@@ -47,6 +54,105 @@ export class OrderController {
     const { page = 1, limit = 10 } = filter;
     return this.orderService.findAll(user.id, filter, { page, limit });
   }
+
+  // ===== Owner/Seller Endpoints =====
+
+  @Get('owner/sales')
+  @ApiOperation({ summary: 'Get orders for licenses owned by the current user' })
+  @ApiResponse({ status: 200, description: 'Returns paginated list of sales' })
+  findOwnerSales(@CurrentUser() user: User, @Query() filter: FilterOrdersDto) {
+    if (!user || !user.id) {
+      throw new UnauthorizedException('User not authenticated or missing ID');
+    }
+    const { page = 1, limit = 10 } = filter;
+    return this.orderService.findOrdersByOwner(user.id, filter, { page, limit });
+  }
+
+  @Get('owner/analytics')
+  @ApiOperation({ summary: 'Get sales analytics for the current owner' })
+  @ApiResponse({ status: 200, description: 'Returns sales analytics' })
+  @ApiQuery({ name: 'startDate', required: false, type: String })
+  @ApiQuery({ name: 'endDate', required: false, type: String })
+  getOwnerAnalytics(
+    @CurrentUser() user: User,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    if (!user || !user.id) {
+      throw new UnauthorizedException('User not authenticated or missing ID');
+    }
+    const start = startDate ? new Date(startDate) : undefined;
+    const end = endDate ? new Date(endDate) : undefined;
+    return this.orderService.getSalesAnalytics(user.id, start, end);
+  }
+
+  @Get('owner/trends')
+  @ApiOperation({ summary: 'Get sales trends over time' })
+  @ApiResponse({ status: 200, description: 'Returns sales trends' })
+  @ApiQuery({ name: 'startDate', required: true, type: String })
+  @ApiQuery({ name: 'endDate', required: true, type: String })
+  @ApiQuery({ name: 'groupBy', required: false, enum: ['day', 'week', 'month'] })
+  getSalesTrends(
+    @CurrentUser() user: User,
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+    @Query('groupBy') groupBy?: 'day' | 'week' | 'month',
+  ) {
+    if (!user || !user.id) {
+      throw new UnauthorizedException('User not authenticated or missing ID');
+    }
+    return this.orderService.getSalesTrends(
+      user.id,
+      new Date(startDate),
+      new Date(endDate),
+      groupBy || 'day',
+    );
+  }
+
+  @Get('owner/top-licenses')
+  @ApiOperation({ summary: 'Get top selling licenses' })
+  @ApiResponse({ status: 200, description: 'Returns top selling licenses' })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'startDate', required: false, type: String })
+  @ApiQuery({ name: 'endDate', required: false, type: String })
+  getTopSellingLicenses(
+    @CurrentUser() user: User,
+    @Query('limit') limit?: number,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    if (!user || !user.id) {
+      throw new UnauthorizedException('User not authenticated or missing ID');
+    }
+    const start = startDate ? new Date(startDate) : undefined;
+    const end = endDate ? new Date(endDate) : undefined;
+    return this.orderService.getTopSellingLicenses(user.id, limit || 5, start, end);
+  }
+
+  @Get('owner/recent')
+  @ApiOperation({ summary: 'Get recent orders for owner licenses' })
+  @ApiResponse({ status: 200, description: 'Returns recent orders' })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  getRecentOrders(@CurrentUser() user: User, @Query('limit') limit?: number) {
+    if (!user || !user.id) {
+      throw new UnauthorizedException('User not authenticated or missing ID');
+    }
+    return this.orderService.getRecentOrdersByOwner(user.id, limit || 10);
+  }
+
+  @Get('owner/:id')
+  @ApiOperation({ summary: 'Get a specific order for owner licenses' })
+  @ApiResponse({ status: 200, description: 'Returns order details' })
+  @ApiResponse({ status: 404, description: 'Order not found' })
+  @ApiParam({ name: 'id', description: 'Order ID' })
+  findOneOwnerOrder(@CurrentUser() user: User, @Param('id') id: string) {
+    if (!user || !user.id) {
+      throw new UnauthorizedException('User not authenticated or missing ID');
+    }
+    return this.orderService.findOneByOwner(id, user.id);
+  }
+
+  // ===== Admin Endpoints =====
 
   @Get('admin')
   @Admin()

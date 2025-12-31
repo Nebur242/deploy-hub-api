@@ -1,5 +1,6 @@
 import { CurrentUser } from '@app/core/decorators/current-user.decorator';
 import { Admin } from '@app/core/guards/roles-auth.guard';
+import { SubscriptionService } from '@app/modules/subscription/services/subscription.service';
 import {
   Controller,
   Get,
@@ -22,10 +23,15 @@ import { ProjectService } from '../services/project.service';
 @Admin()
 @Controller('projects')
 export class ProjectController {
-  constructor(private readonly projectService: ProjectService) {}
+  constructor(
+    private readonly projectService: ProjectService,
+    private readonly subscriptionService: SubscriptionService,
+  ) {}
 
   @Post()
-  create(@CurrentUser() user: User, @Body() createProjectDto: CreateProjectDto) {
+  async create(@CurrentUser() user: User, @Body() createProjectDto: CreateProjectDto) {
+    // Check subscription limits before creating project
+    await this.subscriptionService.validateProjectCreation(user.id);
     return this.projectService.create(user.id, createProjectDto);
   }
 

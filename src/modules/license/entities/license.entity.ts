@@ -1,6 +1,6 @@
 import { Project } from '@app/modules/projects/entities/project.entity';
 import { User } from '@app/modules/users/entities/user.entity';
-import { Currency } from '@app/shared/enums';
+import { Currency, LicensePeriod } from '@app/shared/enums';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   Column,
@@ -55,20 +55,25 @@ export class License {
   currency: Currency;
 
   @ApiProperty({
-    description: 'Maximum number of deployments allowed',
-    example: 5,
-    default: 1,
+    description: 'Maximum number of deployments allowed (minimum 5)',
+    example: 10,
+    default: 5,
   })
-  @Column({ name: 'deployment_limit', default: 1 })
+  @Column({ name: 'deployment_limit', default: 5 })
   deployment_limit: number;
 
   @ApiProperty({
-    description: 'License duration in days (0 means unlimited)',
-    example: 365,
-    default: 0,
+    description: 'License billing period (forever = one-time purchase, others = subscription)',
+    enum: LicensePeriod,
+    example: LicensePeriod.MONTHLY,
+    default: LicensePeriod.FOREVER,
   })
-  @Column({ default: 0 }) // 0 means unlimited
-  duration: number;
+  @Column({
+    type: 'enum',
+    enum: LicensePeriod,
+    default: LicensePeriod.FOREVER,
+  })
+  period: LicensePeriod;
 
   @ApiProperty({
     description: 'List of features included in this license',
@@ -134,4 +139,18 @@ export class License {
   })
   @Column({ default: false })
   popular: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Stripe product ID for this license',
+    example: 'prod_xxx',
+  })
+  @Column({ name: 'stripe_product_id', nullable: true })
+  stripe_product_id: string;
+
+  @ApiPropertyOptional({
+    description: 'Stripe price ID for this license',
+    example: 'price_xxx',
+  })
+  @Column({ name: 'stripe_price_id', nullable: true })
+  stripe_price_id: string;
 }

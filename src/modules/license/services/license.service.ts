@@ -1,6 +1,15 @@
 import { ProjectRepository } from '@app/modules/projects/repositories/project.repository';
+import { StripeService } from '@app/modules/subscription/services/stripe.service';
+import { SubscriptionService } from '@app/modules/subscription/services/subscription.service';
 import { User } from '@app/modules/users/entities/user.entity';
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  Logger,
+  NotFoundException,
+  forwardRef,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IPaginationOptions, paginate, Pagination } from 'nestjs-typeorm-paginate';
 import { Repository, ILike, FindOptionsOrder } from 'typeorm';
@@ -10,18 +19,107 @@ import { FilterLicenseDto } from '../dto/filter.dto';
 import { UpdateLicenseDto } from '../dto/update-license.dto';
 import { License } from '../entities/license.entity';
 
+// Minimum deployments per license to ensure value for customers
+const MIN_DEPLOYMENT_LIMIT = 5;
+
 @Injectable()
 export class LicenseService {
+  private readonly logger = new Logger(LicenseService.name);
+
   constructor(
     @InjectRepository(License)
     private licenseRepository: Repository<License>,
     private readonly projectRepository: ProjectRepository,
+    @Inject(forwardRef(() => SubscriptionService))
+    private readonly subscriptionService: SubscriptionService,
+    private readonly stripeService: StripeService,
   ) {}
+
+  /**
+   * Calculate the total deployments allocated across all licenses owned by a user
+   */
+  async calculateAllocatedDeployments(ownerId: string): Promise<number> {
+    const result = await this.licenseRepository
+      .createQueryBuilder('license')
+      .select('COALESCE(SUM(license.deployment_limit), 0)', 'total')
+      .where('license.owner_id = :ownerId', { ownerId })
+      .getRawOne<{ total: string }>();
+
+    return parseInt(result?.total || '0', 10);
+  }
+
+  /**
+   * Get deployment pool info for an owner
+   */
+  async getDeploymentPoolInfo(ownerId: string): Promise<{
+    total: number;
+    allocated: number;
+    available: number;
+  }> {
+    const subscription = await this.subscriptionService.getSubscription(ownerId);
+    const allocated = await this.calculateAllocatedDeployments(ownerId);
+    const total = subscription.max_deployments_per_month;
+
+    return {
+      total,
+      allocated,
+      available: total === -1 ? -1 : Math.max(0, total - allocated),
+    };
+  }
+
+  /**
+   * Validate deployment limit against owner's available pool
+   */
+  private async validateDeploymentLimit(
+    ownerId: string,
+    requestedLimit: number,
+    excludeLicenseId?: string,
+  ): Promise<void> {
+    // Validate minimum deployment limit
+    if (requestedLimit < MIN_DEPLOYMENT_LIMIT) {
+      throw new BadRequestException(
+        `Minimum deployment limit per license is ${MIN_DEPLOYMENT_LIMIT}`,
+      );
+    }
+
+    // Get owner's subscription
+    const subscription = await this.subscriptionService.getSubscription(ownerId);
+
+    // Unlimited pool (-1) means no validation needed
+    if (subscription.max_deployments_per_month === -1) {
+      return;
+    }
+
+    // Calculate currently allocated deployments
+    let allocated = await this.calculateAllocatedDeployments(ownerId);
+
+    // If updating, exclude the current license's allocation
+    if (excludeLicenseId) {
+      const currentLicense = await this.licenseRepository.findOne({
+        where: { id: excludeLicenseId },
+      });
+      if (currentLicense) {
+        allocated -= currentLicense.deployment_limit;
+      }
+    }
+
+    const availablePool = subscription.max_deployments_per_month - allocated;
+
+    if (requestedLimit > availablePool) {
+      throw new BadRequestException(
+        `Insufficient deployment pool. Available: ${availablePool}, Requested: ${requestedLimit}. ` +
+          `Upgrade your subscription to get more deployments.`,
+      );
+    }
+  }
 
   /**
    * Create a new license option for a project
    */
   async create(user: User, createLicenseDto: CreateLicenseDto): Promise<License> {
+    // Validate deployment limit against owner's pool
+    await this.validateDeploymentLimit(user.id, createLicenseDto.deployment_limit);
+
     // Check if all projects exist and user is the owner of each
     const projects = await Promise.all(
       createLicenseDto.project_ids.map(async projectId => {
@@ -46,9 +144,40 @@ export class LicenseService {
     const newLicense = this.licenseRepository.create(licenseData);
     const savedLicense = await this.licenseRepository.save(newLicense);
 
+    // Create Stripe product and price for this license
+    try {
+      const stripeProduct = await this.stripeService.createLicenseProduct(
+        savedLicense.id,
+        savedLicense.name,
+        savedLicense.description,
+        {
+          owner_id: user.id,
+          deployment_limit: String(savedLicense.deployment_limit),
+          period: savedLicense.period,
+        },
+      );
+
+      const stripePrice = await this.stripeService.createLicensePrice(
+        stripeProduct.id,
+        savedLicense.price,
+        savedLicense.currency,
+        savedLicense.id,
+        savedLicense.period,
+      );
+
+      savedLicense.stripe_product_id = stripeProduct.id;
+      savedLicense.stripe_price_id = stripePrice.id;
+      this.logger.log(
+        `Created Stripe product ${stripeProduct.id} and price ${stripePrice.id} for license ${savedLicense.id}`,
+      );
+    } catch (error) {
+      this.logger.error(`Failed to create Stripe product for license ${savedLicense.id}:`, error);
+      // Continue without Stripe - can be synced later
+    }
+
     savedLicense.projects = projects;
-    savedLicense.owner_id = user.id; // Assuming you have a relation to the User entity
-    savedLicense.owner = user; // Assuming you have a relation to the User entity
+    savedLicense.owner_id = user.id;
+    savedLicense.owner = user;
     await this.licenseRepository.save(savedLicense);
 
     return savedLicense;
@@ -201,6 +330,17 @@ export class LicenseService {
     // This should be implemented if you have a purchases repository
     // to prevent deleting licenses that are in use
 
+    // Archive Stripe product if exists
+    if (license.stripe_product_id) {
+      try {
+        await this.stripeService.archiveLicenseProduct(license.stripe_product_id);
+        this.logger.log(`Archived Stripe product ${license.stripe_product_id} for license ${id}`);
+      } catch (error) {
+        this.logger.error(`Failed to archive Stripe product for license ${id}:`, error);
+        // Continue with deletion even if Stripe fails
+      }
+    }
+
     await this.licenseRepository.remove(license);
   }
 
@@ -230,8 +370,9 @@ export class LicenseService {
       throw new BadRequestException('Price cannot be negative');
     }
 
-    if (updateLicenseDto.deployment_limit !== undefined && updateLicenseDto.deployment_limit < 1) {
-      throw new BadRequestException('Deployment limit must be at least 1');
+    // Validate deployment limit against pool if being updated
+    if (updateLicenseDto.deployment_limit !== undefined) {
+      await this.validateDeploymentLimit(owner_id, updateLicenseDto.deployment_limit, id);
     }
 
     // Handle project updates if provided
@@ -261,10 +402,65 @@ export class LicenseService {
     // Update license option fields by applying all defined properties from DTO
     const { project_ids: _projectIds, ...licenseUpdates } = updateLicenseDto;
 
+    // Store original price and period before update for Stripe sync
+    const originalPrice = license.price;
+    const originalPeriod = license.period;
+
     // Directly apply all updates from the DTO to the license object
     Object.assign(license, licenseUpdates);
 
+    // Update Stripe product/price if needed
+    if (license.stripe_product_id) {
+      try {
+        // Update product metadata if name or description changed
+        if (updateLicenseDto.name || updateLicenseDto.description) {
+          await this.stripeService.updateLicenseProduct(license.stripe_product_id, {
+            description: license.description,
+            metadata: {
+              license_name: license.name,
+              deployment_limit: String(license.deployment_limit),
+              period: license.period,
+            },
+          });
+        }
+
+        // Create new price if price or period changed (Stripe prices are immutable)
+        const priceChanged =
+          updateLicenseDto.price !== undefined && updateLicenseDto.price !== originalPrice;
+        const periodChanged =
+          updateLicenseDto.period !== undefined && updateLicenseDto.period !== originalPeriod;
+
+        if (priceChanged || periodChanged) {
+          const newPrice = await this.stripeService.updateLicensePrice(
+            license.stripe_product_id,
+            license.price,
+            license.currency,
+            license.id,
+            license.stripe_price_id,
+            license.period,
+          );
+          license.stripe_price_id = newPrice.id;
+          this.logger.log(`Updated Stripe price to ${newPrice.id} for license ${id}`);
+        }
+      } catch (error) {
+        this.logger.error(`Failed to update Stripe for license ${id}:`, error);
+        // Continue with update even if Stripe fails
+      }
+    }
+
     // Save the changes
     return this.licenseRepository.save(license);
+  }
+
+  /**
+   * Get all licenses for projects owned by a specific user
+   * Used for statistics calculations
+   */
+  getLicensesByOwnerProjects(ownerId: string): Promise<License[]> {
+    return this.licenseRepository
+      .createQueryBuilder('license')
+      .leftJoin('license.projects', 'project')
+      .where('project.owner_id = :ownerId', { ownerId })
+      .getMany();
   }
 }
