@@ -60,8 +60,8 @@ export class SubscriptionService {
         stripe_customer_id: stripeCustomer.id,
         plan: SubscriptionPlan.FREE,
         status: SubscriptionStatus.ACTIVE,
-        max_projects: planConfig?.maxProjects ?? 3,
-        max_deployments_per_month: planConfig?.maxDeploymentsPerMonth ?? 100,
+        max_projects: planConfig?.maxProjects ?? 1,
+        max_deployments_per_month: planConfig?.maxDeploymentsPerMonth ?? 10,
         custom_domain_enabled: planConfig?.customDomainEnabled ?? false,
         priority_support: planConfig?.prioritySupport ?? false,
         analytics_enabled: planConfig?.analyticsEnabled ?? false,
@@ -335,8 +335,8 @@ export class SubscriptionService {
     subscription.cancel_at = undefined;
     subscription.cancel_at_period_end = false;
     subscription.canceled_at = new Date();
-    subscription.max_projects = freePlanConfig?.maxProjects ?? 3;
-    subscription.max_deployments_per_month = freePlanConfig?.maxDeploymentsPerMonth ?? 100;
+    subscription.max_projects = freePlanConfig?.maxProjects ?? 1;
+    subscription.max_deployments_per_month = freePlanConfig?.maxDeploymentsPerMonth ?? 10;
     subscription.custom_domain_enabled = freePlanConfig?.customDomainEnabled ?? false;
     subscription.priority_support = freePlanConfig?.prioritySupport ?? false;
     subscription.analytics_enabled = freePlanConfig?.analyticsEnabled ?? false;

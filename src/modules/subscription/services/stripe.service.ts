@@ -31,9 +31,9 @@ export class StripeService {
       {
         plan: SubscriptionPlan.FREE,
         name: 'Free',
-        description: 'Perfect for getting started',
-        maxProjects: 3,
-        maxDeploymentsPerMonth: 100,
+        description: 'Perfect for trying out the platform',
+        maxProjects: 1,
+        maxDeploymentsPerMonth: 10,
         customDomainEnabled: false,
         prioritySupport: false,
         analyticsEnabled: false,

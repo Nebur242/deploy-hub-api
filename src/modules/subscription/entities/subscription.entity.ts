@@ -80,10 +80,10 @@ export class Subscription {
   trial_end?: Date;
 
   // Plan limits
-  @Column({ default: 3 })
+  @Column({ default: 1 })
   max_projects: number;
 
-  @Column({ default: 100 })
+  @Column({ default: 10 })
   max_deployments_per_month: number;
 
   @Column({ default: 0 })
