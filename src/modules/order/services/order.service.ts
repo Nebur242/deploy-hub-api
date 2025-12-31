@@ -1,6 +1,7 @@
 import { LicenseService } from '@app/modules/license/services/license.service';
 import { OrderStatus } from '@app/shared/enums';
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IPaginationOptions, paginate, Pagination } from 'nestjs-typeorm-paginate';
 import { Repository } from 'typeorm';
@@ -8,6 +9,14 @@ import { Repository } from 'typeorm';
 import { CreateOrderDto } from '../dto/create-order.dto';
 import { FilterOrdersDto } from '../dto/filter-orders.dto';
 import { Order } from '../entities/order.entity';
+import {
+  OrderCancelledEvent,
+  OrderCompletedEvent,
+  OrderCreatedEvent,
+  OrderEventType,
+  OrderFailedEvent,
+  OrderRefundedEvent,
+} from '../events/order.events';
 
 /**
  * Raw query result interfaces for sales analytics
@@ -76,6 +85,7 @@ export class OrderService {
     @InjectRepository(Order)
     private readonly orderRepository: Repository<Order>,
     private readonly licenseService: LicenseService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   /**
@@ -84,7 +94,7 @@ export class OrderService {
   async create(userId: string, createOrderDto: CreateOrderDto): Promise<Order> {
     const { currency, license_id, ...rest } = createOrderDto;
 
-    // Verify the license option exists
+    // Verify the license option exists and get full details
     const license = await this.licenseService.findOne(license_id);
     if (!license) {
       throw new NotFoundException(`License with ID ${license_id} not found`);
@@ -100,7 +110,40 @@ export class OrderService {
       status: OrderStatus.PENDING,
     });
 
-    return this.orderRepository.save(order);
+    const savedOrder = await this.orderRepository.save(order);
+
+    // Fetch full order with relations for the event
+    const fullOrder = await this.orderRepository.findOne({
+      where: { id: savedOrder.id },
+      relations: ['user', 'license', 'license.owner'],
+    });
+
+    if (fullOrder?.user && fullOrder?.license?.owner) {
+      const buyerName =
+        `${fullOrder.user.first_name || ''} ${fullOrder.user.last_name || ''}`.trim() ||
+        fullOrder.user.email;
+      const ownerName =
+        `${fullOrder.license.owner.first_name || ''} ${fullOrder.license.owner.last_name || ''}`.trim() ||
+        fullOrder.license.owner.email;
+
+      // Emit order created event
+      this.eventEmitter.emit(
+        OrderEventType.ORDER_CREATED,
+        new OrderCreatedEvent(
+          fullOrder.id,
+          fullOrder,
+          fullOrder.user_id,
+          fullOrder.user.email,
+          buyerName,
+          fullOrder.license.name,
+          fullOrder.license.owner_id,
+          fullOrder.license.owner.email,
+          ownerName,
+        ),
+      );
+    }
+
+    return savedOrder;
   }
 
   /**
@@ -223,6 +266,7 @@ export class OrderService {
    */
   async updateStatus(id: string, status: OrderStatus): Promise<Order> {
     const order = await this.findOne(id);
+    const previousStatus = order.status;
 
     // Check if the status transition is valid
     if (order.status === OrderStatus.COMPLETED && status !== OrderStatus.REFUNDED) {
@@ -247,7 +291,109 @@ export class OrderService {
       order.is_active = false;
     }
 
-    return this.orderRepository.save(order);
+    const savedOrder = await this.orderRepository.save(order);
+
+    // Emit status change events
+    await this.emitOrderStatusChangeEvent(savedOrder, previousStatus, status);
+
+    return savedOrder;
+  }
+
+  /**
+   * Emit events based on order status changes
+   */
+  private async emitOrderStatusChangeEvent(
+    order: Order,
+    previousStatus: OrderStatus,
+    newStatus: OrderStatus,
+  ): Promise<void> {
+    // Fetch full order with relations
+    const fullOrder = await this.orderRepository.findOne({
+      where: { id: order.id },
+      relations: ['user', 'license', 'license.owner'],
+    });
+
+    if (!fullOrder?.user || !fullOrder?.license) {
+      this.logger.warn(`Could not emit event for order ${order.id}: missing relations`);
+      return;
+    }
+
+    const buyerName =
+      `${fullOrder.user.first_name || ''} ${fullOrder.user.last_name || ''}`.trim() ||
+      fullOrder.user.email;
+
+    const ownerName = fullOrder.license.owner
+      ? `${fullOrder.license.owner.first_name || ''} ${fullOrder.license.owner.last_name || ''}`.trim() ||
+        fullOrder.license.owner.email
+      : 'Unknown';
+
+    switch (newStatus) {
+      case OrderStatus.COMPLETED:
+        this.eventEmitter.emit(
+          OrderEventType.ORDER_COMPLETED,
+          new OrderCompletedEvent(
+            fullOrder.id,
+            fullOrder,
+            fullOrder.user_id,
+            fullOrder.user.email,
+            buyerName,
+            fullOrder.license.name,
+            fullOrder.license.owner_id,
+            fullOrder.license.owner?.email || '',
+            ownerName,
+            fullOrder.amount,
+            fullOrder.currency,
+          ),
+        );
+        break;
+
+      case OrderStatus.FAILED:
+        this.eventEmitter.emit(
+          OrderEventType.ORDER_FAILED,
+          new OrderFailedEvent(
+            fullOrder.id,
+            fullOrder,
+            fullOrder.user_id,
+            fullOrder.user.email,
+            buyerName,
+            fullOrder.license.name,
+            'Payment processing failed',
+          ),
+        );
+        break;
+
+      case OrderStatus.CANCELLED:
+        this.eventEmitter.emit(
+          OrderEventType.ORDER_CANCELLED,
+          new OrderCancelledEvent(
+            fullOrder.id,
+            fullOrder,
+            fullOrder.user_id,
+            fullOrder.user.email,
+            buyerName,
+            fullOrder.license.name,
+          ),
+        );
+        break;
+
+      case OrderStatus.REFUNDED:
+        this.eventEmitter.emit(
+          OrderEventType.ORDER_REFUNDED,
+          new OrderRefundedEvent(
+            fullOrder.id,
+            fullOrder,
+            fullOrder.user_id,
+            fullOrder.user.email,
+            buyerName,
+            fullOrder.license.name,
+            fullOrder.amount,
+            fullOrder.currency,
+            fullOrder.license.owner_id,
+            fullOrder.license.owner?.email || '',
+          ),
+        );
+        break;
+    }
   }
 
   /**

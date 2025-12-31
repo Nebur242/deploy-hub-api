@@ -97,8 +97,13 @@ export class NotificationsController {
       },
     },
   })
-  countUnread(@CurrentUser() user: User): Promise<{ count: number }> {
-    return this.notificationService.countUnread(user.id);
+  countUnread(
+    @CurrentUser() user: User,
+    @Query('types') types?: string,
+  ): Promise<{ count: number }> {
+    // Parse types from comma-separated string
+    const typeArray = types ? types.split(',').map(t => t.trim()) : undefined;
+    return this.notificationService.countUnread(user.id, typeArray);
   }
 
   @Patch('read/all')
@@ -112,8 +117,13 @@ export class NotificationsController {
       },
     },
   })
-  markAllAsRead(@CurrentUser() user: User): Promise<{ affected: number }> {
-    return this.notificationService.markAllAsRead(user.id);
+  markAllAsRead(
+    @CurrentUser() user: User,
+    @Query('types') types?: string,
+  ): Promise<{ affected: number }> {
+    // Parse types from comma-separated string
+    const typeArray = types ? types.split(',').map(t => t.trim()) : undefined;
+    return this.notificationService.markAllAsRead(user.id, typeArray);
   }
 
   @Get(':id')

@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Confirmation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            text-align: center;
+            padding: 20px 0;
+            border-bottom: 2px solid #4CAF50;
+        }
+
+        .header h1 {
+            color: #4CAF50;
+            margin: 0;
+        }
+
+        .content {
+            padding: 20px 0;
+        }
+
+        .footer {
+            font-size: 12px;
+            color: #777;
+            text-align: center;
+            padding: 20px 0;
+            border-top: 1px solid #eee;
+            margin-top: 20px;
+        }
+
+        .order-details {
+            background-color: #f9f9f9;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border-left: 4px solid #4CAF50;
+        }
+
+        .order-details.pending {
+            border-left-color: #FFC107;
+        }
+
+        .order-details.completed {
+            border-left-color: #4CAF50;
+        }
+
+        .order-details.failed {
+            border-left-color: #f44336;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: bold;
+            color: white;
+            text-transform: uppercase;
+        }
+
+        .status-pending {
+            background-color: #FFC107;
+            color: #333;
+        }
+
+        .status-completed {
+            background-color: #4CAF50;
+        }
+
+        .status-failed {
+            background-color: #f44336;
+        }
+
+        .status-cancelled {
+            background-color: #9E9E9E;
+        }
+
+        .status-refunded {
+            background-color: #2196F3;
+        }
+
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+
+        .button:hover {
+            background-color: #45a049;
+        }
+
+        .info-row {
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .info-label {
+            font-weight: bold;
+            color: #666;
+        }
+
+        .info-value {
+            color: #333;
+        }
+
+        .amount {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+
+        .divider {
+            height: 1px;
+            background-color: #eee;
+            margin: 15px 0;
+        }
+
+        .success-icon {
+            font-size: 48px;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            {{#if (eq status "completed")}}
+            <div class="success-icon">✓</div>
+            <h1>Payment Successful!</h1>
+            {{else if (eq status "pending")}}
+            <h1>Order Confirmation</h1>
+            {{else if (eq status "failed")}}
+            <h1>Payment Failed</h1>
+            {{else if (eq status "cancelled")}}
+            <h1>Order Cancelled</h1>
+            {{else if (eq status "refunded")}}
+            <h1>Refund Processed</h1>
+            {{else}}
+            <h1>Order Update</h1>
+            {{/if}}
+        </div>
+
+        <div class="content">
+            <p>Hello {{buyerName}},</p>
+
+            {{#if (eq status "completed")}}
+            <p>Your payment has been processed successfully. Your license is now active and ready to use.</p>
+            {{else if (eq status "pending")}}
+            <p>Thank you for your order! Your order has been created and is awaiting payment.</p>
+            {{else if (eq status "failed")}}
+            <p>Unfortunately, your payment could not be processed. Please try again or contact support if the issue persists.</p>
+            {{else if (eq status "cancelled")}}
+            <p>Your order has been cancelled. If you have any questions, please contact our support team.</p>
+            {{else if (eq status "refunded")}}
+            <p>Your refund has been processed. The amount will be credited back to your original payment method.</p>
+            {{/if}}
+
+            <div class="order-details {{status}}">
+                <div class="info-row">
+                    <span class="info-label">Order Reference:</span>
+                    <span class="info-value">{{orderReference}}</span>
+                </div>
+
+                <div class="info-row">
+                    <span class="info-label">License:</span>
+                    <span class="info-value">{{licenseName}}</span>
+                </div>
+
+                <div class="info-row">
+                    <span class="info-label">Status:</span>
+                    <span class="status-badge status-{{status}}">{{status}}</span>
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="info-row">
+                    <span class="info-label">Amount:</span>
+                    <span class="amount">{{currency}} {{amount}}</span>
+                </div>
+
+                {{#if completedAt}}
+                <div class="info-row">
+                    <span class="info-label">Completed At:</span>
+                    <span class="info-value">{{completedAt}}</span>
+                </div>
+                {{/if}}
+            </div>
+
+            {{#if (eq status "completed")}}
+            <p style="text-align: center;">
+                <a href="{{dashboardUrl}}/dashboard/licenses" class="button">View Your Licenses</a>
+            </p>
+            {{else if (eq status "pending")}}
+            <p style="text-align: center;">
+                <a href="{{dashboardUrl}}/dashboard/payment?orderId={{orderId}}" class="button">Complete Payment</a>
+            </p>
+            {{/if}}
+
+            <p>If you have any questions, feel free to contact our support team.</p>
+        </div>
+
+        <div class="footer">
+            <p>This email was sent by Deploy Hub</p>
+            <p>© {{year}} Deploy Hub. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+
+</html>

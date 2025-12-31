@@ -1,5 +1,6 @@
 import { OrderStatus } from '@app/shared/enums';
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IPaginationMeta, Pagination, paginate } from 'nestjs-typeorm-paginate';
 import { Repository } from 'typeorm';
@@ -11,6 +12,7 @@ import { CreateUserDto, UpdateUserDto, UserResponseDto } from './dto/user.dto';
 import { UserNotification } from './entities/user-notification.entity';
 import { UserPreferences } from './entities/user-preferences.entity';
 import { User } from './entities/user.entity';
+import { UserCreatedEvent, UserEventType } from './events/user.events';
 import { NotificationScope } from '../notifications/entities/notification.enty';
 import { NotificationType } from '../notifications/enums/notification-type.enum';
 import { NotificationService } from '../notifications/services/notification.service';
@@ -31,6 +33,7 @@ export class UsersService {
     @InjectRepository(Project)
     private projectRepository: Repository<Project>,
     private readonly notificationService: NotificationService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async createUser(createUserDto: CreateUserDto): Promise<User> {
@@ -60,6 +63,18 @@ export class UsersService {
     });
 
     const savedUser = await this.userRepository.save(user);
+
+    // Emit user created event for notifications
+    this.eventEmitter.emit(
+      UserEventType.USER_CREATED,
+      new UserCreatedEvent(
+        savedUser.id,
+        savedUser,
+        savedUser.email,
+        savedUser.first_name || '',
+        savedUser.last_name || '',
+      ),
+    );
 
     return savedUser;
   }

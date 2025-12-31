@@ -16,17 +16,23 @@ import { Notification } from '../interfaces/notification.interface';
 export enum NotificationScope {
   DEPLOYMENT = 'DEPLOYMENT',
   PAYMENT = 'PAYMENT',
+  ORDER = 'ORDER',
+  SALE = 'SALE',
   PROJECTS = 'PROJECTS',
   LICENCES = 'LICENSES',
   WELCOME = 'WELCOME',
+  ACCOUNT = 'ACCOUNT',
 }
 
 export const NotificationHbsTemplate = {
   [NotificationScope.DEPLOYMENT]: 'deployment-notification',
   [NotificationScope.PAYMENT]: 'payment-notification',
+  [NotificationScope.ORDER]: 'order-notification',
+  [NotificationScope.SALE]: 'sale-notification',
   [NotificationScope.PROJECTS]: 'project-notification',
   [NotificationScope.LICENCES]: 'license-notification',
   [NotificationScope.WELCOME]: 'welcome',
+  [NotificationScope.ACCOUNT]: 'account-notification',
 };
 
 @Entity('notifications')

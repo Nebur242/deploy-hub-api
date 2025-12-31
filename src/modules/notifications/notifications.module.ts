@@ -12,6 +12,7 @@ import { FirebasePushService } from './providers/firebase-push.service';
 import { SmsService } from './providers/sms.service';
 import { NotificationRepository } from './repositories/notification.repository';
 import { UserTokenRepository } from './repositories/user-token.repository';
+import { NotificationEventListenerService } from './services/notification-event-listener.service';
 import { NotificationService } from './services/notification.service';
 import { TokensService } from './services/tokens.service';
 import { NOTIFICATION_QUEUE } from '../queue/constants/notification-queue.constants';
@@ -33,6 +34,7 @@ import { NOTIFICATION_QUEUE } from '../queue/constants/notification-queue.consta
     EmailService,
     SmsService,
     FirebasePushService,
+    NotificationEventListenerService,
   ],
   exports: [NotificationService, TokensService],
 })

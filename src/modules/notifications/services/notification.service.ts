@@ -208,13 +208,21 @@ export class NotificationService {
   /**
    * Mark all notifications for a user as read
    * @param userId The user ID
+   * @param types Optional array of notification types to filter by
    * @returns The operation result
    */
-  async markAllAsRead(userId: string): Promise<{ affected: number }> {
-    const result = await this.notificationRepository.update(
-      { userId, read: false },
-      { read: true, readAt: new Date() },
-    );
+  async markAllAsRead(userId: string, types?: string[]): Promise<{ affected: number }> {
+    const where: FindOptionsWhere<NotificationEntity> = { userId, read: false };
+
+    // Filter by types if provided
+    if (types && types.length > 0) {
+      where.type = In(types);
+    }
+
+    const result = await this.notificationRepository.update(where, {
+      read: true,
+      readAt: new Date(),
+    });
 
     return { affected: result.affected || 0 };
   }
@@ -233,12 +241,18 @@ export class NotificationService {
   /**
    * Count unread notifications for a user
    * @param userId The user ID
+   * @param types Optional array of notification types to filter by
    * @returns The count of unread notifications
    */
-  async countUnread(userId: string): Promise<{ count: number }> {
-    const count = await this.notificationRepository.count({
-      where: { userId, read: false },
-    });
+  async countUnread(userId: string, types?: string[]): Promise<{ count: number }> {
+    const where: FindOptionsWhere<NotificationEntity> = { userId, read: false };
+
+    // Filter by types if provided
+    if (types && types.length > 0) {
+      where.type = In(types);
+    }
+
+    const count = await this.notificationRepository.count({ where });
 
     return { count };
   }
