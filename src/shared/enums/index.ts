@@ -75,3 +75,19 @@ export enum LicensePeriod {
   YEARLY = 'yearly',
   FOREVER = 'forever',
 }
+
+/**
+ * Moderation status for projects
+ * DRAFT = Not yet submitted for review
+ * PENDING = Waiting for admin review (initial submission)
+ * APPROVED = Approved and visible to public
+ * REJECTED = Rejected by admin, not visible
+ * CHANGES_PENDING = Approved project has pending edits waiting for review
+ */
+export enum ModerationStatus {
+  DRAFT = 'draft',
+  PENDING = 'pending',
+  APPROVED = 'approved',
+  REJECTED = 'rejected',
+  CHANGES_PENDING = 'changes_pending',
+}

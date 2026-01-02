@@ -12,14 +12,16 @@ import { FirebasePushService } from './providers/firebase-push.service';
 import { SmsService } from './providers/sms.service';
 import { NotificationRepository } from './repositories/notification.repository';
 import { UserTokenRepository } from './repositories/user-token.repository';
+import { LicenseExpirationSchedulerService } from './services/license-expiration-scheduler.service';
 import { NotificationEventListenerService } from './services/notification-event-listener.service';
 import { NotificationService } from './services/notification.service';
 import { TokensService } from './services/tokens.service';
+import { UserLicense } from '../license/entities/user-license.entity';
 import { NOTIFICATION_QUEUE } from '../queue/constants/notification-queue.constants';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([NotificationEntity, UserTokenEntity]),
+    TypeOrmModule.forFeature([NotificationEntity, UserTokenEntity, UserLicense]),
     BullModule.registerQueue({
       name: NOTIFICATION_QUEUE,
     }),
@@ -35,6 +37,7 @@ import { NOTIFICATION_QUEUE } from '../queue/constants/notification-queue.consta
     SmsService,
     FirebasePushService,
     NotificationEventListenerService,
+    LicenseExpirationSchedulerService,
   ],
   exports: [NotificationService, TokensService],
 })

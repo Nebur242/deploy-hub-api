@@ -37,10 +37,61 @@ export class EmailService {
 
   constructor(private readonly configService: ConfigService) {
     this.initializeTransporter();
+    this.registerHandlebarsHelpers();
     this.defaultFrom = this.configService.get<string>('SMTP_FROM_EMAIL') || 'noreply@deployhub.com';
     this.templateDir =
       this.configService.get<string>('EMAIL_TEMPLATES_DIR') ||
       path.join(process.cwd(), 'src', 'modules', 'notifications', 'templates');
+  }
+
+  /**
+   * Register custom Handlebars helpers
+   */
+  private registerHandlebarsHelpers() {
+    // Equality helper
+    handlebars.registerHelper('eq', (a: unknown, b: unknown) => a === b);
+
+    // Not equal helper
+    handlebars.registerHelper('ne', (a: unknown, b: unknown) => a !== b);
+
+    // Greater than helper
+    handlebars.registerHelper('gt', (a: number, b: number) => a > b);
+
+    // Less than helper
+    handlebars.registerHelper('lt', (a: number, b: number) => a < b);
+
+    // And helper
+    handlebars.registerHelper('and', (...args: unknown[]) => {
+      // Remove the options object (last argument)
+      const values = args.slice(0, -1);
+      return values.every(Boolean);
+    });
+
+    // Or helper
+    handlebars.registerHelper('or', (...args: unknown[]) => {
+      // Remove the options object (last argument)
+      const values = args.slice(0, -1);
+      return values.some(Boolean);
+    });
+
+    // Format currency helper
+    handlebars.registerHelper('formatCurrency', (amount: number, currency: string) => {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: currency || 'USD',
+      }).format(amount);
+    });
+
+    // Format date helper
+    handlebars.registerHelper('formatDate', (date: string | Date) => {
+      return new Date(date).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+    });
+
+    this.logger.log('Handlebars helpers registered');
   }
 
   /**

@@ -2,8 +2,9 @@ import { CurrentUser } from '@app/core/decorators/current-user.decorator';
 import { Admin, Authenticated } from '@app/core/guards/roles-auth.guard';
 import { CreateOrderDto, FilterOrdersDto } from '@app/modules/order/dto';
 import { OrderService } from '@app/modules/order/services/order.service';
+import { StripeService } from '@app/modules/payment/services/stripe.service';
 import { User } from '@app/modules/users/entities/user.entity';
-import { OrderStatus } from '@app/shared/enums';
+import { LicensePeriod, OrderStatus } from '@app/shared/enums';
 import {
   Controller,
   Get,
@@ -17,6 +18,7 @@ import {
   forwardRef,
   ParseUUIDPipe,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import {
   ApiTags,
   ApiOperation,
@@ -27,6 +29,7 @@ import {
 } from '@nestjs/swagger';
 import { IPaginationOptions } from 'nestjs-typeorm-paginate';
 
+import { CheckoutLicenseDto } from '../dto/checkout-license.dto';
 import { CreateLicenseDto } from '../dto/create-license.dto';
 import { FilterLicenseDto } from '../dto/filter.dto';
 import { UpdateLicenseDto } from '../dto/update-license.dto';
@@ -40,6 +43,9 @@ export class LicenseController {
     private readonly licenseService: LicenseService,
     @Inject(forwardRef(() => OrderService))
     private readonly orderService: OrderService,
+    @Inject(forwardRef(() => StripeService))
+    private readonly stripeService: StripeService,
+    private readonly configService: ConfigService,
   ) {}
 
   @Post()
@@ -185,5 +191,67 @@ export class LicenseController {
       license_id: id,
     };
     return this.orderService.create(user.id, dto);
+  }
+
+  @Post(':id/checkout')
+  @ApiOperation({ summary: 'Create Stripe Checkout Session for license purchase' })
+  @ApiResponse({ status: 201, description: 'Checkout session created with redirect URL' })
+  @ApiResponse({ status: 400, description: 'Invalid input data' })
+  @ApiResponse({ status: 404, description: 'License option not found' })
+  @ApiParam({ name: 'id', description: 'License option ID' })
+  @Authenticated()
+  async createCheckout(
+    @CurrentUser() user: User,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() checkoutDto: CheckoutLicenseDto,
+  ) {
+    // Get the license details
+    const license = await this.licenseService.findOne(id);
+
+    // Create order first
+    const order = await this.orderService.create(user.id, {
+      license_id: id,
+      billing: checkoutDto.billing,
+      notes: checkoutDto.notes,
+      coupon_code: checkoutDto.coupon_code,
+    });
+
+    // Get or create Stripe customer
+    const customerName =
+      `${checkoutDto.billing.first_name} ${checkoutDto.billing.last_name}`.trim();
+    const customer = await this.stripeService.createOrGetCustomer(
+      user.id,
+      user.email,
+      customerName,
+    );
+
+    // Get frontend URL for redirects
+    const frontendUrl =
+      this.configService.get<string>('USER_DASHBOARD_URL') || 'http://localhost:3001';
+
+    // Create Stripe Checkout Session
+    const session = await this.stripeService.createLicenseCheckoutSession({
+      customerId: customer.id,
+      orderId: order.id,
+      licenseId: license.id,
+      licenseName: license.name,
+      amount: order.amount,
+      currency: order.currency,
+      period: license.period,
+      successUrl: `${frontendUrl}/purchase/success`,
+      cancelUrl: `${frontendUrl}/purchase?cancelled=true`,
+      customerEmail: user.email,
+      metadata: {
+        user_id: user.id,
+        billing_email: checkoutDto.billing.email,
+      },
+    });
+
+    return {
+      checkoutUrl: session.url,
+      sessionId: session.sessionId,
+      orderId: order.id,
+      isSubscription: license.period !== LicensePeriod.FOREVER,
+    };
   }
 }

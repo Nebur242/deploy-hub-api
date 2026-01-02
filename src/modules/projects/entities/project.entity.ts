@@ -2,6 +2,7 @@ import { Category } from '@app/modules/categories/entities/category.entity';
 import { License } from '@app/modules/license/entities/license.entity';
 import { ProjectConfiguration } from '@app/modules/project-config/entities/project-configuration.entity';
 import { ProjectVersion } from '@app/modules/project-config/entities/project-version.entity';
+import { ModerationStatus } from '@app/shared/enums';
 import {
   Column,
   CreateDateColumn,
@@ -61,6 +62,37 @@ export class Project {
     default: Visibility.PRIVATE,
   })
   visibility: Visibility;
+
+  // Moderation fields
+  @Column({
+    type: 'enum',
+    enum: ModerationStatus,
+    default: ModerationStatus.DRAFT,
+  })
+  @Index()
+  moderation_status: ModerationStatus;
+
+  @Column({ nullable: true })
+  moderation_note?: string; // Admin note explaining rejection or approval conditions
+
+  @Column({ nullable: true })
+  moderated_by?: string; // Admin user ID who moderated
+
+  @Column({ nullable: true })
+  moderated_at?: Date; // When the moderation decision was made
+
+  @Column({ nullable: true })
+  submitted_for_review_at?: Date; // When owner submitted for review
+
+  // Pending changes fields (for approved projects that are edited)
+  @Column({ type: 'jsonb', nullable: true })
+  pending_changes?: Record<string, unknown> | null; // Stores pending edits waiting for moderation
+
+  @Column({ default: false })
+  has_pending_changes: boolean; // Flag to indicate if there are pending changes
+
+  @Column({ type: 'timestamp', nullable: true })
+  pending_changes_submitted_at?: Date | null; // When pending changes were submitted for review
 
   @ManyToMany(() => Category)
   @JoinTable({

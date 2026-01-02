@@ -327,4 +327,19 @@ export class CategoryService {
       throw new ForbiddenException('You do not have permission to modify this category');
     }
   }
+
+  /**
+   * Find categories by IDs
+   */
+  async findByIds(ids: string[]): Promise<Category[]> {
+    if (!ids || ids.length === 0) {
+      return [];
+    }
+
+    const categories = await this.categoryRepository.find({
+      where: ids.map(id => ({ id })),
+    });
+
+    return categories;
+  }
 }

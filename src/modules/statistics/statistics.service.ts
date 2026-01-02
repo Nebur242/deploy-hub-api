@@ -40,6 +40,8 @@ export class StatisticsService {
    */
   private getDateRange(period: StatsPeriod): { startDate: Date; endDate: Date } {
     const endDate = new Date();
+    // Set endDate to end of day to include all deployments from today
+    endDate.setHours(23, 59, 59, 999);
     let startDate: Date;
 
     switch (period) {
@@ -50,14 +52,17 @@ export class StatisticsService {
       case StatsPeriod.WEEK:
         startDate = new Date();
         startDate.setDate(startDate.getDate() - 7);
+        startDate.setHours(0, 0, 0, 0);
         break;
       case StatsPeriod.MONTH:
         startDate = new Date();
         startDate.setMonth(startDate.getMonth() - 1);
+        startDate.setHours(0, 0, 0, 0);
         break;
       case StatsPeriod.YEAR:
         startDate = new Date();
         startDate.setFullYear(startDate.getFullYear() - 1);
+        startDate.setHours(0, 0, 0, 0);
         break;
       case StatsPeriod.ALL_TIME:
       default:

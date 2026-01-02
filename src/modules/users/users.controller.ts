@@ -10,19 +10,14 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
-  Query,
 } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { DecodedIdToken } from 'firebase-admin/auth';
-import { IPaginationMeta, Pagination } from 'nestjs-typeorm-paginate';
 
-import { LicensedProjectsQueryDto, LicensedProjectsResponseDto } from './dto/licensed-projects.dto';
 import { UserNotificationDto } from './dto/user-notification.dto';
 import { UserPreferencesDto } from './dto/user-preferences.dto';
 import { CreateUserDto, UpdateUserDto, UserResponseDto } from './dto/user.dto';
 import { User } from './entities/user.entity';
 import { UsersService } from './users.service';
-import { Project, Visibility } from '../projects/entities/project.entity';
 
 /**
  * Controller handling user operations.
@@ -66,61 +61,6 @@ export class UserController {
       });
     }
     return this.userService.mapToResponseDto(user);
-  }
-
-  /**
-   * Retrieves projects that the currently authenticated user can access through purchased licenses
-   *
-   * @param query - Query parameters for filtering and pagination
-   * @param currentUser - The currently authenticated user
-   * @returns A paginated list of projects the user has access to through purchased licenses
-   */
-  @Get('licensed-projects')
-  @ApiOperation({
-    summary: 'Get user licensed projects',
-    description: 'Returns projects the authenticated user has access to through purchased licenses',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'List of licensed projects with pagination',
-    type: LicensedProjectsResponseDto,
-    isArray: true,
-  })
-  @ApiQuery({
-    name: 'page',
-    type: Number,
-    required: false,
-    description: 'Page number for pagination',
-  })
-  @ApiQuery({
-    name: 'limit',
-    type: Number,
-    required: false,
-    description: 'Number of items per page',
-  })
-  @ApiQuery({
-    name: 'visibility',
-    enum: Visibility,
-    required: false,
-    description: 'Filter by project visibility',
-  })
-  @ApiQuery({
-    name: 'search',
-    type: String,
-    required: false,
-    description: 'Search term to filter projects',
-  })
-  @ApiQuery({
-    name: 'licenseId',
-    type: String,
-    required: false,
-    description: 'Filter by license ID',
-  })
-  getLicensedProjects(
-    @Query() query: LicensedProjectsQueryDto,
-    @CurrentUser() currentUser: User,
-  ): Promise<Pagination<Project, IPaginationMeta>> {
-    return this.userService.getLicensedProjects(currentUser.id, query);
   }
 
   /**

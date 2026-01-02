@@ -84,7 +84,9 @@ export class SubscriptionService {
         plan: SubscriptionPlan.FREE,
         status: SubscriptionStatus.ACTIVE,
         max_projects: planConfig?.maxProjects ?? 1,
+        max_deployments: planConfig?.maxDeployments ?? 50,
         max_deployments_per_month: planConfig?.maxDeploymentsPerMonth ?? 10,
+        max_github_accounts: planConfig?.maxGithubAccounts ?? 2,
         custom_domain_enabled: planConfig?.customDomainEnabled ?? false,
         priority_support: planConfig?.prioritySupport ?? false,
         analytics_enabled: planConfig?.analyticsEnabled ?? false,
@@ -356,7 +358,9 @@ export class SubscriptionService {
     }
 
     subscription.max_projects = planConfig?.maxProjects || 3;
+    subscription.max_deployments = planConfig?.maxDeployments || 50;
     subscription.max_deployments_per_month = planConfig?.maxDeploymentsPerMonth || 100;
+    subscription.max_github_accounts = planConfig?.maxGithubAccounts ?? 2;
     subscription.custom_domain_enabled = planConfig?.customDomainEnabled || false;
     subscription.priority_support = planConfig?.prioritySupport || false;
     subscription.analytics_enabled = planConfig?.analyticsEnabled || false;
@@ -434,7 +438,9 @@ export class SubscriptionService {
     subscription.cancel_at_period_end = false;
     subscription.canceled_at = new Date();
     subscription.max_projects = freePlanConfig?.maxProjects ?? 1;
+    subscription.max_deployments = freePlanConfig?.maxDeployments ?? 50;
     subscription.max_deployments_per_month = freePlanConfig?.maxDeploymentsPerMonth ?? 10;
+    subscription.max_github_accounts = freePlanConfig?.maxGithubAccounts ?? 2;
     subscription.custom_domain_enabled = freePlanConfig?.customDomainEnabled ?? false;
     subscription.priority_support = freePlanConfig?.prioritySupport ?? false;
     subscription.analytics_enabled = freePlanConfig?.analyticsEnabled ?? false;
@@ -528,9 +534,9 @@ export class SubscriptionService {
   }
 
   /**
-   * Check if user can make more deployments this month
+   * Check if user can make more deployments this month (rate limit)
    */
-  async canDeploy(userId: string): Promise<boolean> {
+  async canDeployThisMonth(userId: string): Promise<boolean> {
     let subscription = await this.getSubscription(userId);
     subscription = await this.resetDeploymentCountIfNeeded(subscription);
 
@@ -542,30 +548,56 @@ export class SubscriptionService {
   }
 
   /**
-   * Validate and throw error if user cannot deploy
+   * Check if user has remaining deployment credits (total limit)
+   */
+  async hasDeploymentCredits(userId: string): Promise<boolean> {
+    const subscription = await this.getSubscription(userId);
+
+    if (subscription.max_deployments === -1) {
+      return true; // Unlimited credits
+    }
+
+    return subscription.total_deployments_used < subscription.max_deployments;
+  }
+
+  /**
+   * Validate and throw error if user cannot deploy (checks both limits)
    */
   async validateDeployment(userId: string): Promise<void> {
-    const canDeploy = await this.canDeploy(userId);
-    if (!canDeploy) {
-      const subscription = await this.getSubscription(userId);
+    const subscription = await this.getSubscription(userId);
+
+    // Check total deployment credits first
+    if (
+      subscription.max_deployments !== -1 &&
+      subscription.total_deployments_used >= subscription.max_deployments
+    ) {
       throw new ForbiddenException(
-        `You have reached your monthly deployment limit (${subscription.max_deployments_per_month}). Please upgrade your subscription for more deployments.`,
+        `You have exhausted your deployment credits (${subscription.total_deployments_used}/${subscription.max_deployments}). Please upgrade your subscription for more deployments.`,
+      );
+    }
+
+    // Then check monthly rate limit
+    const canDeployThisMonth = await this.canDeployThisMonth(userId);
+    if (!canDeployThisMonth) {
+      throw new ForbiddenException(
+        `You have reached your monthly deployment limit (${subscription.max_deployments_per_month}). Please wait until next month or upgrade your subscription.`,
       );
     }
   }
 
   /**
-   * Increment the monthly deployment count
+   * Increment both monthly and total deployment counts
    */
   async incrementDeploymentCount(userId: string): Promise<void> {
     let subscription = await this.getSubscription(userId);
     subscription = await this.resetDeploymentCountIfNeeded(subscription);
 
     subscription.deployments_this_month += 1;
+    subscription.total_deployments_used += 1;
     await this.subscriptionRepository.save(subscription);
 
     this.logger.log(
-      `User ${userId} deployment count: ${subscription.deployments_this_month}/${subscription.max_deployments_per_month}`,
+      `User ${userId} deployment count: ${subscription.deployments_this_month}/${subscription.max_deployments_per_month} (monthly), ${subscription.total_deployments_used}/${subscription.max_deployments} (total)`,
     );
   }
 
@@ -584,6 +616,19 @@ export class SubscriptionService {
       0,
       subscription.max_deployments_per_month - subscription.deployments_this_month,
     );
+  }
+
+  /**
+   * Get remaining total deployment credits
+   */
+  async getRemainingCredits(userId: string): Promise<number> {
+    const subscription = await this.getSubscription(userId);
+
+    if (subscription.max_deployments === -1) {
+      return -1; // Unlimited
+    }
+
+    return Math.max(0, subscription.max_deployments - subscription.total_deployments_used);
   }
 
   /**

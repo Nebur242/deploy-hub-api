@@ -1,3 +1,4 @@
+import { ModerationStatus } from '@app/shared/enums';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { paginate, IPaginationOptions } from 'nestjs-typeorm-paginate';
@@ -16,6 +17,7 @@ export class ProjectRepository {
     options?: {
       ownerId?: string;
       visibility?: Visibility;
+      moderationStatus?: ModerationStatus;
       techStack?: TechStack[];
       categoryIds?: string[];
       search?: string;
@@ -41,6 +43,11 @@ export class ProjectRepository {
     // Apply visibility filter
     if (options?.visibility) {
       whereConditions.visibility = options.visibility;
+    }
+
+    // Apply moderation status filter
+    if (options?.moderationStatus) {
+      whereConditions.moderation_status = options.moderationStatus;
     }
 
     // Handle tech stack filtering for repository API
@@ -87,6 +94,12 @@ export class ProjectRepository {
       if (options?.visibility) {
         queryBuilder.andWhere('project.visibility = :visibility', {
           visibility: options.visibility,
+        });
+      }
+
+      if (options?.moderationStatus) {
+        queryBuilder.andWhere('project.moderation_status = :moderationStatus', {
+          moderationStatus: options.moderationStatus,
         });
       }
 
@@ -165,15 +178,52 @@ export class ProjectRepository {
       categoryIds?: string[];
       search?: string;
     },
-    paginationOptions?: IPaginationOptions,
+    paginationOptions: IPaginationOptions = { page: 1, limit: 10 },
   ) {
-    return this.findAll(
-      {
-        ...options,
-        visibility: Visibility.PUBLIC,
-      },
-      paginationOptions,
-    );
+    // Use query builder to ensure we only return projects with at least one license
+    const queryBuilder = this.projectRepository
+      .createQueryBuilder('project')
+      .leftJoinAndSelect('project.categories', 'category')
+      .leftJoinAndSelect('project.versions', 'version')
+      .leftJoinAndSelect('project.licenses', 'license')
+      .where('project.visibility = :visibility', { visibility: Visibility.PUBLIC })
+      .andWhere('project.moderation_status = :moderationStatus', {
+        moderationStatus: ModerationStatus.APPROVED,
+      })
+      // Only show projects with at least one license
+      .andWhere(qb => {
+        const subQuery = qb
+          .subQuery()
+          .select('1')
+          .from('project_licenses_license', 'pl')
+          .where('pl.project_id = project.id')
+          .getQuery();
+        return `EXISTS ${subQuery}`;
+      })
+      .orderBy('project.updated_at', 'DESC');
+
+    // Apply search filter
+    if (options?.search) {
+      queryBuilder.andWhere('(project.name ILIKE :search OR project.description ILIKE :search)', {
+        search: `%${options.search}%`,
+      });
+    }
+
+    // Apply tech stack filter
+    if (options?.techStack && options.techStack.length > 0) {
+      queryBuilder.andWhere('project.tech_stack && ARRAY[:...techStack]', {
+        techStack: options.techStack,
+      });
+    }
+
+    // Apply category filter
+    if (options?.categoryIds && options.categoryIds.length > 0) {
+      queryBuilder.andWhere('category.id IN (:...categoryIds)', {
+        categoryIds: options.categoryIds,
+      });
+    }
+
+    return paginate<Project>(queryBuilder, paginationOptions);
   }
 
   findFeatured(
@@ -184,13 +234,75 @@ export class ProjectRepository {
       .createQueryBuilder('project')
       .leftJoinAndSelect('project.categories', 'category')
       .leftJoinAndSelect('project.versions', 'version')
+      .leftJoinAndSelect('project.licenses', 'license')
       .where('project.visibility = :visibility', { visibility: Visibility.FEATURED })
+      .andWhere('project.moderation_status = :moderationStatus', {
+        moderationStatus: ModerationStatus.APPROVED,
+      })
+      // Only show projects with at least one license
+      .andWhere(qb => {
+        const subQuery = qb
+          .subQuery()
+          .select('1')
+          .from('project_licenses_license', 'pl')
+          .where('pl.project_id = project.id')
+          .getQuery();
+        return `EXISTS ${subQuery}`;
+      })
       .orderBy(
         `project.${sortOptions?.sortBy || 'updated_at'}`,
         sortOptions?.sortDirection || 'DESC',
       );
 
     return paginate<Project>(queryBuilder, paginationOptions);
+  }
+
+  /**
+   * Find projects pending moderation (for admin)
+   */
+  findPendingModeration(paginationOptions: IPaginationOptions = { page: 1, limit: 10 }) {
+    return this.findAll(
+      {
+        moderationStatus: ModerationStatus.PENDING,
+        sortBy: 'submitted_for_review_at',
+        sortDirection: 'ASC', // Oldest first
+      },
+      paginationOptions,
+    );
+  }
+
+  /**
+   * Find approved projects with pending changes (for admin)
+   */
+  findPendingChanges(paginationOptions: IPaginationOptions = { page: 1, limit: 10 }) {
+    const queryBuilder = this.projectRepository
+      .createQueryBuilder('project')
+      .leftJoinAndSelect('project.categories', 'category')
+      .leftJoinAndSelect('project.versions', 'version')
+      .where('project.has_pending_changes = :hasPendingChanges', { hasPendingChanges: true })
+      .andWhere('project.moderation_status = :moderationStatus', {
+        moderationStatus: ModerationStatus.CHANGES_PENDING,
+      })
+      .orderBy('project.pending_changes_submitted_at', 'ASC'); // Oldest first
+
+    return paginate<Project>(queryBuilder, paginationOptions);
+  }
+
+  /**
+   * Count projects by moderation status (for admin dashboard)
+   */
+  async countByModerationStatus(): Promise<{ status: ModerationStatus; count: number }[]> {
+    const result = await this.projectRepository
+      .createQueryBuilder('project')
+      .select('project.moderation_status', 'status')
+      .addSelect('COUNT(*)', 'count')
+      .groupBy('project.moderation_status')
+      .getRawMany<{ status: ModerationStatus; count: string }>();
+
+    return result.map(item => ({
+      status: item.status,
+      count: parseInt(item.count, 10),
+    }));
   }
 
   async countByTechStack(): Promise<{ techStack: TechStack; count: number }[]> {

@@ -7,12 +7,10 @@ import { UserPreferences } from './entities/user-preferences.entity';
 import { User } from './entities/user.entity';
 import { UserController } from './users.controller';
 import { UsersService } from './users.service';
-import { Order } from '../order/entities';
-import { Project } from '../projects/entities/project.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, UserPreferences, UserNotification, Order, Project]),
+    TypeOrmModule.forFeature([User, UserPreferences, UserNotification]),
     NotificationsModule,
   ],
   controllers: [UserController],

@@ -94,10 +94,20 @@ export class DeploymentOrchestratorService {
     const deployment = await this.processDeploymentByProvider(context);
     this.logger.log(`[DEPLOY] Deployment created: ${deployment.id}, status=${deployment.status}`);
 
-    // 5. Increment subscription deployment count for project owners (non-test only)
-    if (entities.project.owner_id === user.id && !dto.is_test) {
-      this.logger.log(`[DEPLOY] Step 5: Incrementing subscription deployment count for owner`);
-      await this.subscriptionService.incrementDeploymentCount(user.id);
+    // 5. Increment deployment counts (non-test only)
+    if (!dto.is_test) {
+      if (entities.project.owner_id === user.id) {
+        // Project owners: increment subscription deployment count
+        this.logger.log(`[DEPLOY] Step 5: Incrementing subscription deployment count for owner`);
+        await this.subscriptionService.incrementDeploymentCount(user.id);
+      } else if (entities.userLicense) {
+        // License buyers: increment user license deployment count
+        this.logger.log(`[DEPLOY] Step 5: Incrementing user license deployment count`);
+        await this.userLicenseService.incrementDeploymentCount(
+          entities.userLicense.id,
+          deployment.id,
+        );
+      }
     }
 
     this.logger.log(`[DEPLOY] Deployment process completed: ${deployment.id}`);
@@ -185,23 +195,28 @@ export class DeploymentOrchestratorService {
 
   /**
    * Validate deployment limits based on user role
-   * - Project owners: subject to subscription limits
-   * - Non-owners: subject to license limits
-   * - Test deployments: bypass all limits
+   * - Project owners: subject to subscription limits (can use test mode to bypass)
+   * - Non-owners: subject to license limits (cannot use test mode)
    */
   async validateDeploymentLimits(context: CreateDeploymentContext): Promise<void> {
     const { dto, user, entities } = context;
 
-    // Test deployments bypass all limits
+    // Check if user is the project owner
+    const isProjectOwner = entities.project.owner_id === user.id;
+
+    // Test deployments are only allowed for project owners
     if (dto.is_test) {
+      if (!isProjectOwner) {
+        throw new ForbiddenException('Test deployments are only allowed for project owners');
+      }
       this.logger.log(
-        `Test deployment requested for project ${entities.project.id}. Bypassing limit checks.`,
+        `Test deployment requested by owner for project ${entities.project.id}. Bypassing limit checks.`,
       );
       return;
     }
 
     // Project owners use subscription limits
-    if (entities.project.owner_id === user.id) {
+    if (isProjectOwner) {
       this.logger.log(`User ${user.id} is project owner. Checking subscription limits.`);
       await this.subscriptionService.validateDeployment(user.id);
       return;

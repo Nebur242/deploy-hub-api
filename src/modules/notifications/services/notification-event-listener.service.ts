@@ -16,6 +16,7 @@ import {
   OrderFailedEvent,
   OrderRefundedEvent,
 } from '../../order/events/order.events';
+import { ModerationEventPayload, MODERATION_EVENTS } from '../../projects/events/moderation.events';
 import { UserCreatedEvent, UserEventType } from '../../users/events/user.events';
 import { NotificationScope } from '../entities/notification.enty';
 import { NotificationType } from '../enums/notification-type.enum';
@@ -105,7 +106,7 @@ export class NotificationEventListenerService {
         scope: NotificationScope.ORDER,
         userId: event.buyerId,
         recipient: event.buyerEmail,
-        subject: `Order Confirmation - ${event.licenseName}`,
+        subject: `Order Received - ${event.licenseName}`,
         message: `Your order for ${event.licenseName} has been created. Please complete the payment to activate your license.`,
         data: {
           orderId: event.orderId,
@@ -414,6 +415,232 @@ export class NotificationEventListenerService {
     } catch (error) {
       const { message, stack } = getErrorDetails(error);
       this.logger.error(`Failed to send deployment failed notification: ${message}`, stack);
+    }
+  }
+
+  // ==================== MODERATION EVENTS ====================
+
+  @OnEvent(MODERATION_EVENTS.SUBMITTED_FOR_REVIEW)
+  async handleProjectSubmittedForReview(payload: ModerationEventPayload) {
+    this.logger.log(
+      `Handling project submitted for review event for project: ${payload.projectId}`,
+    );
+
+    try {
+      // Notify owner - System notification
+      await this.notificationService.create({
+        type: NotificationType.SYSTEM,
+        scope: NotificationScope.PROJECTS,
+        userId: payload.ownerId,
+        subject: 'Project Submitted for Review',
+        message: `Your project "${payload.projectName}" has been submitted for moderation review.`,
+        data: {
+          projectId: payload.projectId,
+          projectName: payload.projectName,
+          type: 'project_submitted',
+          dashboardUrl: this.ownerDashboardUrl,
+        },
+      });
+    } catch (error) {
+      const { message, stack } = getErrorDetails(error);
+      this.logger.error(`Failed to send project submitted notification: ${message}`, stack);
+    }
+  }
+
+  @OnEvent(MODERATION_EVENTS.APPROVED)
+  async handleProjectApproved(payload: ModerationEventPayload) {
+    this.logger.log(`Handling project approved event for project: ${payload.projectId}`);
+
+    try {
+      // Notify owner - Email
+      await this.notificationService.create({
+        type: NotificationType.EMAIL,
+        scope: NotificationScope.PROJECTS,
+        userId: payload.ownerId,
+        recipient: payload.ownerEmail,
+        subject: `Your Project "${payload.projectName}" Has Been Approved!`,
+        message: `Congratulations! Your project "${payload.projectName}" has been approved and is now visible on the marketplace.`,
+        data: {
+          projectId: payload.projectId,
+          projectName: payload.projectName,
+          ownerName: payload.ownerName,
+          dashboardUrl: this.ownerDashboardUrl,
+          year: new Date().getFullYear(),
+        },
+      });
+
+      // Notify owner - System notification
+      await this.notificationService.create({
+        type: NotificationType.SYSTEM,
+        scope: NotificationScope.PROJECTS,
+        userId: payload.ownerId,
+        subject: 'Project Approved',
+        message: `Your project "${payload.projectName}" has been approved!`,
+        data: {
+          projectId: payload.projectId,
+          projectName: payload.projectName,
+          type: 'project_approved',
+          dashboardUrl: this.ownerDashboardUrl,
+        },
+      });
+    } catch (error) {
+      const { message, stack } = getErrorDetails(error);
+      this.logger.error(`Failed to send project approved notification: ${message}`, stack);
+    }
+  }
+
+  @OnEvent(MODERATION_EVENTS.REJECTED)
+  async handleProjectRejected(payload: ModerationEventPayload) {
+    this.logger.log(`Handling project rejected event for project: ${payload.projectId}`);
+
+    try {
+      // Notify owner - Email
+      await this.notificationService.create({
+        type: NotificationType.EMAIL,
+        scope: NotificationScope.PROJECTS,
+        userId: payload.ownerId,
+        recipient: payload.ownerEmail,
+        subject: `Your Project "${payload.projectName}" Needs Revision`,
+        message: `Your project "${payload.projectName}" was not approved for the marketplace.${payload.note ? ` Reason: ${payload.note}` : ' Please review and resubmit.'}`,
+        data: {
+          projectId: payload.projectId,
+          projectName: payload.projectName,
+          ownerName: payload.ownerName,
+          reason: payload.note,
+          dashboardUrl: this.ownerDashboardUrl,
+          year: new Date().getFullYear(),
+        },
+      });
+
+      // Notify owner - System notification
+      await this.notificationService.create({
+        type: NotificationType.SYSTEM,
+        scope: NotificationScope.PROJECTS,
+        userId: payload.ownerId,
+        subject: 'Project Rejected',
+        message: `Your project "${payload.projectName}" was rejected.${payload.note ? ` ${payload.note}` : ''}`,
+        data: {
+          projectId: payload.projectId,
+          projectName: payload.projectName,
+          reason: payload.note,
+          type: 'project_rejected',
+          dashboardUrl: this.ownerDashboardUrl,
+        },
+      });
+    } catch (error) {
+      const { message, stack } = getErrorDetails(error);
+      this.logger.error(`Failed to send project rejected notification: ${message}`, stack);
+    }
+  }
+
+  @OnEvent(MODERATION_EVENTS.CHANGES_SUBMITTED)
+  async handleProjectChangesSubmitted(payload: ModerationEventPayload) {
+    this.logger.log(`Handling project changes submitted event for project: ${payload.projectId}`);
+
+    try {
+      // Notify owner - System notification
+      await this.notificationService.create({
+        type: NotificationType.SYSTEM,
+        scope: NotificationScope.PROJECTS,
+        userId: payload.ownerId,
+        subject: 'Changes Submitted for Review',
+        message: `Your changes to "${payload.projectName}" have been submitted for review.`,
+        data: {
+          projectId: payload.projectId,
+          projectName: payload.projectName,
+          type: 'changes_submitted',
+          dashboardUrl: this.ownerDashboardUrl,
+        },
+      });
+    } catch (error) {
+      const { message, stack } = getErrorDetails(error);
+      this.logger.error(`Failed to send changes submitted notification: ${message}`, stack);
+    }
+  }
+
+  @OnEvent(MODERATION_EVENTS.CHANGES_APPROVED)
+  async handleProjectChangesApproved(payload: ModerationEventPayload) {
+    this.logger.log(`Handling project changes approved event for project: ${payload.projectId}`);
+
+    try {
+      // Notify owner - Email
+      await this.notificationService.create({
+        type: NotificationType.EMAIL,
+        scope: NotificationScope.PROJECTS,
+        userId: payload.ownerId,
+        recipient: payload.ownerEmail,
+        subject: `Your Changes to "${payload.projectName}" Have Been Approved`,
+        message: `Great news! The changes you submitted to "${payload.projectName}" have been approved and are now live.`,
+        data: {
+          projectId: payload.projectId,
+          projectName: payload.projectName,
+          ownerName: payload.ownerName,
+          dashboardUrl: this.ownerDashboardUrl,
+          year: new Date().getFullYear(),
+        },
+      });
+
+      // Notify owner - System notification
+      await this.notificationService.create({
+        type: NotificationType.SYSTEM,
+        scope: NotificationScope.PROJECTS,
+        userId: payload.ownerId,
+        subject: 'Changes Approved',
+        message: `Your changes to "${payload.projectName}" have been approved!`,
+        data: {
+          projectId: payload.projectId,
+          projectName: payload.projectName,
+          type: 'changes_approved',
+          dashboardUrl: this.ownerDashboardUrl,
+        },
+      });
+    } catch (error) {
+      const { message, stack } = getErrorDetails(error);
+      this.logger.error(`Failed to send changes approved notification: ${message}`, stack);
+    }
+  }
+
+  @OnEvent(MODERATION_EVENTS.CHANGES_REJECTED)
+  async handleProjectChangesRejected(payload: ModerationEventPayload) {
+    this.logger.log(`Handling project changes rejected event for project: ${payload.projectId}`);
+
+    try {
+      // Notify owner - Email
+      await this.notificationService.create({
+        type: NotificationType.EMAIL,
+        scope: NotificationScope.PROJECTS,
+        userId: payload.ownerId,
+        recipient: payload.ownerEmail,
+        subject: `Your Changes to "${payload.projectName}" Were Not Approved`,
+        message: `Your changes to "${payload.projectName}" were not approved.${payload.note ? ` Reason: ${payload.note}` : ' Please review and resubmit.'}`,
+        data: {
+          projectId: payload.projectId,
+          projectName: payload.projectName,
+          ownerName: payload.ownerName,
+          reason: payload.note,
+          dashboardUrl: this.ownerDashboardUrl,
+          year: new Date().getFullYear(),
+        },
+      });
+
+      // Notify owner - System notification
+      await this.notificationService.create({
+        type: NotificationType.SYSTEM,
+        scope: NotificationScope.PROJECTS,
+        userId: payload.ownerId,
+        subject: 'Changes Rejected',
+        message: `Your changes to "${payload.projectName}" were rejected.${payload.note ? ` ${payload.note}` : ''}`,
+        data: {
+          projectId: payload.projectId,
+          projectName: payload.projectName,
+          reason: payload.note,
+          type: 'changes_rejected',
+          dashboardUrl: this.ownerDashboardUrl,
+        },
+      });
+    } catch (error) {
+      const { message, stack } = getErrorDetails(error);
+      this.logger.error(`Failed to send changes rejected notification: ${message}`, stack);
     }
   }
 }

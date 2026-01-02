@@ -114,11 +114,61 @@ export class LicenseService {
   }
 
   /**
+   * Count free licenses (price = 0) owned by a user
+   */
+  countFreeLicenses(ownerId: string): Promise<number> {
+    return this.licenseRepository.count({
+      where: {
+        owner_id: ownerId,
+        price: 0,
+      },
+    });
+  }
+
+  /**
+   * Validate free license limit (one free license per owner)
+   */
+  private async validateFreeLicenseLimit(
+    ownerId: string,
+    price: number,
+    excludeLicenseId?: string,
+  ): Promise<void> {
+    // Only validate if this is a free license (price = 0)
+    if (price > 0) {
+      return;
+    }
+
+    // Count existing free licenses
+    let freeLicenseCount = await this.countFreeLicenses(ownerId);
+
+    // If updating an existing license, check if it was already free
+    if (excludeLicenseId) {
+      const currentLicense = await this.licenseRepository.findOne({
+        where: { id: excludeLicenseId },
+      });
+      // If the current license was free, don't count it against the limit
+      if (currentLicense && currentLicense.price === 0) {
+        freeLicenseCount -= 1;
+      }
+    }
+
+    // Each owner can only have one free license
+    if (freeLicenseCount >= 1) {
+      throw new BadRequestException(
+        'You can only create one free license. Additional licenses must have a price greater than 0.',
+      );
+    }
+  }
+
+  /**
    * Create a new license option for a project
    */
   async create(user: User, createLicenseDto: CreateLicenseDto): Promise<License> {
     // Validate deployment limit against owner's pool
     await this.validateDeploymentLimit(user.id, createLicenseDto.deployment_limit);
+
+    // Validate free license limit (one free license per owner)
+    await this.validateFreeLicenseLimit(user.id, createLicenseDto.price);
 
     // Check if all projects exist and user is the owner of each
     const projects = await Promise.all(
@@ -368,6 +418,18 @@ export class LicenseService {
     // Validate pricing updates if provided
     if (updateLicenseDto.price !== undefined && updateLicenseDto.price < 0) {
       throw new BadRequestException('Price cannot be negative');
+    }
+
+    // Prevent changing a free license to paid (once free, always free)
+    if (license.price === 0 && updateLicenseDto.price !== undefined && updateLicenseDto.price > 0) {
+      throw new BadRequestException(
+        'A free license cannot be converted to a paid license. Create a new paid license instead.',
+      );
+    }
+
+    // Validate free license limit if price is being set to 0
+    if (updateLicenseDto.price !== undefined) {
+      await this.validateFreeLicenseLimit(owner_id, updateLicenseDto.price, id);
     }
 
     // Validate deployment limit against pool if being updated

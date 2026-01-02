@@ -5,6 +5,7 @@ import { OrderStatus } from '@app/shared/enums';
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -213,6 +214,19 @@ export class OrderController {
       throw new UnauthorizedException('User not authenticated or missing ID');
     }
     return this.orderService.findOne(id, user.id);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Cancel a pending order (soft delete)' })
+  @ApiResponse({ status: 200, description: 'Order cancelled successfully' })
+  @ApiResponse({ status: 400, description: 'Only pending orders can be cancelled' })
+  @ApiResponse({ status: 404, description: 'Order not found' })
+  @ApiParam({ name: 'id', description: 'Order ID' })
+  cancelOrder(@CurrentUser() user: User, @Param('id') id: string) {
+    if (!user || !user.id) {
+      throw new UnauthorizedException('User not authenticated or missing ID');
+    }
+    return this.orderService.cancelPendingOrder(id, user.id);
   }
 
   @Get('admin/:id')

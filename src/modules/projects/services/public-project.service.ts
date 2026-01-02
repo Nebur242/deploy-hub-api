@@ -1,3 +1,4 @@
+import { ModerationStatus } from '@app/shared/enums';
 import { Injectable } from '@nestjs/common';
 
 import { ProjectSearchDto } from '../dto/project-search.dto';
@@ -12,6 +13,7 @@ export class PublicProjectService {
     return this.projectRepository.findAll(
       {
         visibility: Visibility.PUBLIC,
+        moderationStatus: ModerationStatus.APPROVED, // Only show approved projects
         techStack: searchDto.techStack,
         categoryIds: searchDto.categoryIds,
         search: searchDto.search,
@@ -41,10 +43,11 @@ export class PublicProjectService {
   async findOne(id: string): Promise<Project | null> {
     const project = await this.projectRepository.findOne(id);
 
-    // Only return the project if it's public
+    // Only return the project if it's public/featured AND approved
     if (
       project &&
-      (project.visibility === Visibility.PUBLIC || project.visibility === Visibility.FEATURED)
+      (project.visibility === Visibility.PUBLIC || project.visibility === Visibility.FEATURED) &&
+      project.moderation_status === ModerationStatus.APPROVED
     ) {
       return project;
     }

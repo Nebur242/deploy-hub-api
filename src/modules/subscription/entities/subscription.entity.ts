@@ -83,14 +83,23 @@ export class Subscription {
   @Column({ default: 1 })
   max_projects: number;
 
+  @Column({ default: 50 })
+  max_deployments: number; // Total deployment credits
+
+  @Column({ default: 0 })
+  total_deployments_used: number; // Total deployments used (lifetime)
+
   @Column({ default: 10 })
-  max_deployments_per_month: number;
+  max_deployments_per_month: number; // Monthly rate limit
 
   @Column({ default: 0 })
   deployments_this_month: number;
 
   @Column({ nullable: true })
   deployment_count_reset_at?: Date;
+
+  @Column({ default: 2 })
+  max_github_accounts: number; // Max GitHub accounts (each ~2000 actions/month)
 
   @Column({ default: false })
   custom_domain_enabled: boolean;

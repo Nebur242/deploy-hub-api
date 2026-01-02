@@ -13,6 +13,8 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 
+import { Coupon } from './coupon.entity';
+
 @Entity('orders')
 export class Order {
   @PrimaryGeneratedColumn('uuid')
@@ -26,6 +28,18 @@ export class Order {
 
   @Column()
   amount: number;
+
+  @Column({ nullable: true })
+  original_amount: number; // Amount before discount
+
+  @Column({ nullable: true })
+  discount_amount: number; // Discount applied
+
+  @Column({ nullable: true })
+  coupon_id: string;
+
+  @Column({ nullable: true })
+  coupon_code: string; // Store the code for reference
 
   @Column({
     type: 'enum',
@@ -74,6 +88,10 @@ export class Order {
   @ManyToOne(() => License)
   @JoinColumn({ name: 'license_id' })
   license: License;
+
+  @ManyToOne(() => Coupon, { nullable: true })
+  @JoinColumn({ name: 'coupon_id' })
+  coupon: Coupon;
 
   @OneToMany(() => Payment, payment => payment.order)
   payments: Payment[];

@@ -43,6 +43,7 @@ describe('EnvironmentVariables', function (this: void) {
         SMTP_PORT: 587, // As number
         STRIPE_SECRET_KEY: 'sk_test_stripe_secret_key',
         STRIPE_WEBHOOK_SECRET: 'whsec_test_webhook_secret',
+        STRIPE_PUBLISHABLE_KEY: 'pk_test_stripe_publishable_key',
       };
 
       // Act
@@ -96,6 +97,7 @@ describe('EnvironmentVariables', function (this: void) {
         SMTP_PORT: 587, // As number
         STRIPE_SECRET_KEY: 'sk_test_stripe_secret_key',
         STRIPE_WEBHOOK_SECRET: 'whsec_test_webhook_secret',
+        STRIPE_PUBLISHABLE_KEY: 'pk_test_stripe_publishable_key',
       };
 
       // Act
@@ -148,6 +150,7 @@ describe('EnvironmentVariables', function (this: void) {
         SMTP_PORT: 587, // As number
         STRIPE_SECRET_KEY: 'sk_test_stripe_secret_key',
         STRIPE_WEBHOOK_SECRET: 'whsec_test_webhook_secret',
+        STRIPE_PUBLISHABLE_KEY: 'pk_test_stripe_publishable_key',
       };
 
       // Act & Assert - should not throw error
@@ -302,6 +305,7 @@ describe('EnvironmentVariables', function (this: void) {
         SMTP_PORT: 587, // As number
         STRIPE_SECRET_KEY: 'sk_test_stripe_secret_key',
         STRIPE_WEBHOOK_SECRET: 'whsec_test_webhook_secret',
+        STRIPE_PUBLISHABLE_KEY: 'pk_test_stripe_publishable_key',
       };
 
       // Act
@@ -354,6 +358,7 @@ describe('EnvironmentVariables', function (this: void) {
         SMTP_PORT: 587, // As number
         STRIPE_SECRET_KEY: 'sk_test_stripe_secret_key',
         STRIPE_WEBHOOK_SECRET: 'whsec_test_webhook_secret',
+        STRIPE_PUBLISHABLE_KEY: 'pk_test_stripe_publishable_key',
       };
 
       // Act
@@ -404,6 +409,7 @@ describe('EnvironmentVariables', function (this: void) {
         SMTP_PORT: 587, // As number
         STRIPE_SECRET_KEY: 'sk_test_stripe_secret_key',
         STRIPE_WEBHOOK_SECRET: 'whsec_test_webhook_secret',
+        STRIPE_PUBLISHABLE_KEY: 'pk_test_stripe_publishable_key',
       };
 
       // Act
@@ -452,6 +458,7 @@ describe('EnvironmentVariables', function (this: void) {
         SMTP_PORT: 587, // As number
         STRIPE_SECRET_KEY: 'sk_test_stripe_secret_key',
         STRIPE_WEBHOOK_SECRET: 'whsec_test_webhook_secret',
+        STRIPE_PUBLISHABLE_KEY: 'pk_test_stripe_publishable_key',
       };
 
       // Act
@@ -508,6 +515,7 @@ describe('EnvironmentVariables', function (this: void) {
         EMAIL_TEMPLATES_DIR: './templates',
         STRIPE_SECRET_KEY: 'sk_test_stripe_secret_key',
         STRIPE_WEBHOOK_SECRET: 'whsec_test_webhook_secret',
+        STRIPE_PUBLISHABLE_KEY: 'pk_test_stripe_publishable_key',
       };
 
       // Act

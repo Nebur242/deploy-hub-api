@@ -1,6 +1,12 @@
 import { Project } from '@app/modules/projects/entities/project.entity';
+import { SubscriptionService } from '@app/modules/subscription/services';
 import { EncryptionService } from '@app/shared/encryption/encryption.service';
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
@@ -14,6 +20,7 @@ export class ProjectConfigurationService {
     @InjectRepository(ProjectConfiguration)
     private configRepository: Repository<ProjectConfiguration>,
     private readonly encryptService: EncryptionService,
+    private readonly subscriptionService: SubscriptionService,
   ) {}
 
   async findOne(id: string): Promise<ProjectConfiguration> {
@@ -99,6 +106,19 @@ export class ProjectConfigurationService {
         );
       }
 
+      // Validate GitHub accounts limit based on subscription
+      const subscription = await this.subscriptionService.getOrCreateSubscription(ownerId);
+      const requestedAccounts = createConfigDto.github_accounts?.length || 0;
+
+      if (
+        subscription.max_github_accounts !== -1 &&
+        requestedAccounts > subscription.max_github_accounts
+      ) {
+        throw new ForbiddenException(
+          `You can only add up to ${subscription.max_github_accounts} GitHub account(s) per configuration based on your subscription plan. Please upgrade to add more accounts.`,
+        );
+      }
+
       try {
         // Create the configuration - environment variables will be processed by entity hooks
 
@@ -172,6 +192,21 @@ export class ProjectConfigurationService {
         if (existingConfig) {
           throw new BadRequestException(
             `A configuration with this provider: ${updateConfigDto.deployment_option.provider} already exists for this project`,
+          );
+        }
+      }
+
+      // Validate GitHub accounts limit based on subscription (only if updating accounts)
+      if (updateConfigDto.github_accounts) {
+        const subscription = await this.subscriptionService.getOrCreateSubscription(ownerId);
+        const requestedAccounts = updateConfigDto.github_accounts.length;
+
+        if (
+          subscription.max_github_accounts !== -1 &&
+          requestedAccounts > subscription.max_github_accounts
+        ) {
+          throw new ForbiddenException(
+            `You can only add up to ${subscription.max_github_accounts} GitHub account(s) per configuration based on your subscription plan. Please upgrade to add more accounts.`,
           );
         }
       }

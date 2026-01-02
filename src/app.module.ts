@@ -19,8 +19,10 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { OrderModule } from './modules/order/order.module';
 import { PaymentModule } from './modules/payment/payment.module';
 import { ProjectsModule } from './modules/projects/projects.module';
+import { ReviewsModule } from './modules/reviews/reviews.module';
 import { StatisticsModule } from './modules/statistics/statistics.module';
 import { SubscriptionModule } from './modules/subscription/subscription.module';
+import { SupportModule } from './modules/support/support.module';
 import { TestHelpersModule } from './modules/test-helpers/test-helpers.module';
 import { UserModule } from './modules/users/users.module';
 
@@ -63,6 +65,10 @@ import { UserModule } from './modules/users/users.module';
         cache: true,
         autoLoadEntities: true,
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
+        // Ensure timestamps are stored and retrieved in UTC
+        extra: {
+          timezone: 'UTC',
+        },
       }),
     }),
     AuthModule,
@@ -78,8 +84,10 @@ import { UserModule } from './modules/users/users.module';
     DeploymentModule,
     HealthModule,
     NotificationsModule,
+    ReviewsModule,
     SubscriptionModule,
     StatisticsModule,
+    SupportModule,
   ],
   controllers: [AppController],
   providers: [AppService],

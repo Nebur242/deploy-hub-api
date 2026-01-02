@@ -216,6 +216,11 @@ export class EnvironmentVariables {
   @IsNotEmpty()
   @IsString()
   @Expose()
+  STRIPE_PUBLISHABLE_KEY: string;
+
+  @IsNotEmpty()
+  @IsString()
+  @Expose()
   STRIPE_WEBHOOK_SECRET: string;
 
   // Stripe Starter Plan Prices

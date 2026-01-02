@@ -13,7 +13,9 @@ export interface PlanConfig {
   name: string;
   description: string;
   maxProjects: number;
-  maxDeploymentsPerMonth: number;
+  maxDeployments: number; // Total deployment credits (license pool)
+  maxDeploymentsPerMonth: number; // Monthly rate limit
+  maxGithubAccounts: number; // Max GitHub accounts (each can do ~2000 actions/month)
   customDomainEnabled: boolean;
   prioritySupport: boolean;
   analyticsEnabled: boolean;
@@ -30,6 +32,7 @@ export class StripeService {
   private readonly webhookSecret: string;
 
   // Plan configuration
+  // maxGithubAccounts = ceil(maxDeploymentsPerMonth / 2000) + 1 (buffer)
   public readonly plans: Map<SubscriptionPlan, PlanConfig> = new Map([
     [
       SubscriptionPlan.FREE,
@@ -38,7 +41,9 @@ export class StripeService {
         name: 'Free',
         description: 'Perfect for trying out the platform',
         maxProjects: 1,
-        maxDeploymentsPerMonth: 10,
+        maxDeployments: 50, // Total credits
+        maxDeploymentsPerMonth: 10, // Monthly rate limit
+        maxGithubAccounts: 2, // ceil(10/2000) + 1 = 2
         customDomainEnabled: false,
         prioritySupport: false,
         analyticsEnabled: false,
@@ -53,7 +58,9 @@ export class StripeService {
         name: 'Starter',
         description: 'For growing businesses',
         maxProjects: 10,
-        maxDeploymentsPerMonth: 500,
+        maxDeployments: 2500, // Total credits
+        maxDeploymentsPerMonth: 500, // Monthly rate limit
+        maxGithubAccounts: 2, // ceil(500/2000) + 1 = 2
         customDomainEnabled: true,
         prioritySupport: false,
         analyticsEnabled: true,
@@ -68,7 +75,9 @@ export class StripeService {
         name: 'Pro',
         description: 'For professional teams',
         maxProjects: 50,
-        maxDeploymentsPerMonth: 2000,
+        maxDeployments: 10000, // Total credits
+        maxDeploymentsPerMonth: 2000, // Monthly rate limit
+        maxGithubAccounts: 2, // ceil(2000/2000) + 1 = 2
         customDomainEnabled: true,
         prioritySupport: true,
         analyticsEnabled: true,
@@ -83,7 +92,9 @@ export class StripeService {
         name: 'Enterprise',
         description: 'For large organizations',
         maxProjects: -1, // unlimited
-        maxDeploymentsPerMonth: -1, // unlimited
+        maxDeployments: -1, // unlimited credits
+        maxDeploymentsPerMonth: -1, // unlimited rate
+        maxGithubAccounts: -1, // unlimited accounts
         customDomainEnabled: true,
         prioritySupport: true,
         analyticsEnabled: true,

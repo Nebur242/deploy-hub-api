@@ -6,8 +6,10 @@ import { LicenseModule } from '../license/license.module';
 import { OrderModule } from '../order/order.module';
 import { UserModule } from '../users/users.module';
 import { PaymentController } from './controllers/payment.controller';
+import { StripeWebhookController } from './controllers/stripe-webhook.controller';
 import { Payment } from './entities/payment.entity';
 import { PaymentService } from './services/payment.service';
+import { StripeService } from './services/stripe.service';
 
 @Module({
   imports: [
@@ -16,8 +18,8 @@ import { PaymentService } from './services/payment.service';
     forwardRef(() => OrderModule),
     UserModule,
   ],
-  controllers: [PaymentController],
-  providers: [PaymentService],
-  exports: [PaymentService],
+  controllers: [PaymentController, StripeWebhookController],
+  providers: [PaymentService, StripeService],
+  exports: [PaymentService, StripeService],
 })
 export class PaymentModule {}

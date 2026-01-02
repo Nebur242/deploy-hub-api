@@ -1,5 +1,6 @@
 import { CurrentUser } from '@app/core/decorators/current-user.decorator';
 import { Admin, Authenticated } from '@app/core/guards/roles-auth.guard';
+import { Project } from '@app/modules/projects/entities/project.entity';
 import { User } from '@app/modules/users/entities/user.entity';
 import { Controller, Get, Param, Query, NotFoundException, ParseUUIDPipe } from '@nestjs/common';
 import {
@@ -10,10 +11,10 @@ import {
   ApiParam,
   ApiQuery,
 } from '@nestjs/swagger';
-import { IPaginationOptions, Pagination } from 'nestjs-typeorm-paginate';
+import { IPaginationMeta, IPaginationOptions, Pagination } from 'nestjs-typeorm-paginate';
 
 import { UserLicense } from '../entities/user-license.entity';
-import { UserLicenseService } from '../services/user-license.service';
+import { LicensedProjectsQueryDto, UserLicenseService } from '../services/user-license.service';
 
 /**
  * Controller handling user license operations.
@@ -86,6 +87,71 @@ export class UserLicenseController {
   })
   getActiveUserLicenses(@CurrentUser() user: User): Promise<UserLicense[]> {
     return this.userLicenseService.getActiveUserLicenses(user.id);
+  }
+
+  /**
+   * Get all projects that the current user has access to via active licenses
+   *
+   * @param user - The currently authenticated user
+   * @param page - Page number for pagination (default: 1)
+   * @param limit - Number of items per page (default: 10)
+   * @param visibility - Optional filter by project visibility
+   * @param search - Optional search term for project name or description
+   * @param licenseId - Optional filter by specific license ID
+   * @returns A paginated list of projects the user has access to through licenses
+   */
+  @Get('licensed-projects')
+  @ApiOperation({ summary: 'Get all projects accessible via active licenses' })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns a paginated list of projects the user has access to through licenses',
+  })
+  @ApiQuery({
+    name: 'page',
+    type: Number,
+    required: false,
+    description: 'Page number for pagination',
+  })
+  @ApiQuery({
+    name: 'limit',
+    type: Number,
+    required: false,
+    description: 'Number of items per page',
+  })
+  @ApiQuery({
+    name: 'visibility',
+    type: String,
+    required: false,
+    description: 'Filter by project visibility',
+  })
+  @ApiQuery({
+    name: 'search',
+    type: String,
+    required: false,
+    description: 'Search term for project name or description',
+  })
+  @ApiQuery({
+    name: 'licenseId',
+    type: String,
+    required: false,
+    description: 'Filter by specific license ID',
+  })
+  getLicensedProjects(
+    @CurrentUser() user: User,
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+    @Query('visibility') visibility?: string,
+    @Query('search') search?: string,
+    @Query('licenseId') licenseId?: string,
+  ): Promise<Pagination<Project, IPaginationMeta>> {
+    const query: LicensedProjectsQueryDto = {
+      page: Number(page),
+      limit: Number(limit),
+      visibility,
+      search,
+      licenseId,
+    };
+    return this.userLicenseService.getLicensedProjects(user.id, query);
   }
 
   /**

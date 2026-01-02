@@ -13,6 +13,8 @@ import {
   JoinColumn,
 } from 'typeorm';
 
+import { Coupon } from '../../order/entities/coupon.entity';
+
 export enum LicenseStatus {
   DRAFT = 'draft',
   PUBLIC = 'public',
@@ -90,6 +92,14 @@ export class License {
   })
   @ManyToMany(() => Project, project => project.licenses)
   projects: Project[];
+
+  @ApiPropertyOptional({
+    description: 'Coupons applicable to this license',
+    type: () => Coupon,
+    isArray: true,
+  })
+  @ManyToMany(() => Coupon, coupon => coupon.licenses)
+  coupons: Coupon[];
 
   @ApiProperty({
     description: 'Owner ID of the license',

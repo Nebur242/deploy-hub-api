@@ -52,6 +52,11 @@ export class DeploymentController {
     return this.deploymentOrchestratorService.createDeployment(createDeploymentDto, user);
   }
 
+  @Get('monthly-usage')
+  getMonthlyDeploymentUsage(@CurrentUser() user: User) {
+    return this.deploymentService.getMonthlyDeploymentUsage(user.id);
+  }
+
   @Get(':deploymentId')
   @ApiGetDeployment()
   async getDeployment(@Param('deploymentId') deploymentId: string, @CurrentUser() user: User) {

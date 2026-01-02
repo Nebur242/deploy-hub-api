@@ -126,12 +126,12 @@ export class Deployment {
     repositoryName: string;
   };
 
-  @CreateDateColumn({ name: 'created_at' })
+  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   created_at: Date;
 
-  @UpdateDateColumn({ name: 'updated_at' })
+  @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
   updated_at: Date;
 
-  @Column({ name: 'completed_at', nullable: true })
+  @Column({ name: 'completed_at', nullable: true, type: 'timestamptz' })
   completed_at: Date;
 }

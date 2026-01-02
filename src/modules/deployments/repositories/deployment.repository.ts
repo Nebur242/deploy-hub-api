@@ -217,12 +217,12 @@ export class DeploymentRepository {
 
     // Filter by project if provided
     if (filterDto.project_id) {
-      queryBuilder.where('deployment.project_id = :projectId', {
+      queryBuilder.andWhere('deployment.project_id = :projectId', {
         projectId: filterDto.project_id,
       });
     }
 
-    // Apply optional filters
+    // Filter by owner
     if (filterDto.owner_id) {
       queryBuilder.andWhere('deployment.owner_id = :ownerId', {
         ownerId: filterDto.owner_id,
@@ -299,6 +299,7 @@ export class DeploymentRepository {
   markAsFailed(id: string, errorMessage: string): Promise<Deployment> {
     return this.updateStatus(id, DeploymentStatus.FAILED, {
       error_message: errorMessage,
+      completed_at: new Date(),
     });
   }
 
@@ -723,6 +724,26 @@ export class DeploymentRepository {
     }
 
     const result = await query.getRawOne<CountRawResult>();
+    return parseInt(result?.count ?? '0', 10);
+  }
+
+  /**
+   * Count deployments for a user in the current month
+   * Used to enforce monthly deployment limits based on user's subscription plan
+   */
+  async countUserDeploymentsThisMonth(userId: string): Promise<number> {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+    const result = await this.repository
+      .createQueryBuilder('deployment')
+      .select('COUNT(*)', 'count')
+      .where('deployment.owner_id = :userId', { userId })
+      .andWhere('deployment.created_at >= :startOfMonth', { startOfMonth })
+      .andWhere('deployment.created_at <= :endOfMonth', { endOfMonth })
+      .getRawOne<CountRawResult>();
+
     return parseInt(result?.count ?? '0', 10);
   }
 }

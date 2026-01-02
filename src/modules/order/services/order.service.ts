@@ -6,6 +6,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { IPaginationOptions, paginate, Pagination } from 'nestjs-typeorm-paginate';
 import { Repository } from 'typeorm';
 
+import { CouponService } from './coupon.service';
 import { CreateOrderDto } from '../dto/create-order.dto';
 import { FilterOrdersDto } from '../dto/filter-orders.dto';
 import { Order } from '../entities/order.entity';
@@ -86,13 +87,14 @@ export class OrderService {
     private readonly orderRepository: Repository<Order>,
     private readonly licenseService: LicenseService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly couponService: CouponService,
   ) {}
 
   /**
    * Create a new order for a license purchase
    */
   async create(userId: string, createOrderDto: CreateOrderDto): Promise<Order> {
-    const { currency, license_id, ...rest } = createOrderDto;
+    const { currency, license_id, coupon_code, ...rest } = createOrderDto;
 
     // Verify the license option exists and get full details
     const license = await this.licenseService.findOne(license_id);
@@ -100,15 +102,49 @@ export class OrderService {
       throw new NotFoundException(`License with ID ${license_id} not found`);
     }
 
+    let finalAmount = license.price;
+    const originalAmount = license.price;
+    let discountAmount = 0;
+    let couponId: string | null = null;
+    let appliedCouponCode: string | null = null;
+
+    // Validate and apply coupon if provided
+    if (coupon_code) {
+      const validation = await this.couponService.validateCoupon(
+        coupon_code,
+        license_id,
+        license.price,
+      );
+
+      if (!validation.is_valid) {
+        throw new BadRequestException(validation.message || 'Invalid coupon code');
+      }
+
+      finalAmount = validation.final_amount;
+      discountAmount = validation.discount_amount;
+      appliedCouponCode = validation.code;
+
+      // Get coupon ID for reference
+      const coupon = await this.couponService.findByCode(coupon_code);
+      if (coupon) {
+        couponId = coupon.id;
+      }
+    }
+
     // Create a new order
-    const order = this.orderRepository.create({
+    const orderData: Partial<Order> = {
       ...rest,
       license_id,
       user_id: userId,
-      amount: license.price,
+      amount: finalAmount,
+      original_amount: originalAmount,
+      discount_amount: discountAmount,
+      coupon_id: couponId ?? undefined,
+      coupon_code: appliedCouponCode ?? undefined,
       currency: currency || license.currency,
       status: OrderStatus.PENDING,
-    });
+    };
+    const order = this.orderRepository.create(orderData);
 
     const savedOrder = await this.orderRepository.save(order);
 
@@ -262,6 +298,20 @@ export class OrderService {
   }
 
   /**
+   * Cancel a pending order (soft delete)
+   * Only the owner of the order can cancel it, and only if it's pending
+   */
+  async cancelPendingOrder(id: string, userId: string): Promise<Order> {
+    const order = await this.findOne(id, userId);
+
+    if (order.status !== OrderStatus.PENDING) {
+      throw new BadRequestException('Only pending orders can be cancelled');
+    }
+
+    return this.updateStatus(id, OrderStatus.CANCELLED);
+  }
+
+  /**
    * Update order status
    */
   async updateStatus(id: string, status: OrderStatus): Promise<Order> {
@@ -280,6 +330,16 @@ export class OrderService {
     if (status === OrderStatus.COMPLETED) {
       order.completed_at = new Date();
       order.is_active = true;
+
+      // Increment coupon usage if a coupon was applied
+      if (order.coupon_id) {
+        try {
+          await this.couponService.applyCoupon(order.coupon_id);
+          this.logger.log(`Applied coupon ${order.coupon_code} for order ${order.id}`);
+        } catch (error) {
+          this.logger.error(`Failed to apply coupon ${order.coupon_code}: ${error}`);
+        }
+      }
 
       // For subscription-based licenses, expiration is managed by Stripe
       // For one-time purchases (forever), no expiration is set
@@ -593,7 +653,7 @@ export class OrderService {
       .createQueryBuilder('order')
       .select('order.license_id', 'licenseId')
       .addSelect('license.name', 'licenseName')
-      .addSelect('COUNT(*)', 'orderCount')
+      .addSelect('COUNT(CASE WHEN order.status = :completed THEN 1 END)', 'orderCount')
       .addSelect(
         'COALESCE(SUM(CASE WHEN order.status = :completed THEN order.amount ELSE 0 END), 0)',
         'revenue',

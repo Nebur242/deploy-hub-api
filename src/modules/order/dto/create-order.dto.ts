@@ -72,6 +72,11 @@ export class CreateOrderDto {
   @IsOptional()
   currency?: Currency = Currency.USD;
 
+  @ApiProperty({ description: 'Coupon code for discount', required: false })
+  @IsString()
+  @IsOptional()
+  coupon_code?: string;
+
   @ApiProperty({ description: 'Additional notes for the order', required: false })
   @IsString()
   @IsOptional()

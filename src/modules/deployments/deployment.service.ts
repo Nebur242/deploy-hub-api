@@ -3,6 +3,7 @@ import {
   BadGatewayException,
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   Logger,
   NotFoundException,
@@ -43,6 +44,7 @@ import { UserLicenseService } from '../license/services/user-license.service';
 import { EnvironmentVariableDto } from '../project-config/dto/create-project-configuration.dto';
 import { ProjectConfiguration } from '../project-config/entities/project-configuration.entity';
 import { ProjectConfigurationService } from '../project-config/services/project-configuration.service';
+import { SubscriptionService } from '../subscription/services/subscription.service';
 import { User } from '../users/entities/user.entity';
 
 @Injectable()
@@ -60,6 +62,7 @@ export class DeploymentService {
     private readonly eventEmitter: EventEmitter2,
     private readonly githubAccountManager: GitHubAccountManagerService,
     private readonly concurrencyService: DeploymentConcurrencyService,
+    private readonly subscriptionService: SubscriptionService,
   ) {}
 
   /**
@@ -86,6 +89,12 @@ export class DeploymentService {
       this.logger.log(
         `[SERVICE] User ${serviceCreateDeploymentDto.owner_id} is the project owner for project ${project.id}. Creating deployment without user license validation.`,
       );
+    }
+
+    // Check monthly deployment limit based on user's subscription plan
+    // Skip this check for test deployments
+    if (!serviceCreateDeploymentDto.is_test) {
+      await this.checkMonthlyDeploymentLimit(serviceCreateDeploymentDto.owner_id);
     }
 
     // Validate GitHub accounts are available
@@ -834,8 +843,10 @@ export class DeploymentService {
       }
     }
 
-    // Update deployment status to CANCELED
-    await this.deploymentRepository.updateStatus(deploymentId, DeploymentStatus.CANCELED);
+    // Update deployment status to CANCELED with completed_at timestamp
+    await this.deploymentRepository.updateStatus(deploymentId, DeploymentStatus.CANCELED, {
+      completed_at: new Date(),
+    });
 
     // Release concurrency lock
     const lockReleased = this.concurrencyService.releaseLockByDeploymentId(deploymentId);
@@ -883,6 +894,89 @@ export class DeploymentService {
     return {
       success: true,
       message: 'Deployment cancelled successfully',
+    };
+  }
+
+  // ==================== LIMIT CHECKING METHODS ====================
+
+  /**
+   * Check if user has reached their monthly deployment limit
+   * Throws ForbiddenException if limit is exceeded
+   */
+  private async checkMonthlyDeploymentLimit(userId: string): Promise<void> {
+    // Get user's subscription to check their plan limits
+    const subscription = await this.subscriptionService.getOrCreateSubscription(userId);
+    const maxDeploymentsPerMonth = subscription.max_deployments_per_month;
+
+    // -1 means unlimited deployments
+    if (maxDeploymentsPerMonth === -1) {
+      this.logger.log(`[SERVICE] User ${userId} has unlimited monthly deployments`);
+      return;
+    }
+
+    // Count user's deployments this month
+    const deploymentsThisMonth =
+      await this.deploymentRepository.countUserDeploymentsThisMonth(userId);
+
+    this.logger.log(
+      `[SERVICE] User ${userId} has ${deploymentsThisMonth}/${maxDeploymentsPerMonth} deployments this month`,
+    );
+
+    if (deploymentsThisMonth >= maxDeploymentsPerMonth) {
+      throw new ForbiddenException(
+        `You have reached your monthly deployment limit of ${maxDeploymentsPerMonth} deployments. ` +
+          `Please upgrade your plan to deploy more.`,
+      );
+    }
+  }
+
+  /**
+   * Get user's monthly deployment usage
+   */
+  async getMonthlyDeploymentUsage(userId: string): Promise<{
+    monthly: {
+      used: number;
+      limit: number;
+      remaining: number;
+      unlimited: boolean;
+    };
+    credits: {
+      used: number;
+      total: number;
+      remaining: number;
+      unlimited: boolean;
+    };
+  }> {
+    // Get monthly rate limit from subscription
+    const subscription = await this.subscriptionService.getOrCreateSubscription(userId);
+    const monthlyLimit = subscription.max_deployments_per_month;
+    const monthlyUsed = subscription.deployments_this_month;
+
+    // Cap displayed monthly usage at limit (handles edge cases like plan downgrades)
+    const displayedMonthlyUsed =
+      monthlyLimit === -1 ? monthlyUsed : Math.min(monthlyUsed, monthlyLimit);
+
+    // Get total deployment credits from subscription
+    const totalCredits = subscription.max_deployments;
+    const usedCredits = subscription.total_deployments_used;
+
+    // Cap displayed credits at total (if not unlimited)
+    const displayedUsedCredits =
+      totalCredits === -1 ? usedCredits : Math.min(usedCredits, totalCredits);
+
+    return {
+      monthly: {
+        used: displayedMonthlyUsed,
+        limit: monthlyLimit,
+        remaining: monthlyLimit === -1 ? -1 : Math.max(0, monthlyLimit - monthlyUsed),
+        unlimited: monthlyLimit === -1,
+      },
+      credits: {
+        used: displayedUsedCredits,
+        total: totalCredits,
+        remaining: totalCredits === -1 ? -1 : Math.max(0, totalCredits - usedCredits),
+        unlimited: totalCredits === -1,
+      },
     };
   }
 
